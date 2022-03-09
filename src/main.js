@@ -41,6 +41,12 @@ Vue.use(HIDDevice, {
 //   reconnectionDelay: 3000,
 //   format: 'json',
 // })
+//? add modal
+import Modal from "@burhanahmeed/vue-modal-2";
+Vue.use(Modal, {
+  componentName: "ModalVue"
+});
+
 
 new Vue({
   store,

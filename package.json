@@ -7,6 +7,7 @@
     "build": "vue-cli-service build"
   },
   "dependencies": {
+    "@burhanahmeed/vue-modal-2": "^1.1.11",
     "chart.js": "^2.9.4",
     "core-js": "^3.6.5",
     "highcharts": "^9.1.1",
@@ -18,6 +19,7 @@
     "vue-resource": "^1.5.2",
     "vue-router": "^3.5.1",
     "vue-simple-progress": "^1.1.1",
+    "vue2-datepicker": "^3.10.4",
     "vuex": "^3.4.0"
   },
   "devDependencies": {

@@ -1,21 +1,38 @@
 <template>
   <div class="Graph">
-    <Dropdown
-      class="channel-dropdown"
-      :options="channelsList"
-      :selected="selectedChannel"
-      :placeholder="'Select channel to plot'"
-      v-on:updateOption="onSelectedChannel"
-    >
-    </Dropdown>
-    <div class="chart-container">
-      <datalog-chart ref="datalogChart" />
+    <ul class="bt-container">
+      <div class="sync-container">
+        <button class="sync-bt" @click="syncOfflineDatalogRecords()">
+          Sync Data
+        </button>
+      </div>
+      <div class="delete-container">
+        <button class="delete-bt" @click="$vm2.open('modal')">
+          Delete data from GoGoBoard
+        </button>
+      </div>
+    </ul>
+    <div class="datapicker">
+      <div class="datepciker-container">
+        <date-picker
+          v-model="dateTimeOffset"
+          type="datetime"
+          placeholder="Select datetime "
+          value-type="timestamp"
+          @change="onSelectedDate()"
+        ></date-picker>
+      </div>
+      <div class="dropdown-container">
+        <Dropdown
+          class="channel-dropdown"
+          :options="channelsList"
+          :selected="selectedChannel"
+          :placeholder="'Select channel to plot'"
+          v-on:updateOption="onSelectedChannel"
+        >
+        </Dropdown>
+      </div>
     </div>
-    <div id="container">
-      {{ offlineDatalogStatus }}
-      {{ computePacket }}
-    </div>
-
     <div class="progress-bar">
       <progress-bar
         v-if="startRetrivedOfflineDatalog"
@@ -24,14 +41,38 @@
         :val="percentage"
       />
     </div>
-    <br />
-    <br />
-    <ul class="bt-container">
-      <button class="item" @click="syncOfflineDatalogRecords()">
-        Sync Data
-      </button>
-      <button class="item" @click="clearData()">Clear</button>
-    </ul>
+    <div id="container">
+      {{ offlineDatalogStatus }}
+      {{ computePacket }}
+    </div>
+    <hr />
+    <div class="chart-container">
+      <datalog-chart ref="datalogChart" />
+    </div>
+    <div class="modals">
+      <modal-vue
+        @on-close="$vm2.close('modal')"
+        name="modal"
+        noHeader
+        :footerOptions="{
+          btn1: 'Cancel',
+          btn2: 'Delete',
+          btn2Style: {
+            backgroundColor: 'red',
+          },
+          btn2OnClick: () => {
+            clearData();
+          },
+          btn1OnClick: () => {
+            $vm2.close('modal');
+          },
+        }"
+      >
+        <div>
+          <p>Want to delete the data?</p>
+        </div>
+      </modal-vue>
+    </div>
   </div>
 </template>
 
@@ -41,6 +82,8 @@ import { CONST } from "@/store/const";
 import DatalogChart from "@/components/Chart.vue";
 import Dropdown from "vue-dropdowns";
 import ProgressBar from "vue-simple-progress";
+import DatePicker from "vue2-datepicker";
+import "vue2-datepicker/index.css";
 
 export default {
   name: "Graph",
@@ -48,6 +91,7 @@ export default {
     DatalogChart,
     Dropdown,
     ProgressBar,
+    DatePicker,
   },
   data: function () {
     return {
@@ -66,6 +110,9 @@ export default {
       selectedChannel: {
         name: "selete channel",
       },
+      dateTimeOffset: null,
+      timestamp: 0,
+      renderData: null,
     };
   },
   props: {
@@ -89,11 +136,31 @@ export default {
 
     onSelectedChannel(payload) {
       this.selectedChannel = payload;
-      let nRecords = 0;
+      this.updateRenderGraph();
+    },
+    
+    //? Add function for refresh date on you pick
+    onSelectedDate() {
+      if (this.datalogRecords[this.selectedChannel["name"]]) {
+        this.updateRenderGraph();
+      }
+    },
 
+    updateRenderGraph() {
+      let nRecords = 0;
+      this.renderData = structuredClone(
+        this.datalogRecords[this.selectedChannel["name"]]
+      ); //Deep Copy
+      if (this.dateTimeOffset != null) {
+        this.renderData.forEach((field) => {
+          for (let i = 0; i < field["data"].length; i++) {
+            field["data"][i][0] += this.dateTimeOffset;
+          }
+          return field["data"];
+        });
+      }
       //* pass new series data to highcharts
-      this.$refs.datalogChart.chartOptions.series =
-        this.datalogRecords[this.selectedChannel["name"]];
+      this.$refs.datalogChart.chartOptions.series = this.renderData;
 
       this.datalogRecords[this.selectedChannel["name"]].forEach((eachField) => {
         nRecords += eachField["data"].length;
@@ -298,6 +365,8 @@ export default {
         cmdList[CONST.command_id_index] = CONST.rcmd_clear_offline_datalog;
 
         this.sendCommand(cmdList, null);
+        alert("Data in GoGoBoard has been deleted");
+        this.$vm2.close("modal");
       }
     },
   },
@@ -327,7 +396,14 @@ textarea {
   width: 500px;
   height: 200px;
 }
-
+.Graph {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+}
 .chart-container {
   width: 85%;
   margin: auto;
@@ -340,33 +416,83 @@ textarea {
 
 .bt-container {
   display: flex;
-  justify-content: space-evenly;
-  width: 15%;
-  margin: auto;
+  justify-content: center;
+  height: 2em;
+  align-items: center;
+  padding: auto 100%;
+  width: 100%;
+}
+.datapicker {
+  display: flex;
+  justify-content: center;
+  height: 2em;
+  margin: 0.5em;
+  align-items: center;
+  width: 100%;
 }
 
 button {
   font-size: 0.8em;
   cursor: pointer;
   outline: none;
-  padding: 0.75em 2em;
+  text-align: center;
+  padding: 2px 30px;
+  margin: 0.5em 0em 0.5em;
   border-radius: 2em;
-  display: inline-block;
-  color: #09af32;
+  display: inline;
   background-color: transparent;
   transition: all 0.15s ease;
-  box-sizing: border-box;
-  border: 1px solid #09af32;
-}
-
-button.alt {
-  color: #fff;
-  background-color: #851e3e;
+  height: 3em;
 }
 
 .channel-dropdown {
   border-radius: 5px;
+  margin: 0.5em 1em;
+}
+
+.sync-bt {
+  color: #09af32;
+  border: 1px solid #09af32;
+}
+.delete-bt {
+  color: #eb4e4e;
+  border: 1px solid #eb4e4e;
+}
+.sync-container {
+  display: flex;
+  justify-content: end;
+  width: 50%;
+  margin-right: 1%;
+}
+.delete-container {
+  display: flex;
+  justify-content: start;
+  width: 50%;
+  margin-left: 1%;
+}
+.dropdown-container {
+  display: flex;
+  justify-content: start;
+  width: 50%;
+  margin-left: 2%;
+}
+.datepciker-container {
+  display: flex;
+  justify-content: end;
+  width: 50%;
+  margin-right: 2%;
+}
+button.sync-bt:hover {
+  background-color: rgba(115, 238, 125, 0.3);
+}
+button.delete-bt:hover {
+  background-color: #fdc9c9;
+}
+.datapicker date-picker {
+  margin: 0.5em 1em;
+  border-radius: 5px;
+}
+.Graph p {
+  margin: 0.5em;
 }
 </style>
-
-
