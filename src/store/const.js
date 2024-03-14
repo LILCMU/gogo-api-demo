@@ -25,7 +25,7 @@ export const CONST = {
     offline_datalog_status_lookup_table: 5,
     offline_datalog_status_records: 6,
 
-    offline_datalog_record_size: 16,
+    offline_datalog_record_size: 10,
 
     sensor_count: 4,
     sensor_start_index: 1,

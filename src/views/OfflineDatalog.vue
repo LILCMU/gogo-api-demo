@@ -1,37 +1,19 @@
 <template>
   <div class="Graph">
     <div class="datapicker">
-        <date-picker
-          v-model="dateTimeOffset"
-          type="datetime"
-          placeholder="select offset timestamp"
-          value-type="timestamp"
-          @change="onSelectedDate()"
-        ></date-picker>
-        <Dropdown
-          class="channel-dropdown"
-          :options="channelsList"
-          :selected="selectedChannel"
-          :placeholder="'Select channel to plot'"
-          v-on:updateOption="onSelectedChannel"
-        >
-        </Dropdown>
+      <date-picker v-model="dateTimeOffset" type="datetime" placeholder="select offset timestamp" value-type="timestamp"
+        @change="onSelectedDate()"></date-picker>
     </div>
     <ul class="bt-container">
-        <button class="sync-bt" @click="syncOfflineDatalogRecords()">
-          Sync Data
-        </button>
-        <button class="delete-bt" @click="$vm2.open('modal')">
-          Delete Data
-        </button>
+      <button class="sync-bt" @click="syncOfflineDatalogRecords()">
+        Sync Data
+      </button>
+      <button class="delete-bt" @click="$vm2.open('modal')">
+        Delete Data
+      </button>
     </ul>
     <div class="progress-bar">
-      <progress-bar
-        v-if="startRetrivedOfflineDatalog"
-        size="medium"
-        bar-color="	#7CFC00"
-        :val="percentage"
-      />
+      <progress-bar v-if="startRetrivedOfflineDatalog" size="medium" bar-color="	#7CFC00" :val="percentage" />
     </div>
     <div id="container">
       {{ offlineDatalogStatus }}
@@ -41,24 +23,19 @@
       <datalog-chart ref="datalogChart" />
     </div>
     <div class="modals">
-      <modal-vue
-        @on-close="$vm2.close('modal')"
-        name="modal"
-        noHeader
-        :footerOptions="{
-          btn1: 'Cancel',
-          btn2: 'Delete',
-          btn2Style: {
-            backgroundColor: 'red',
-          },
-          btn2OnClick: () => {
-            clearData();
-          },
-          btn1OnClick: () => {
-            $vm2.close('modal');
-          },
-        }"
-      >
+      <modal-vue @on-close="$vm2.close('modal')" name="modal" noHeader :footerOptions="{
+        btn1: 'Cancel',
+        btn2: 'Delete',
+        btn2Style: {
+          backgroundColor: 'red',
+        },
+        btn2OnClick: () => {
+          clearData();
+        },
+        btn1OnClick: () => {
+          $vm2.close('modal');
+        },
+      }">
         <div>
           <p>Are you sure you want to delete data from GoGoBoard ?</p>
         </div>
@@ -97,10 +74,6 @@ export default {
       lookupTableFileSize: 0,
       datalogRecordsFileSize: 0,
       percentage: 0,
-      channelsList: [],
-      selectedChannel: {
-        name: "select channel",
-      },
       dateTimeOffset: null,
       timestamp: 0,
       renderData: null,
@@ -120,30 +93,22 @@ export default {
       }
     },
   },
-  mounted() {},
-  created() {},
+  mounted() { },
+  created() { },
   methods: {
     ...mapActions(["sendHID", "clearResponseHID"]),
 
-    onSelectedChannel(payload) {
-      this.selectedChannel = payload;
-      this.updateRenderGraph();
-    },
-    
     //? Add function for refresh date on you pick
     onSelectedDate() {
-      if (this.datalogRecords[this.selectedChannel["name"]]) {
+      if (this.datalogRecords) {
         this.updateRenderGraph();
       }
     },
 
     updateRenderGraph() {
       let nRecords = 0;
-      this.renderData = structuredClone(
-        this.datalogRecords[this.selectedChannel["name"]]
-      ); //Deep Copy
       if (this.dateTimeOffset != null) {
-        this.renderData.forEach((field) => {
+        this.datalogRecords.forEach((field) => {
           for (let i = 0; i < field["data"].length; i++) {
             field["data"][i][0] += this.dateTimeOffset;
           }
@@ -151,49 +116,40 @@ export default {
         });
       }
       //* pass new series data to highcharts
-      this.$refs.datalogChart.chartOptions.series = this.renderData;
+      this.$refs.datalogChart.chartOptions.series = this.datalogRecords;
 
-      this.datalogRecords[this.selectedChannel["name"]].forEach((eachField) => {
+      this.datalogRecords.forEach((eachField) => {
         nRecords += eachField["data"].length;
       });
-      this.offlineDatalogStatus =
-        this.selectedChannel.name + " with " + nRecords + " records.";
+
+      return "Retrieve a total of " + nRecords + " records.";
     },
 
     splitRecordsToChartSeries: function (retrievedRecords) {
-      let chartSeries = {};
+      let chartSeries = [];
       retrievedRecords.forEach((record) => {
-        //! if channel exist
-        if (record[1] in chartSeries) {
-          //* every() -> it stops iterating through the array whenever the callback function returns a falsy value.
-          let notFoundExistField = chartSeries[record[1]].every(
-            (eachFieldInChannel) => {
-              //! if field exist need to return false
-              if (eachFieldInChannel["name"] == record[2]) {
-                eachFieldInChannel["data"].push([record[0], record[3]]);
-                return false;
-              }
-              return true;
+        //* every() -> it stops iterating through the array whenever the callback function returns a falsy value.
+        let notFoundExistField = chartSeries.every(
+          (eachFieldInChannel) => {
+            //! if field exist need to return false
+            if (eachFieldInChannel["name"] == record[1]) {
+              eachFieldInChannel["data"].push([record[0], record[2]]);
+              return false;
             }
-          );
-          //! in case of field not exist
-          if (notFoundExistField) {
-            chartSeries[record[1]].push({
-              name: record[2],
-              data: [[record[0], record[3]]],
-              animation: false,
-            });
+            return true;
           }
-        } else {
-          chartSeries[record[1]] = [
-            {
-              name: record[2],
-              data: [[record[0], record[3]]],
-              animation: false,
-            },
-          ];
+        );
+        //! in case of field not exist
+        if (notFoundExistField) {
+          chartSeries.push({
+            name: record[1],
+            data: [[record[0], record[2]]],
+            animation: false,
+          });
+          // console.log('field not exist: ', chartSeries)
         }
       });
+      // console.log('chart: ', chartSeries)
 
       //? sorted by timestamp without changing value ascending
       // for (const [key, channelRecords] of Object.entries(chartSeries)) {
@@ -279,15 +235,12 @@ export default {
           records.forEach((record) => {
             this.datalogRecords.push([
               parseInt(
-                new BigUint64Array(new Uint8Array(record.slice(0, 8)).buffer)[0]
-              ),
+                new Uint32Array(new Uint8Array(record.slice(0, 4)).buffer)[0]
+              ) * 1000,
               this.lookupTable[
-                new Uint16Array(new Uint8Array(record.slice(8, 10)).buffer)[0]
+              new Uint16Array(new Uint8Array(record.slice(4, 6)).buffer)[0]
               ],
-              this.lookupTable[
-                new Uint16Array(new Uint8Array(record.slice(10, 12)).buffer)[0]
-              ],
-              new Float32Array(new Uint8Array(record.slice(12, 16)).buffer)[0],
+              new Float32Array(new Uint8Array(record.slice(6, 10)).buffer)[0],
             ]);
           });
           this.dataChunk = [];
@@ -296,20 +249,13 @@ export default {
           this.datalogRecords = this.splitRecordsToChartSeries(
             this.datalogRecords
           );
-          console.log(this.datalogRecords);
+          // console.log(this.datalogRecords);
 
-          //todo - push channel to dropdown list
-          this.channelsList = [];
-          Object.keys(this.datalogRecords).forEach((channel) => {
-            this.channelsList.push({
-              name: channel,
-            });
-          });
           //? clearing all related data stream variables
           this.startRetrivedOfflineDatalog = false;
           this.clearResponseHID();
 
-          return "done... please select channel from dropdown list.";
+          return this.updateRenderGraph();
         }
 
         return "Syncing...";
@@ -413,7 +359,7 @@ textarea {
   height: 1em;
   align-items: center;
   width: 100%;
-  margin-bottom: 3em; 
+  margin-bottom: 3em;
 }
 
 .datapicker {
@@ -426,13 +372,13 @@ textarea {
 }
 
 .sync-bt {
-color: #09af32;
-border: 1px solid #09af32;
+  color: #09af32;
+  border: 1px solid #09af32;
 }
 
 .delete-bt {
-color: #eb4e4e;
-border: 1px solid #eb4e4e;
+  color: #eb4e4e;
+  border: 1px solid #eb4e4e;
 }
 
 button {
@@ -450,11 +396,11 @@ button {
 }
 
 button.sync-bt:hover {
-    background-color: rgba(115, 238, 125, 0.3);
+  background-color: rgba(115, 238, 125, 0.3);
 }
 
 button.delete-bt:hover {
-    background-color: #fdc9c9;
+  background-color: #fdc9c9;
 }
 
 .channel-dropdown {
