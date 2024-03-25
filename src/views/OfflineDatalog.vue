@@ -166,10 +166,7 @@ export default {
 
         //todo - update progress percentage by retrieved file size
         if (this.datalogRecordsFileSize + this.lookupTableFileSize) {
-          this.percentage +=
-            (packet.size /
-              (this.datalogRecordsFileSize + this.lookupTableFileSize)) *
-            100;
+          this.percentage += (packet.size / (this.datalogRecordsFileSize + this.lookupTableFileSize)) * 100;
         }
 
         if (packet.status == CONST.offline_datalog_status_empty) {
@@ -179,17 +176,12 @@ export default {
           return "this file is empty";
         }
 
-        //todo - retrieve files size
+        // NOTE: - retrieve files size
         else if (packet.status == CONST.offline_datalog_status_file_size) {
           let startPoint = 0;
           for (let i = 0; i < packet.size; i++) {
             if (String.fromCharCode(this.dataChunk[i]) == "\n") {
-              let tmpSize = parseInt(
-                String.fromCharCode.apply(
-                  String,
-                  this.dataChunk.slice(startPoint, i)
-                )
-              );
+              let tmpSize = parseInt(String.fromCharCode.apply(String, this.dataChunk.slice(startPoint, i)));
               !startPoint
                 ? (this.lookupTableFileSize = tmpSize)
                 : (this.datalogRecordsFileSize = tmpSize);
@@ -198,30 +190,28 @@ export default {
           }
           this.dataChunk = [];
           startPoint = 0;
+
           console.log(this.lookupTableFileSize, this.datalogRecordsFileSize);
           return "retrieved file size...";
         }
 
-        //todo - retrieve lookup table
+        // NOTE: - retrieve lookup table
         else if (packet.status == CONST.offline_datalog_status_lookup_table) {
           let startPoint = 0;
           for (let i = 0; i < this.lookupTableFileSize; i++) {
             if (String.fromCharCode(this.dataChunk[i]) == ",") {
-              this.lookupTable.push(
-                String.fromCharCode.apply(
-                  String,
-                  this.dataChunk.slice(startPoint, i)
-                )
-              );
+              this.lookupTable.push(String.fromCharCode.apply(String, this.dataChunk.slice(startPoint, i)));
               startPoint = i + 1;
             }
           }
           this.dataChunk = [];
+
           console.log(this.lookupTable);
+          console.time('retrieve_records')
           return "retrieved lookup table...";
         }
 
-        //todo - retrieve datalog records
+        // NOTE: - retrieve datalog records and parseing each record
         else if (packet.status == CONST.offline_datalog_status_records) {
           let eachRecord = [];
           let records = [];
@@ -233,8 +223,8 @@ export default {
               eachRecord = [];
             }
           }
-          console.timeEnd('receive_records')
-          // console.log(records)
+          console.timeEnd('retrieve_records')
+          this.debugEnabled(false);
 
           console.time('parse_records')
           records.forEach((record) => {
@@ -251,20 +241,17 @@ export default {
           this.dataChunk = [];
 
           console.timeEnd('parse_records')
+          // console.log(records)
 
-          //todo - convert retrieved records to highcharts series object
+          // NOTE: - convert retrieved records to highcharts series object
           console.time('parse_charts')
-          this.datalogRecords = this.splitRecordsToChartSeries(
-            this.datalogRecords
-          );
+          this.datalogRecords = this.splitRecordsToChartSeries(records);
           console.timeEnd('parse_charts')
           // console.log(this.datalogRecords);
 
           //? clearing all related data stream variables
           this.startRetrivedOfflineDatalog = false;
           this.clearResponseHID();
-
-          this.debugEnabled(false);
 
           return this.updateRenderGraph();
         }
