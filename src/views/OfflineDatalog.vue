@@ -213,34 +213,25 @@ export default {
 
         // NOTE: - retrieve datalog records and parseing each record
         else if (packet.status == CONST.offline_datalog_status_records) {
-          let eachRecord = [];
-          let records = [];
-          console.time('receive_records')
-          for (let i = 1; i <= this.datalogRecordsFileSize; i++) {
-            eachRecord.push(this.dataChunk[i - 1]);
-            if (i % CONST.offline_datalog_record_size == 0) {
-              records.push(eachRecord);
-              eachRecord = [];
-            }
-          }
           console.timeEnd('retrieve_records')
           this.debugEnabled(false);
 
-          console.time('parse_records')
-          records.forEach((record) => {
-            this.datalogRecords.push([
-              parseInt(
-                new Uint32Array(new Uint8Array(record.slice(0, 4)).buffer)[0]
-              ) * 1000,
-              this.lookupTable[
-              new Uint16Array(new Uint8Array(record.slice(4, 6)).buffer)[0]
-              ],
-              new Float32Array(new Uint8Array(record.slice(6, 10)).buffer)[0],
-            ]);
-          });
-          this.dataChunk = [];
+          console.time('parse_records');
+          const records = [];
+          const recordCount = this.datalogRecordsFileSize / CONST.offline_datalog_record_size;
+          const dataView = new DataView(new Uint8Array(this.dataChunk).buffer);
 
-          console.timeEnd('parse_records')
+          for (let i = 0; i < recordCount; i++) {
+            const startIndex = i * CONST.offline_datalog_record_size;
+
+            const timestamp = dataView.getUint32(startIndex, true) * 1000;
+            const lookupIndex = dataView.getUint16(startIndex + 4, true);
+            const value = dataView.getFloat32(startIndex + 6, true);
+
+            records.push([timestamp, this.lookupTable[lookupIndex], value]);
+          }
+          console.timeEnd('parse_records');
+          this.dataChunk = []; // clear existing data chunk
           // console.log(records)
 
           // NOTE: - convert retrieved records to highcharts series object
