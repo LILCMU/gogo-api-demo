@@ -96,7 +96,7 @@ export default {
   mounted() { },
   created() { },
   methods: {
-    ...mapActions(["sendHID", "clearResponseHID"]),
+    ...mapActions(["sendHID", "clearResponseHID", "debugEnabled"]),
 
     //? Add function for refresh date on you pick
     onSelectedDate() {
@@ -225,6 +225,7 @@ export default {
         else if (packet.status == CONST.offline_datalog_status_records) {
           let eachRecord = [];
           let records = [];
+          console.time('receive_records')
           for (let i = 1; i <= this.datalogRecordsFileSize; i++) {
             eachRecord.push(this.dataChunk[i - 1]);
             if (i % CONST.offline_datalog_record_size == 0) {
@@ -232,6 +233,10 @@ export default {
               eachRecord = [];
             }
           }
+          console.timeEnd('receive_records')
+          // console.log(records)
+
+          console.time('parse_records')
           records.forEach((record) => {
             this.datalogRecords.push([
               parseInt(
@@ -245,15 +250,21 @@ export default {
           });
           this.dataChunk = [];
 
+          console.timeEnd('parse_records')
+
           //todo - convert retrieved records to highcharts series object
+          console.time('parse_charts')
           this.datalogRecords = this.splitRecordsToChartSeries(
             this.datalogRecords
           );
+          console.timeEnd('parse_charts')
           // console.log(this.datalogRecords);
 
           //? clearing all related data stream variables
           this.startRetrivedOfflineDatalog = false;
           this.clearResponseHID();
+
+          this.debugEnabled(false);
 
           return this.updateRenderGraph();
         }
@@ -292,6 +303,8 @@ export default {
         cmdList[CONST.command_id_index] = CONST.rcmd_get_offline_datalog;
 
         this.sendCommand(cmdList, null);
+
+        this.debugEnabled(true);
       }
     },
 

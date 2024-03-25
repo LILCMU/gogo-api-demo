@@ -24,6 +24,10 @@ export default new Vuex.Store({
       data: 0,
       size: 0,
       status: 0
+    },
+    debug: {
+      enabled: false,
+      message: [],
     }
   },
   mutations: {
@@ -44,6 +48,9 @@ export default new Vuex.Store({
     [HID_ONINPUTREPORT](state, message) {
       if (message != undefined) {
         if (message[0] == CONST.response_packet_type) {
+          if (state.debug.enabled) {
+            state.debug.message.push(message)
+          }
           state.response.size = message[1]
           state.response.command = message[2]
           state.response.status = message[3]
@@ -67,6 +74,11 @@ export default new Vuex.Store({
       state.response.status = 0
       state.response.data = 0
       state.response.command = 0
+    },
+    set_debug_state(state, enabled) {
+      state.debug.enabled = enabled
+      console.log(state.debug.message)
+      state.debug.message = []
     }
   },
   actions: {
@@ -81,6 +93,9 @@ export default new Vuex.Store({
     },
     clearResponseHID: function (context) {
       context.commit('clear_response_socket')
+    },
+    debugEnabled: function(context, enabled) {
+      context.commit('set_debug_state', enabled)
     }
   },
   modules: {
