@@ -161,7 +161,7 @@ export default {
     },
 
     unpackOfflineDatalogPackets: function (packet) {
-      if (packet.data) {
+      if (packet.data && packet.command == CONST.rcmd_get_offline_datalog) {
         this.dataChunk.push.apply(this.dataChunk, packet.data);
 
         //todo - update progress percentage by retrieved file size
@@ -178,6 +178,7 @@ export default {
 
         // NOTE: - retrieve files size
         else if (packet.status == CONST.offline_datalog_status_file_size) {
+          console.log('filesize', this.dataChunk)
           let startPoint = 0;
           for (let i = 0; i < packet.size; i++) {
             if (String.fromCharCode(this.dataChunk[i]) == "\n") {
@@ -197,6 +198,7 @@ export default {
 
         // NOTE: - retrieve lookup table
         else if (packet.status == CONST.offline_datalog_status_lookup_table) {
+          console.log('LUT', this.dataChunk)
           let startPoint = 0;
           for (let i = 0; i < this.lookupTableFileSize; i++) {
             if (String.fromCharCode(this.dataChunk[i]) == ",") {
