@@ -33,6 +33,18 @@
     </div>
 
     <div>
+      <h3>Logo Opcodes</h3>
+      <br />
+      <div>
+        <textarea v-model="logoOpcodes" placeholder="Enter the logo opcodes">
+        </textarea>
+        <div></div>
+
+        <button @click="downloadOpcodeToBoard()">Download</button>
+      </div>
+    </div>
+
+    <div>
       <h3>Raw commands</h3>
       <br />
       <div>
@@ -55,6 +67,7 @@ export default {
   data: function () {
     return {
       logoProgram: "",
+      logoOpcodes: "",
       cmdCategory: 0,
       cmdID: 0,
       cmdParams: "",
@@ -144,6 +157,11 @@ export default {
     },
 
     downloadOpcodeToBoard: function (logoOpcode) {
+      if (!logoOpcode && this.logoOpcodes && this.boardStatus) {
+        logoOpcode = JSON.parse(this.logoOpcodes)
+      }
+      console.info(logoOpcode)
+
       this.setLogoMemoryPointer(() => {
         this.writeLogoMemory(
           logoOpcode,
