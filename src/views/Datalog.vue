@@ -23,13 +23,16 @@
       </button>
     </ul>
     <div class="progress-bar">
-      <progress-bar v-if="startRetrivedOfflineDatalog" size="medium" bar-color="	#7CFC00" :val="percentage" />
+      <progress-bar v-if="startRetrivedOfflineDatalog" size="medium" :bar-color="progressBarColor" :val="percentage" />
     </div>
     <div id="container">
       {{ offlineDatalogStatus }}
       {{ computePacket }}
     </div>
-    <div class="chart-container">
+    <p v-if="!datalogRecords.length" class="page__empty">
+      No records loaded. Press Sync Data to pull them off the board.
+    </p>
+    <div v-else class="chart-container">
       <datalog-chart ref="datalogChart" />
     </div>
     <div class="modals">
@@ -37,7 +40,7 @@
         btn1: 'Cancel',
         btn2: 'Delete',
         btn2Style: {
-          backgroundColor: 'red',
+          backgroundColor: 'var(--gogo-pink)',
         },
         btn2OnClick: () => {
           clearData();
@@ -90,6 +93,7 @@ export default {
       dateTimeOffset: null,
       timestamp: 0,
       renderData: null,
+      progressBarColor: "#a5d442", //? --gogo-green
     };
   },
   props: {
@@ -130,7 +134,9 @@ export default {
         });
       }
       //* pass new series data to highcharts
-      this.$refs.datalogChart.chartOptions.series = this.datalogRecords;
+      if (this.$refs.datalogChart) {
+        this.$refs.datalogChart.chartOptions.series = this.datalogRecords;
+      }
 
       this.datalogRecords.forEach((eachField) => {
         nRecords += eachField["data"].length;
@@ -188,7 +194,11 @@ export default {
           this.lookupTable
         )
         this.datalogRecords = this.splitRecordsToChartSeries(records)
-        this.$refs.datalogChart.chartOptions.series = this.datalogRecords
+        this.$nextTick(() => {
+          if (this.$refs.datalogChart) {
+            this.$refs.datalogChart.chartOptions.series = this.datalogRecords
+          }
+        })
         this.offlineDatalogStatus = 'Loaded ' + records.length + ' records.'
         this.finishSync()
         return ''
@@ -260,7 +270,7 @@ li {
 }
 
 a {
-  color: #42b983;
+  color: var(--gogo-ink);
 }
 
 textarea {
@@ -279,6 +289,12 @@ textarea {
 
 .chart-container {
   width: 85%;
+  margin: auto;
+}
+
+.Graph .page__empty {
+  width: 85%;
+  box-sizing: border-box;
   margin: auto;
 }
 
@@ -306,35 +322,35 @@ textarea {
 }
 
 .sync-bt {
-  color: #09af32;
-  border: 1px solid #09af32;
+  color: var(--gogo-ink);
+  border: 2px solid var(--gogo-green);
 }
 
 .delete-bt {
-  color: #eb4e4e;
-  border: 1px solid #eb4e4e;
+  color: var(--gogo-pink);
+  border: 2px solid var(--gogo-pink);
 }
 
 button {
-  font-size: 0.8em;
+  font-size: 14px;
+  font-weight: 700;
   cursor: pointer;
   outline: none;
   text-align: center;
-  padding: 2px 30px;
+  padding: 9px 20px;
   margin: 0.5em;
-  border-radius: 2em;
-  display: inline;
+  border-radius: var(--radius-pill);
+  display: inline-block;
   background-color: transparent;
-  transition: all 0.15s ease;
-  height: 3em;
+  transition: background 0.15s ease;
 }
 
 button.sync-bt:hover {
-  background-color: rgba(115, 238, 125, 0.3);
+  background-color: var(--gogo-green-tint);
 }
 
 button.delete-bt:hover {
-  background-color: #fdc9c9;
+  background-color: var(--gogo-pink-tint);
 }
 
 .channel-dropdown {

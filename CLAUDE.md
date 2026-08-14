@@ -4,23 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Internal demo/reference webapp for GoGo Board ↔ webapp communication. Not a product — it is the **playground where transport and protocol work is prototyped before it ships in the GoGoCode webapp**. The WebHID plugin in `src/plugins/webhid-plugin/` was built and proven here, then ported to GoGoCode. New device-facing features should follow the same route.
+Internal demo/reference webapp for GoGo Board ↔ webapp communication. Not a product — it is the **playground where transport and protocol work is prototyped before it ships in the GoGoCode webapp**. `src/gogo/` is written framework-free so it can be copied there directly. New device-facing features should follow the same route.
 
 Sibling repos to consult (local, not vendored here):
 
 | Path | What it is |
 |---|---|
-| `~/Developer/gogo-code` | GoGoCode webapp — where proven features graduate to. `src/services/const.js`, `deviceControl.js`, `deviceProcess.js` are the maintained protocol layer; `src/plugins/webhid-plugin/` is the descendant of this repo's plugin. |
-| `~/Developer/gogo-logo-compiler` | Python Logo compiler behind `CONST.compiler_url`. |
+| `~/Developer/gogo-code` | GoGoCode webapp — where proven features graduate to. |
+| `~/Developer/gogo-logo-compiler` | Python Logo compiler behind the Logo download flow's compiler URL. |
 | `~/Developer/gogoboard-7.x/gogo-firmware` | GoGo Board 7.x firmware — **authoritative** for packet layout, category/command IDs, and the type-0 register map (`include/gogo-firmware.h`, `processCMD()` in `src/gogo-firmware.cpp`). |
 
 ## Current focus
 
-This repo has been unmaintained for a while and still demos **GoGo Board 6.x**; current hardware is **7.x**. Work in progress:
-
-- bring the app up to 7.x (protocol drift is documented in `docs/protocol.md`) — offline datalog is done; the device-register reads in `GoGoAPI.vue` are not
-- replace the stale docs — the old README, `OfflineDatalogNote.md`, and the Google-Sheets protocol table are being folded into maintained markdown under `docs/`
-- lower the barrier for future work on this repo
+Current hardware is **GoGo Board 7.x**; this demo tracks it — offline datalog and the device-register reads (including firmware version) are both on the 7.x format. Remaining protocol drift against the old 6.x spreadsheet is documented in `docs/protocol.md`.
 
 Docs and code here should stay **lean**: no explanatory comment padding, no restating what the code says, no AI-generated filler. Terse and correct beats thorough and noisy.
 
@@ -30,10 +26,11 @@ Docs and code here should stay **lean**: no explanatory comment padding, no rest
 npm install        # Node 14 recommended (per README)
 npm run serve      # dev server with hot reload
 npm run build      # production build to dist/
+npm test           # node --test over src/gogo/**/*.test.mjs
 ./deploy.sh        # builds, then FORCE-PUSHES dist/ to gh-pages of LILCMU/gogo-api-demo — a live deploy, not a local step
 ```
 
-There is no test suite and no linter configured (no eslint plugin in devDependencies). "Verify" here means `npm run serve` plus a browser — or at minimum a build, which does catch syntax and import errors.
+There is no linter configured (no eslint plugin in devDependencies). "Verify" here means `npm test`, plus `npm run serve` and a browser for anything view-facing — or at minimum a build, which does catch syntax and import errors.
 
 On Node 17+ the webpack 4 toolchain fails with `ERR_OSSL_EVP_UNSUPPORTED`; prefix with `NODE_OPTIONS=--openssl-legacy-provider`.
 
@@ -41,30 +38,29 @@ WebHID requires Chromium (Chrome/Edge), a secure context, and a user gesture for
 
 ## Architecture
 
-Vue 2 SPA (Options API, Vue CLI 4, Vuex, vue-router) that talks to a GoGo Board over **WebHID** directly from the browser.
+Vue 2 SPA (Options API, Vue CLI 4, Vuex, vue-router) that talks to a GoGo Board over **WebHID** directly from the browser, split into a framework-free device service (`src/gogo/`) and five capability pages (`src/views/`).
 
-**Transport — `src/plugins/webhid-plugin/`.** A hand-written Vue plugin deliberately modeled on `vue-native-websocket`'s API:
+**`src/gogo/` — the device service.** No Vue import, no dependency on this app's store or components; it is meant to be copied into another project wholesale.
 
-- `hid-devices.js` — `install()` exposes `Vue.prototype.$webhid` (the raw HIDDevice), `$webhidConnect()`, `$webhidDisconnect()`.
-- `observer.js` — owns connect/disconnect lifecycle, wires `oninputreport` → `Emitter` → `passToStore()`, which commits into Vuex using the mutation names from `src/store/mutation-types.js`.
-- `emitter.js` — small label→callback bus.
+- `protocol.js` — `FRAME_SIZE`, `PACKET_TYPE`, `CATEGORY`/`CMD`/`MEMORY_CMD`/`EVENT_CMD`, the `REG` device-register map, `DATALOG_STATUS`, and the pure functions: `buildCommand`, `parseReport`, `parseResponse`, `parseFileSizes`, `parseLookupTable`, `parseDatalogRecords`. Wire format is documented in `docs/protocol.md` (verified against 7.x firmware) — treat it as the source of truth.
+- `transport.js` — `GogoTransport`, a WebHID class: `connect({ prompt })`, `disconnect()`, `send(payload)`, `connected` getter, and an `on`/`off` event bus emitting `connect`, `disconnect`, `report`, `error`.
+- `protocol.test.mjs` — `node --test` coverage for the parse/build functions; run via `npm test`.
 
-The websocket path (`vue-native-websocket` to the local GoGo Plugin on `ws://localhost:8317`) is **commented-out legacy** in `src/main.js` and `const.js`. It is not broken code awaiting a fix — leave it unless asked.
+**Vuex adapter — `src/store/gogo.js`.** A thin layer over the device service: one `GogoTransport` instance, `bindTransport` wires its events to mutations (`SET_CONNECTED`, `SET_REPORT`, `SET_RESPONSE`, `SET_ERROR`), and the `send`/`connect`/`disconnect` actions call straight through to `transport`. `boardStatus` (used throughout the views to disable controls) is `connected && !!report` — a report has to have arrived, not just a HID open.
 
-**Protocol.** Wire format is documented in `docs/protocol.md` (verified against 7.x firmware). All packet layout indices, command IDs, and status codes live in `src/store/const.js`; new protocol constants belong there, not inline. The values in `const.js` are still 6.x — treat `docs/protocol.md` as the source of truth when they disagree.
+- Outbound: `buildCommand(category, command, params)` returns the full frame; `transport.send` strips the report-ID byte before `sendReport(0, …)`.
+- Inbound: every `report` event is tried against `parseReport` (type-0 device register) first, then `parseResponse` (type-20 command response) — whichever matches commits.
 
-- Outbound: 64-byte array where index 0 is the HID **report ID**. The store's `sendHID` action strips it (`data.slice(1)`) before `sendReport(0, …)`. So callers build `cmdPacket[1] = category`, `cmdPacket[2] = command`, params from index 3 (`category_id_index` / `command_id_index` / `parameters_index`).
-- Inbound (`HID_ONINPUTREPORT` mutation in `src/store/index.js`): if byte 0 is `20` (`response_packet_type`) the packet is a command response → `state.response = {size, command, status, data}`. Anything else is the free-running sensor/status report → `state.socket.message`. Board presence (`state.board.status`) is inferred from packets arriving at all.
-- Sensor values in `GoGoAPI.vue` are big-endian 16-bit pairs read from index 1 (`sensor_start_index`) — still correct on 7.x. `firmware_version_index: 20` is **not**: on 7.x byte 19 is the major version and 20 the minor.
+**Pages — `src/views/`.** `Live.vue` (streaming sensor tiles), `Control.vue` (motors/servos/relays/beep), `Datalog.vue` (offline datalog sync + chart), `Logo.vue` (compile/download Logo programs and raw opcodes), `Packets.vue` (raw packet builder/sender). Routes are registered in `src/router/index.js`.
 
-**Logo download flow** (`GoGoAPI.vue`): POST source to the AWS compiler (`CONST.compiler_url`, `emulateJSON`) → set memory pointer (cat 1, cmd 1) → `writeLogoMemory` chunks of 60 bytes (cat 1, cmd 3) recursing with a 10 ms `setTimeout` between packets → beep (cat 0, cmd 11). The "Logo Opcodes" textarea skips the compiler and feeds `downloadOpcodeToBoard` a raw JSON byte array.
+**Logo download flow** (`Logo.vue`): POST source to the cloud compiler (`compilerUrl` from `src/config.js`, `emulateJSON`) → set memory pointer (cat 1, cmd 1) → `writeLogoMemory` chunks of 60 bytes (cat 1, cmd 3) awaited in sequence with a 10 ms `setTimeout` between packets → beep (cat 0, cmd 11). The "Logo Opcodes" textarea skips the compiler and feeds `downloadOpcodeToBoard` a raw JSON byte array.
 
-**Offline datalog** (`src/views/OfflineDatalog.vue` + `src/components/Chart.vue`): multi-packet sync driven by `packet.status` (file size → lookup table → records). See `docs/offline-datalog.md` before touching the unpacking code.
+**Offline datalog** (`Datalog.vue` + `src/components/Chart.vue`): multi-packet sync driven by `packet.status` (file size → lookup table → records), unpacked via `parseFileSizes`/`parseLookupTable`/`parseDatalogRecords` from `src/gogo/protocol.js`. See `docs/offline-datalog.md` before touching the unpacking code.
 
-Two gotchas there:
+Gotchas there:
 
-- `computePacket` is a **computed property with side effects** — it is what drives the sync state machine on every new `gogoResponse`. Refactoring it into a "pure" computed breaks syncing.
-- The chart is fed by direct ref mutation, `this.$refs.datalogChart.chartOptions.series = …`, not via props.
+- `computePacket` is a **computed property with side effects** — it is what drives the sync state machine on every new `lastResponse`. Refactoring it into a "pure" computed breaks syncing.
+- The chart only renders once `datalogRecords` is non-empty (`v-else` on `<datalog-chart ref="datalogChart">`), so the chart is fed by a `$nextTick`-guarded ref mutation, `this.$refs.datalogChart.chartOptions.series = …`, not via props. Skipping the guard throws the first time records arrive on an empty page.
 
 Records are on the 7.x 10-byte format, parsed via `DataView`. There is no channel concept offline — series are keyed by field.
 
