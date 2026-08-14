@@ -166,3 +166,15 @@ test('parseDatalogRecords ignores a trailing partial record', () => {
   const records = parseDatalogRecords(new Uint8Array(15), ['a'])
   assert.equal(records.length, 1)
 })
+
+test('parseResponse exposes the raw packet for commands whose layout differs', () => {
+  const bytes = new Uint8Array(63)
+  bytes[0] = 20
+  bytes[1] = 7
+  bytes[2] = EVENT_CMD.GOGO_ID
+  //? MAC lives at 3..8 for this command, where datalog would put its status byte
+  ;[0xde, 0xad, 0xbe, 0xef, 0x00, 0x01].forEach((b, i) => { bytes[3 + i] = b })
+
+  const response = parseResponse(bytes)
+  assert.deepEqual(Array.from(response.raw.slice(3, 9)), [0xde, 0xad, 0xbe, 0xef, 0x00, 0x01])
+})

@@ -224,7 +224,8 @@ export const DATALOG_RECORD_SIZE = 10
 
 //? Type-20 layout past byte 2 is command-specific. Datalog puts a status byte
 //? at 3 and payload from 4; GoGo ID puts the MAC at 3..8 with no status.
-//? Callers must check `command` before trusting `status`.
+//? Both status and payload are misaligned for non-datalog commands — check
+//? `command` before trusting them, and use `raw` to parse layout-specific fields.
 export function parseResponse (bytes) {
   if (!bytes || bytes[REG.PACKET_TYPE] !== PACKET_TYPE.RESPONSE) return null
 
@@ -236,6 +237,7 @@ export function parseResponse (bytes) {
     command: bytes[2],
     status: bytes[3],
     payload: bytes.slice(4, 4 + length),
+    raw: bytes,
   }
 }
 
