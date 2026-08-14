@@ -1,3 +1,4 @@
+import './styles/tokens.css'
 import Vue from 'vue'
 import VueResource from 'vue-resource'
 import Modal from '@burhanahmeed/vue-modal-2'

@@ -27,3 +27,44 @@ export default {
   },
 };
 </script>
+
+<style>
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  padding: 14px 24px;
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.app-header__logo { width: 132px; height: 39px; }
+
+.app-header__nav { display: flex; align-items: center; gap: 18px; }
+
+.app-header__nav a {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.app-header__nav a.router-link-active { color: var(--gogo-ink); }
+
+.app-header__divider {
+  width: 1px;
+  height: 18px;
+  background: var(--hairline);
+}
+
+.app-header__status {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+}
+
+.app-header__status.is-connected { background: var(--gogo-green); color: var(--gogo-ink); }
+.app-header__status.is-disconnected { background: #eef1f4; color: var(--muted); }
+</style>

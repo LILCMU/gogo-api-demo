@@ -1,0 +1,26 @@
+:root {
+  /* palette — gogo-code/src/sass/_variables.scss */
+  --gogo-green: #a5d442;
+  --gogo-orange: #f3a73c;
+  --gogo-blue: #02a8f4;
+  --gogo-pink: #db3f8d;
+  --gogo-ink: #01354c;
+
+  --gogo-green-tint: #f1f9e0;
+  --gogo-orange-tint: #fef3e2;
+  --gogo-blue-tint: #e1f4fe;
+  --gogo-pink-tint: #fbe7f1;
+
+  --page-bg: #f7f8fa;
+  --card-bg: #ffffff;
+  --muted: #5c7a8c;
+  --inactive: #9fb4c0;
+  --hairline: #e4e9ee;
+
+  --radius-card: 18px;
+  --radius-pill: 999px;
+  --stripe: 7px;
+
+  --gap: 10px;
+  --pad: 14px;
+}
