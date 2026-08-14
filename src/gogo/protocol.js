@@ -122,3 +122,100 @@ export function buildCommand(category, command, params = []) {
 
   return payload
 }
+
+function u16 (bytes, index) {
+  return (bytes[index] << 8) | bytes[index + 1]
+}
+
+function i16 (bytes, index) {
+  const value = u16(bytes, index)
+  return value > 0x7fff ? value - 0x10000 : value
+}
+
+function range (bytes, start, count) {
+  return Array.from({ length: count }, (unused, i) => bytes[start + i])
+}
+
+//? high nibble is the board version, low nibble the PCB revision letter (A = 0)
+function hardwareVersion (id) {
+  if (!id) return null
+  return String(id >> 4) + String.fromCharCode('A'.charCodeAt(0) + (id & 0x0f))
+}
+
+export function isReport (bytes) {
+  return !!bytes && bytes[REG.PACKET_TYPE] === PACKET_TYPE.REPORT
+}
+
+export function parseReport (bytes) {
+  if (!isReport(bytes)) return null
+
+  return {
+    sensors: Array.from({ length: SENSOR_COUNT }, (unused, i) =>
+      u16(bytes, REG.SENSOR_START + i * 2)
+    ),
+    joystick: u16(bytes, REG.JOYSTICK),
+
+    board: {
+      type: bytes[REG.BOARD_TYPE],
+      typeName: BOARD_TYPE[bytes[REG.BOARD_TYPE]] || 'Unknown board',
+      version: hardwareVersion(bytes[REG.HARDWARE_ID]),
+      firmwareMajor: bytes[REG.FIRMWARE],
+      firmware: [
+        bytes[REG.FIRMWARE],
+        bytes[REG.FIRMWARE + 1],
+        bytes[REG.FIRMWARE + 2],
+      ].join('.'),
+    },
+
+    motors: {
+      active: bytes[REG.MOTOR_ACTIVE],
+      onOff: bytes[REG.MOTOR_ON_OFF],
+      direction: bytes[REG.MOTOR_DIRECTION],
+      power: range(bytes, REG.MOTOR_POWER, MOTOR_COUNT),
+    },
+
+    servos: {
+      active: bytes[REG.SERVO_ACTIVE],
+      mode: bytes[REG.SERVO_MODE],
+      angles: range(bytes, REG.SERVO_ANGLE, SERVO_COUNT),
+    },
+
+    relays: {
+      power: range(bytes, REG.RELAY_POWER, RELAY_COUNT),
+      status: bytes[REG.RELAY_STATUS],
+    },
+
+    ir: bytes[REG.IR_VALUE],
+
+    clock: {
+      seconds: bytes[REG.CLOCK],
+      minutes: bytes[REG.CLOCK + 1],
+      hours: bytes[REG.CLOCK + 2],
+      dayOfWeek: bytes[REG.CLOCK + 3],
+      day: bytes[REG.CLOCK + 4],
+      month: bytes[REG.CLOCK + 5],
+      year: bytes[REG.CLOCK + 6],
+    },
+
+    wifi: bytes[REG.WIFI],
+    datalog: bytes[REG.DATALOG],
+    messaging: bytes[REG.MESSAGING],
+
+    builtin: {
+      orientation: bytes[REG.ORIENTATION],
+      proximity: bytes[REG.PROXIMITY],
+      gesture: bytes[REG.GESTURE],
+      light: u16(bytes, REG.LIGHT),
+      loudness: bytes[REG.LOUDNESS],
+      accel: {
+        x: i16(bytes, REG.ACCEL_X),
+        y: i16(bytes, REG.ACCEL_X + 2),
+        z: i16(bytes, REG.ACCEL_X + 4),
+      },
+      temperature: bytes[REG.TEMPERATURE],
+      humidity: bytes[REG.HUMIDITY],
+    },
+
+    grading: bytes[REG.GRADING],
+  }
+}
