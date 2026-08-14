@@ -660,6 +660,24 @@ git commit -m "feat(gogo): decode type-20 responses and offline datalog records"
 
 There is no unit test — `navigator.hid` does not exist in Node. Verified by build and by browser behaviour in Task 6.
 
+> **Amended after review.** The code block below shipped with six defects, all
+> found in review and corrected in commit `7cb77c8`, which is authoritative.
+> Public surface is unchanged — same methods, same `connected` getter, same four
+> event names. The corrections were:
+>
+> 1. The `disconnect` listener must gate on `this.device && device === this.device`.
+>    Without it, teardown fires on any HID disconnect, and twice per unplug,
+>    because one board enumerates two HID interfaces.
+> 2. A new `isGogoDevice()` helper ANDs vendor ID, product ID and raw-HID-ness;
+>    the `connect` listener filters on it so a foreign device cannot hijack.
+> 3. That listener catches `_open()`'s rejection and emits `error`, rather than
+>    leaving an unhandled promise rejection.
+> 4. `_open()` clears the previous device's `oninputreport` before reassigning.
+> 5. Report bytes use `new Uint8Array(buffer, byteOffset, byteLength)` — the
+>    DataView is not guaranteed to span its whole ArrayBuffer.
+> 6. Device selection is `devices.find(isGogoDevice)` with no `devices[0]`
+>    fallback, which could otherwise open the keyboard interface.
+
 - [ ] **Step 1: Write the transport**
 
 Create `src/gogo/transport.js`:
