@@ -8,6 +8,7 @@ export default {
     connected: false,
     report: null,
     lastResponse: null,
+    error: null,
   },
 
   getters: {
@@ -15,6 +16,7 @@ export default {
     boardStatus: (state) => state.connected && !!state.report,
     report: (state) => state.report,
     lastResponse: (state) => state.lastResponse,
+    error: (state) => state.error,
   },
 
   mutations: {
@@ -30,6 +32,12 @@ export default {
     },
     CLEAR_RESPONSE (state) {
       state.lastResponse = null
+    },
+    SET_ERROR (state, message) {
+      state.error = message
+    },
+    CLEAR_ERROR (state) {
+      state.error = null
     },
   },
 
@@ -53,7 +61,10 @@ export default {
     },
 
     bindTransport ({ commit }) {
-      transport.on('connect', () => commit('SET_CONNECTED', true))
+      transport.on('connect', () => {
+        commit('CLEAR_ERROR')
+        commit('SET_CONNECTED', true)
+      })
       transport.on('disconnect', () => commit('SET_CONNECTED', false))
       transport.on('report', (bytes) => {
         const report = parseReport(bytes)
@@ -64,6 +75,8 @@ export default {
         const response = parseResponse(bytes)
         if (response) commit('SET_RESPONSE', response)
       })
+      //? transport errors have no other route to the UI
+      transport.on('error', (error) => commit('SET_ERROR', error.message))
     },
   },
 }
