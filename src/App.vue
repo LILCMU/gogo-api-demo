@@ -1,24 +1,16 @@
 <template>
   <div id="app">
-    <div id="nav">
-      <router-link to="/gogoapi">GoGoAPI</router-link> |
-      <router-link to="/offline-datalog">Offline Datalog</router-link>
-    </div>
-    <p class="board-status" :class="boardStatus ? 'is-connected' : 'is-disconnected'">
-      {{ boardStatus ? "GoGo Board connected" : "No GoGo Board connected" }}
-    </p>
+    <app-header />
     <router-view />
   </div>
 </template>
 
 <script>
-import { mapGetters } from "vuex";
+import AppHeader from "@/components/AppHeader.vue";
 
 export default {
   name: "App",
-  computed: {
-    ...mapGetters(["boardStatus"]),
-  },
+  components: { AppHeader },
 };
 </script>
 

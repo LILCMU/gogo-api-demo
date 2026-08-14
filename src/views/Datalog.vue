@@ -67,7 +67,7 @@ import DatePicker from "vue2-datepicker";
 import "vue2-datepicker/index.css";
 
 export default {
-  name: "Graph",
+  name: "Datalog",
   components: {
     DatalogChart,
     Dropdown,
