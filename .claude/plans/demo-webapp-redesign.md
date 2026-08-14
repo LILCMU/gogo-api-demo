@@ -1513,6 +1513,16 @@ git commit -m "feat(views): header, router and Live page"
 
 Spec success criterion 5 says a child must be able to make the board beep without reading anything, so Beep is the first control on the page and needs no configuration.
 
+> **Amended after review.** The `run()` helper below fires the async `send`
+> without awaiting it, then writes the success message immediately — so a send
+> that rejects (no device, malformed frame, board dropped mid-write) produces an
+> unhandled rejection AND a UI claiming success. Corrected in commit `3c09d30`:
+> `run` is `async`, awaits inside a try/catch, sets the success message only
+> after the await resolves, and on failure sets `message` to `error.message`
+> with `failed = true`. Callers need no change — `run` no longer rejects.
+>
+> **The same defect exists in Task 10's `sendPacket`.** Apply the same shape there.
+
 - [ ] **Step 1: Write the view**
 
 Create `src/views/Control.vue`:
