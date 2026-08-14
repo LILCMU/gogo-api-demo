@@ -962,6 +962,21 @@ git commit -m "feat(store): adapt the gogo service to Vuex"
 - Consumes: everything from Tasks 1–5.
 - Produces: nothing new. This task is behaviour-preserving — the two pages look and act the same, on the new service.
 
+> **Amended after review.** Two defects in the code below were found during
+> implementation and corrected in commit `e20b091`:
+>
+> 1. The compile payload sent `board.version`, the formatted string (`"7M"`).
+>    Production GoGoCode sends the raw byte at index 18 (`deviceProcess.js:391`),
+>    so this would have broken cloud compilation. `parseReport` now also exposes
+>    `board.hardwareId` (raw byte, unit-tested) and the payload sends that.
+>    `board.version` remains for display.
+> 2. The datalog terminal messages were returned from the `computePacket`
+>    computed, but the same branches call `finishSync()`, which flips the flag
+>    that computed guards on — so the completion message rendered once and
+>    vanished. Terminal messages now go to the persistent `offlineDatalogStatus`
+>    property and those branches return `''`. Transient progress messages are
+>    unchanged.
+
 - [ ] **Step 1: Strip the plugin from `src/main.js`**
 
 Replace the whole file:
