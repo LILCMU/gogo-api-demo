@@ -112,6 +112,8 @@ export default {
   color: var(--gogo-ink);
 }
 
+.bytes-legend { margin-top: 8px; font-size: 12px; color: var(--muted); }
+
 .action-message { min-height: 1.2em; margin-top: 16px; font-size: 14px; color: var(--muted); }
 .action-message.is-error { color: var(--gogo-pink-text); }
 </style>
