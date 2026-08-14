@@ -9,8 +9,25 @@
     </div>
 
     <h2 class="section-label">Frame preview</h2>
-    <pre class="bytes">{{ preview }}</pre>
-    <p class="bytes-legend">byte 0 category &middot; byte 1 command &middot; bytes 2+ params</p>
+    <pre class="bytes" v-if="preview.error">{{ preview.error }}</pre>
+    <div class="bytes bytes--dump" v-else><div
+      class="bytes__row bytes__row--header"
+    ><span class="bytes__offset"></span><span class="bytes__sep"></span><span
+        v-for="col in headerCells"
+        :key="col.pos"
+        class="bytes__cell"
+        :class="{ 'bytes__cell--gap': col.pos === 8 }"
+      >{{ col.label }}</span></div><div
+      class="bytes__row"
+      v-for="row in preview.rows"
+      :key="row.offset"
+    ><span class="bytes__offset">{{ row.offset }}</span><span class="bytes__sep">|</span><span
+        v-for="cell in row.cells"
+        :key="cell.index"
+        class="bytes__cell"
+        :class="{ 'bytes__cell--gap': cell.pos === 8, 'bytes__cell--category': cell.index === 0, 'bytes__cell--command': cell.index === 1 }"
+      >{{ cell.hex }}</span></div></div>
+    <p class="bytes-legend"><span class="bytes-legend__chip bytes-legend__chip--category">byte 0 category</span> &middot; <span class="bytes-legend__chip bytes-legend__chip--command">byte 1 command</span> &middot; bytes 2+ params</p>
 
     <h2 class="section-label">Last response</h2>
     <pre class="bytes" v-if="lastResponse">command {{ lastResponse.command }}  status {{ lastResponse.status }}  length {{ lastResponse.length }}
@@ -45,10 +62,16 @@ export default {
 
     preview: function () {
       try {
-        return this.hexdump(buildCommand(this.category, this.command, this.paramBytes));
+        return { rows: this.hexdumpRows(buildCommand(this.category, this.command, this.paramBytes)) };
       } catch (error) {
-        return error.message;
+        return { error: error.message };
       }
+    },
+
+    //? header row shares the same pos-indexed cells as data rows so columns line up
+    headerCells: function () {
+      const ROW_SIZE = 16;
+      return Array.from({ length: ROW_SIZE }, (unused, pos) => ({ pos, label: String(pos).padStart(2) }));
     },
   },
   methods: {
@@ -61,30 +84,23 @@ export default {
     },
 
     //? 16 bytes/row, decimal offsets/indices (docs/protocol.md is decimal), hex values, gap after byte 8.
-    hexdump: function (bytes) {
+    //? row objects (not a string) so the template can style individual byte cells.
+    hexdumpRows: function (bytes) {
       const ROW_SIZE = 16;
-      const GROUP_SIZE = 8;
       const list = Array.from(bytes);
-      const lastOffset = Math.floor(Math.max(list.length - 1, 0) / ROW_SIZE) * ROW_SIZE;
-      const labelWidth = String(lastOffset).length;
-
-      const formatRow = (cells) =>
-        cells.length > GROUP_SIZE
-          ? `${cells.slice(0, GROUP_SIZE).join(" ")}  ${cells.slice(GROUP_SIZE).join(" ")}`
-          : cells.join(" ");
-
-      const header =
-        " ".repeat(labelWidth + 3) +
-        formatRow(Array.from({ length: ROW_SIZE }, (unused, i) => String(i).padStart(2)));
-
       const rows = [];
       for (let offset = 0; offset < list.length; offset += ROW_SIZE) {
         const rowBytes = list.slice(offset, offset + ROW_SIZE);
-        const prefix = `${String(offset).padStart(labelWidth)} | `;
-        rows.push(prefix + formatRow(rowBytes.map((b) => b.toString(16).padStart(2, "0"))));
+        rows.push({
+          offset,
+          cells: rowBytes.map((b, pos) => ({
+            pos,
+            index: offset + pos,
+            hex: b.toString(16).padStart(2, "0"),
+          })),
+        });
       }
-
-      return [header, ...rows].join("\n");
+      return rows;
     },
 
     sendPacket: async function () {

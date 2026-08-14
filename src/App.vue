@@ -112,7 +112,39 @@ export default {
   color: var(--gogo-ink);
 }
 
+.bytes--dump { line-height: 1.8; }
+.bytes__row { white-space: nowrap; }
+
+.bytes__offset {
+  display: inline-block;
+  width: 2ch;
+  text-align: right;
+  color: var(--muted);
+}
+
+.bytes__sep {
+  display: inline-block;
+  width: 2ch;
+  text-align: center;
+  color: var(--muted);
+}
+
+.bytes__cell {
+  display: inline-block;
+  width: 2.5ch;
+  text-align: center;
+}
+
+.bytes__cell--gap { margin-left: 1ch; }
+.bytes__cell--category { background: var(--gogo-blue-tint); color: var(--gogo-ink); border-radius: 4px; }
+.bytes__cell--command { background: var(--gogo-orange-tint); color: var(--gogo-ink); border-radius: 4px; }
+.bytes__row--header .bytes__cell { color: var(--muted); }
+
 .bytes-legend { margin-top: 8px; font-size: 12px; color: var(--muted); }
+
+.bytes-legend__chip { padding: 1px 6px; border-radius: 4px; }
+.bytes-legend__chip--category { background: var(--gogo-blue-tint); color: var(--gogo-ink); }
+.bytes-legend__chip--command { background: var(--gogo-orange-tint); color: var(--gogo-ink); }
 
 .action-message { min-height: 1.2em; margin-top: 16px; font-size: 14px; color: var(--muted); }
 .action-message.is-error { color: var(--gogo-pink-text); }
