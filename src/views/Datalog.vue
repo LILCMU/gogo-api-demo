@@ -167,6 +167,13 @@ export default {
       const total = this.datalogRecordsFileSize + this.lookupTableFileSize
       if (total) this.percentage += (packet.length / total) * 100
 
+      if (packet.status === DATALOG_STATUS.FAILURE) {
+        this.offlineDatalogStatus = 'The board reported a failure while sending records.'
+        this.statusFailed = true
+        this.finishSync()
+        return ''
+      }
+
       if (packet.status === DATALOG_STATUS.EMPTY) {
         this.offlineDatalogStatus = 'No records stored on the board.'
         this.finishSync()
