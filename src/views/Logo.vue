@@ -1,36 +1,49 @@
 <template>
   <section class="page">
-    <h3>Logo Program</h3>
-    <br />
-    <div>
-      <textarea v-model="logoProgram" placeholder="Enter the logo program">
-      </textarea>
-      <div></div>
-
+    <h2 class="section-label">Examples</h2>
+    <div class="control-row">
       <button
-        @click="downloadLogoProgram()"
-        :disabled="!boardStatus"
-        :title="actionHint"
-      >
-        Download
-      </button>
+        v-for="example in examples"
+        :key="example.label"
+        class="btn"
+        @click="loadExample(example.program)"
+      >{{ example.label }}</button>
     </div>
 
-    <h3>Logo Opcodes</h3>
-    <br />
-    <div>
-      <textarea v-model="logoOpcodes" placeholder="Enter the logo opcodes">
-      </textarea>
-      <div></div>
+    <h2 class="section-label">Logo Program</h2>
+    <textarea
+      class="textarea"
+      v-model="logoProgram"
+      placeholder="Enter the logo program"
+    ></textarea>
+    <button
+      class="btn btn--primary"
+      @click="downloadLogoProgram()"
+      :disabled="!boardStatus"
+      :title="actionHint"
+    >
+      Download
+    </button>
 
-      <button
-        @click="downloadOpcodeToBoard()"
-        :disabled="!boardStatus"
-        :title="actionHint"
-      >
-        Download
-      </button>
-    </div>
+    <template v-if="compiledOpcodes">
+      <h2 class="section-label">Compiled Opcodes</h2>
+      <byte-dump :bytes="compiledOpcodes" />
+    </template>
+
+    <h2 class="section-label">Logo Opcodes</h2>
+    <textarea
+      class="textarea textarea--mono"
+      v-model="logoOpcodes"
+      placeholder="Enter the logo opcodes"
+    ></textarea>
+    <button
+      class="btn btn--primary"
+      @click="downloadOpcodeToBoard()"
+      :disabled="!boardStatus"
+      :title="actionHint"
+    >
+      Download
+    </button>
 
     <p class="action-message" :class="{ 'is-error': actionFailed }">
       {{ actionMessage }}
@@ -42,15 +55,30 @@
 import { mapActions, mapGetters } from "vuex";
 import { CATEGORY, CMD, MEMORY_CMD } from "@/gogo/protocol";
 import { compilerUrl } from "@/config";
+import ByteDump from "@/components/ByteDump.vue";
+
+const EXAMPLES = [
+  {
+    label: "Beep every second",
+    program: "to start\n  forever [\n    beep\n    wait 1000\n  ]\nend",
+  },
+  {
+    label: "Beep three times",
+    program: "to start\n  repeat 3 [\n    beep\n    wait 100\n  ]\n  show 99\nend",
+  },
+];
 
 export default {
   name: "Logo",
+  components: { ByteDump },
   data: function () {
     return {
       logoProgram: "",
       logoOpcodes: "",
+      compiledOpcodes: null,
       actionMessage: "",
       actionFailed: false,
+      examples: EXAMPLES,
     };
   },
   computed: {
@@ -70,6 +98,10 @@ export default {
     reportAction: function (message, failed) {
       this.actionMessage = message;
       this.actionFailed = !!failed;
+    },
+
+    loadExample: function (program) {
+      this.logoProgram = program;
     },
 
     setLogoMemoryPointer: function () {
@@ -155,6 +187,7 @@ export default {
         .then(
           (response) => {
             if (response.data.data != undefined) {
+              this.compiledOpcodes = response.data.data;
               this.downloadOpcodeToBoard(response.data.data);
             } else {
               this.reportAction("Compiler returned no bytecode.", true);
@@ -177,3 +210,25 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.textarea {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 120px;
+  margin: 0 0 10px;
+  padding: var(--pad);
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--gogo-ink);
+  background: var(--card-bg);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
+  resize: vertical;
+}
+
+.textarea--mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+</style>
