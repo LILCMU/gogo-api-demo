@@ -10,6 +10,12 @@ function isRawHidDevice (device) {
   return device.collections && device.collections.length > 0
 }
 
+function isGogoDevice (device) {
+  return device.vendorId === GOGO_VENDOR_ID &&
+    device.productId === GOGO_PRODUCT_ID &&
+    isRawHidDevice(device)
+}
+
 export class GogoTransport {
   constructor () {
     this.device = null
@@ -17,9 +23,12 @@ export class GogoTransport {
 
     if (navigator.hid) {
       navigator.hid.addEventListener('connect', ({ device }) => {
-        if (isRawHidDevice(device)) this._open(device)
+        if (this.connected || !isGogoDevice(device)) return
+        this._open(device).catch((error) => this._emit('error', error))
       })
-      navigator.hid.addEventListener('disconnect', () => this._teardown())
+      navigator.hid.addEventListener('disconnect', ({ device }) => {
+        if (this.device && device === this.device) this._teardown()
+      })
     }
   }
 
@@ -43,8 +52,13 @@ export class GogoTransport {
       })
     }
 
-    const device = devices.find(isRawHidDevice) || devices[0]
-    if (!device) return null
+    const device = devices.find(isGogoDevice)
+    if (!device) {
+      if (devices.length) {
+        this._emit('error', new Error('found a GoGo Board but not its raw HID interface'))
+      }
+      return null
+    }
 
     await this._open(device)
     return device
@@ -81,12 +95,19 @@ export class GogoTransport {
   }
 
   async _open (device) {
+    if (this.device && this.device !== device) {
+      this.device.oninputreport = null
+    }
     this.device = device
     if (!device.opened) await device.open()
 
     device.oninputreport = (event) => {
+      //? event.data is a DataView with byteOffset and byteLength; the buffer may
+      //? extend beyond the actual report data, so we use the explicit window.
       //? event.data excludes the report ID, so byte 0 is the packet type
-      this._emit('report', new Uint8Array(event.data.buffer))
+      this._emit('report', new Uint8Array(
+        event.data.buffer, event.data.byteOffset, event.data.byteLength
+      ))
     }
 
     this._emit('connect', device)
