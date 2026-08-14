@@ -1,49 +1,79 @@
 <template>
   <section class="page">
-    <h2 class="section-label">Examples</h2>
-    <div class="control-row">
+    <!--? two alternative ways to put a program on the board, never two steps of one flow -->
+    <div class="tabs" role="tablist">
       <button
-        v-for="example in examples"
-        :key="example.label"
-        class="btn"
-        @click="loadExample(example.program)"
-      >{{ example.label }}</button>
+        class="tabs__tab"
+        :class="{ 'is-active': mode === 'program' }"
+        :aria-selected="mode === 'program'"
+        role="tab"
+        @click="mode = 'program'"
+      >
+        Logo program
+      </button>
+      <button
+        class="tabs__tab"
+        :class="{ 'is-active': mode === 'opcodes' }"
+        :aria-selected="mode === 'opcodes'"
+        role="tab"
+        @click="mode = 'opcodes'"
+      >
+        Raw opcodes
+      </button>
     </div>
 
-    <h2 class="section-label">Logo Program</h2>
-    <textarea
-      class="textarea"
-      v-model="logoProgram"
-      placeholder="Enter the logo program"
-    ></textarea>
-    <button
-      class="btn btn--primary"
-      @click="downloadLogoProgram()"
-      :disabled="!boardStatus"
-      :title="actionHint"
-    >
-      Download
-    </button>
+    <template v-if="mode === 'program'">
+      <p class="tabs__hint">Write Logo source, compile it in the cloud, and send the result to the board.</p>
 
-    <template v-if="compiledOpcodes">
-      <h2 class="section-label">Compiled Opcodes</h2>
-      <byte-dump :bytes="compiledOpcodes" />
+      <h2 class="section-label">Examples</h2>
+      <div class="control-row">
+        <button
+          v-for="example in examples"
+          :key="example.label"
+          class="btn"
+          @click="loadExample(example.program)"
+        >{{ example.label }}</button>
+      </div>
+
+      <h2 class="section-label">Logo Program</h2>
+      <textarea
+        class="textarea"
+        v-model="logoProgram"
+        placeholder="Enter the logo program"
+      ></textarea>
+      <button
+        class="btn btn--primary"
+        @click="downloadLogoProgram()"
+        :disabled="!boardStatus"
+        :title="actionHint"
+      >
+        Download
+      </button>
+
+      <template v-if="compiledOpcodes">
+        <h2 class="section-label">Compiled opcodes &middot; sent to the board</h2>
+        <byte-dump :bytes="compiledOpcodes" />
+      </template>
     </template>
 
-    <h2 class="section-label">Logo Opcodes</h2>
-    <textarea
-      class="textarea textarea--mono"
-      v-model="logoOpcodes"
-      placeholder="Enter the logo opcodes"
-    ></textarea>
-    <button
-      class="btn btn--primary"
-      @click="downloadOpcodeToBoard()"
-      :disabled="!boardStatus"
-      :title="actionHint"
-    >
-      Download
-    </button>
+    <template v-else>
+      <p class="tabs__hint">Paste a pre-compiled byte array and send it straight to the board, skipping the compiler.</p>
+
+      <h2 class="section-label">Logo Opcodes</h2>
+      <textarea
+        class="textarea textarea--mono"
+        v-model="logoOpcodes"
+        placeholder="Enter the logo opcodes"
+      ></textarea>
+      <button
+        class="btn btn--primary"
+        @click="downloadOpcodeToBoard()"
+        :disabled="!boardStatus"
+        :title="actionHint"
+      >
+        Download
+      </button>
+    </template>
 
     <p class="action-message" :class="{ 'is-error': actionFailed }">
       {{ actionMessage }}
@@ -73,6 +103,7 @@ export default {
   components: { ByteDump },
   data: function () {
     return {
+      mode: "program",
       logoProgram: "",
       logoOpcodes: "",
       compiledOpcodes: null,
@@ -230,5 +261,44 @@ export default {
 
 .textarea--mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 6px;
+  background: var(--card-bg);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-pill);
+}
+
+.tabs__tab {
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-pill);
+  padding: 9px 20px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.tabs__tab:hover:not(.is-active) {
+  background: var(--gogo-green-tint);
+}
+
+/*? active state carries weight and fill, not colour alone */
+.tabs__tab.is-active {
+  color: var(--gogo-ink);
+  background: var(--gogo-green);
+}
+
+.tabs__hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
 }
 </style>
