@@ -821,6 +821,14 @@ git commit -m "feat(gogo): WebHID transport with no framework dependency"
 
 `boardStatus` is kept as an alias for `connected` so the existing views and the disconnected-state work keep functioning until Phase 2 renames them.
 
+> **Amended after review.** The module below shipped without any handling for the
+> transport's `error` event, which fires on a browser lacking WebHID, on a board
+> found without its raw HID interface, and on a failed reopen after reconnect.
+> All three vanished silently. Corrected in commit `e5d526b`: `error: null` in
+> state, an `error` getter, `SET_ERROR` / `CLEAR_ERROR` mutations, and a
+> `transport.on('error', …)` subscription storing `error.message`. The `connect`
+> subscription now clears a stale error as well as setting the connected flag.
+
 - [ ] **Step 1: Write the config module**
 
 Create `src/config.js`:
