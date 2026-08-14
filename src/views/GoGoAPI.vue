@@ -79,6 +79,19 @@ export default {
   computed: {
     ...mapGetters(["gogoReport", "boardStatus"]),
 
+    //? GoGo 6 and 7 report major.minor.patch from index 19; older boards a single byte at 20
+    firmwareVersion: function () {
+      var boardType = this.gogoReport[CONST.board_type_index];
+      var isGogo6OrLater =
+        boardType == CONST.board_type_gogo6 || boardType == CONST.board_type_gogo7;
+
+      return this.gogoReport[
+        isGogo6OrLater
+          ? CONST.firmware_version_index
+          : CONST.legacy_firmware_version_index
+      ];
+    },
+
     processSensor: function () {
         var sensor_values = new Uint16Array(CONST.sensor_count)
         for (var i = 0; i < CONST.sensor_count; i++)
@@ -185,7 +198,7 @@ export default {
 
         var sendingData = {
           logo: this.logoProgram,
-          firmware_version: this.gogoReport[CONST.firmware_version_index],
+          firmware_version: this.firmwareVersion,
           board_type: this.gogoReport[CONST.board_type_index],
           board_version: this.gogoReport[CONST.board_version_index],
         };

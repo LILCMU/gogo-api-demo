@@ -11,7 +11,11 @@ export const CONST = {
 
     board_type_index: 17,
     board_version_index: 18,
-    firmware_version_index: 20,
+    firmware_version_index: 19,        //? major, then minor and patch (GoGo 6 and 7)
+    legacy_firmware_version_index: 20, //? single-byte version (GoGo 5 and below)
+
+    board_type_gogo6: 4,
+    board_type_gogo7: 6,
 
     response_packet_type: 20,
 
