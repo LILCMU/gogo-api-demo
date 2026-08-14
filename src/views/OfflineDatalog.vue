@@ -161,8 +161,9 @@ export default {
       if (total) this.percentage += (packet.length / total) * 100
 
       if (packet.status === DATALOG_STATUS.EMPTY) {
+        this.offlineDatalogStatus = 'No records stored on the board.'
         this.finishSync()
-        return 'No records stored on the board.'
+        return ''
       }
 
       if (packet.status === DATALOG_STATUS.FILE_SIZE) {
@@ -188,8 +189,9 @@ export default {
         )
         this.datalogRecords = this.splitRecordsToChartSeries(records)
         this.$refs.datalogChart.chartOptions.series = this.datalogRecords
+        this.offlineDatalogStatus = 'Loaded ' + records.length + ' records.'
         this.finishSync()
-        return 'Loaded ' + records.length + ' records.'
+        return ''
       }
 
       return 'Syncing...'

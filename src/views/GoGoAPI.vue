@@ -199,7 +199,7 @@ export default {
         logo: this.logoProgram,
         firmware_version: this.firmwareVersion,
         board_type: this.report.board.type,
-        board_version: this.report.board.version,
+        board_version: this.report.board.hardwareId,
       };
 
       this.$http

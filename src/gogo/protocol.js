@@ -158,6 +158,8 @@ export function parseReport (bytes) {
     board: {
       type: bytes[REG.BOARD_TYPE],
       typeName: BOARD_TYPE[bytes[REG.BOARD_TYPE]] || 'Unknown board',
+      //? the cloud compiler expects this raw byte, not the formatted version string
+      hardwareId: bytes[REG.HARDWARE_ID],
       version: hardwareVersion(bytes[REG.HARDWARE_ID]),
       firmwareMajor: bytes[REG.FIRMWARE],
       firmware: [

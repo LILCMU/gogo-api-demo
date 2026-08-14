@@ -68,6 +68,13 @@ test('parseReport decodes board identity', () => {
   assert.equal(report.board.firmware, '4.2.1')
 })
 
+test('parseReport keeps the raw hardware id alongside the formatted version', () => {
+  //? the cloud compiler wants the byte, the UI wants the string
+  const report = parseReport(reportBytes({ 17: 6, 18: 0x7c }))
+  assert.equal(report.board.hardwareId, 0x7c)
+  assert.equal(report.board.version, '7M')
+})
+
 test('parseReport reads the firmware major from byte 19, not 20', () => {
   //? the long-standing bug this repo shipped: byte 20 is the minor version
   const report = parseReport(reportBytes({ 17: 6, 19: 4, 20: 2, 21: 1 }))
