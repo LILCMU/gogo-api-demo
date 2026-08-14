@@ -1,47 +1,54 @@
 # GoGo API Demo
-This project shows essential communication between GoGo Board and PC
 
-The communication can be shows in following diagram
+Reference webapp for talking to a GoGo Board from the browser. It is the playground where transport and protocol work gets prototyped before it ships in the [GoGoCode](https://code.gogoboard.org) webapp — the WebHID plugin in `src/plugins/webhid-plugin/` was built and proven here first.
 
-> **GoGoBoard** `<-- USB HID -->` **GoGo Plugin** `<-- websocket -->` **Web Application**
+Two pages:
 
-### When reading data packets from the GoGo
+- **GoGoAPI** — live sensor report, raw command sender, and Logo program/opcode download
+- **Offline Datalog** — pull records off the board's flash and chart them
 
-> **GoGo Board** `-- USB HID -->` **GoGo Plugin** `-- WS -->` **Web Application**
+## How it talks to the board
 
-Note that data packets are automaticaly streamed upon power up. No need to make a request for them. 
-
-### When controling the GoGo (e.g. turning on a motor)
-> **Web Application** `-->` **GoGo Plugin** `-->` **GoGo Board**
-
-### When compiling Logo Code and downloading the compiled binary code to the board.
-
-The process is divided into two steps.
-1. Compile Logo Code. This is done by sending the text code to the compiler hosted on AWS. A compiled binary code is returned.
-2. Send the compiled binary code to the GoGo Board via the plugin 
-
-## Offline datalog feature
-A chart to showing datalog records from the GoGo
-- Usage and Development Notes can be found here: [Offline Datalog Notes](OfflineDatalogNote.md)
-
-## Live Demo
-Hosted with gh-page: [gogo-api-demo (feature/webhid)](https://lilcmu.github.io/gogo-api-demo)
-
-## Reference Docs
-- [GoGo protocol docs](https://docs.google.com/spreadsheets/d/1CAfjpUdyYPqjVIPBuzxWlWMIDCX9ud6ybqAj8qMgy4E/edit?usp=sharing)
-
-## Project setup
-### NodeJs version 14 is recommended
 ```
+Web Application  <-- WebHID -->  GoGo Board
+```
+
+The browser opens the board's raw HID interface directly. No helper app, no driver.
+
+Reading is unprompted: the board streams its device register from power-up. Writing is a 63-byte command packet per action. Downloading a Logo program is two steps — POST the source to the cloud compiler, then push the returned bytecode to the board in 60-byte chunks.
+
+Earlier versions went through a local GoGo Plugin over a websocket (`ws://localhost:8317`). That path is legacy; the code is still in `src/main.js`, commented out.
+
+## Docs
+
+- [Protocol reference](docs/protocol.md) — packet framing, command tables, device register map
+- [Offline datalog](docs/offline-datalog.md) — sync state machine and record format
+
+## Requirements
+
+- **Chromium-based browser** — WebHID is not in Firefox or Safari
+- **Node 14** — the toolchain is Vue CLI 4 and has not been updated
+- A GoGo Board over USB for anything device-facing
+
+## Setup
+
+```bash
 npm install
+npm run serve    # dev server, hot reload
+npm run build    # production build to dist/
+./deploy.sh      # build + force-push dist/ to gh-pages
 ```
 
-### Compiles and hot-reloads for development
-```
-npm run serve
+On Node 17 or newer, webpack 4 dies with `ERR_OSSL_EVP_UNSUPPORTED`. Either use Node 14 or prefix the command:
+
+```bash
+NODE_OPTIONS=--openssl-legacy-provider npm run build
 ```
 
-### Compiles and minifies for production
-```
-npm run build
-```
+Live demo: https://lilcmu.github.io/gogo-api-demo
+
+## Status
+
+Current hardware is **GoGo Board 7.x**; parts of this demo still assume 6.x. The drift is documented — see [Changes since 6.x](docs/protocol.md#changes-since-6x).
+
+Offline datalog is migrated. Still open: the GoGoAPI page reads the firmware version from the wrong register byte.
