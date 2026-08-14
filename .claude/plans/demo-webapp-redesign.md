@@ -1788,6 +1788,19 @@ git commit -m "feat(views): Packets page"
 - Consumes: nothing.
 - Produces: CSS custom properties and the shared `.page`, `.tile`, `.dark-panel`, `.btn`, `.pill`, `.section-label`, `.action-message`, `.bytes`, `.control-row` classes used by every view written in Phase 2.
 
+> **Amended after review.** Two colours below failed the spec's own success
+> criterion 4 (nothing below 4.5:1). Corrected in commit `9316b34`:
+>
+> 1. `--muted` was `#5c7a8c`, measuring 4.19:1 for `.tile__label` on the green
+>    tint. Now `#4f6b7d` — verified 5.19 / 5.13 / 4.98 / 4.77:1 on the green,
+>    orange, blue and pink tints.
+> 2. `.tile__value.is-inactive` rendered `#9fb4c0` on a tint at 1.98:1, failing
+>    even the 3:1 large-text floor. The dimming is **removed entirely** rather
+>    than darkened — a zero is real data and now renders in ink like any other
+>    reading. This also resolves a separate review finding that dimming conflated
+>    "nothing plugged into this port" with "the sensor genuinely reads zero".
+>    The `inactive` prop, its class binding and the `--inactive` token are gone.
+
 - [ ] **Step 1: Write the tokens**
 
 Create `src/styles/tokens.css`:
@@ -2061,10 +2074,24 @@ carry white text."
 
 ---
 
-### Task 12: Datalog empty state and docs refresh
+### Task 12: Datalog empty state, colour tokens, docs refresh
 
 **Files:**
-- Modify: `src/views/Datalog.vue`, `README.md`, `CLAUDE.md`, `docs/protocol.md`
+- Modify: `src/views/Datalog.vue`, `src/components/Chart.vue`, `README.md`, `CLAUDE.md`, `docs/protocol.md`
+
+> **Scope added during execution.** Task 11 styled everything in its Modify list,
+> but `Datalog.vue` and `Chart.vue` were not on it and still carry pre-refactor
+> hardcoded colours — `#7CFC00`, `#09af32`, `#eb4e4e`, `#fdc9c9`, `#42b983`,
+> `#77a1e5`, `#2c3e50`. Two of those (`#42b983`, `#09af32`) are not GoGoCode
+> palette colours at all. That leaves the branch short of success criterion 3,
+> "every colour traces to a token", so tokenising them is folded in here — this
+> task already opens `Datalog.vue`.
+>
+> Map them as: progress bar and sync affordances → `--gogo-green`; destructive
+> delete affordances → `--gogo-pink` with `--gogo-pink-tint` for hover; all text
+> → `--gogo-ink`. `Chart.vue` configures Highcharts in JS, where CSS variables do
+> not resolve, so it takes the literal palette hex with a comment naming the
+> token each one mirrors: series colours `#02a8f4` and `#db3f8d`, text `#01354c`.
 
 - [ ] **Step 1: Add the empty state to `Datalog.vue`**
 
