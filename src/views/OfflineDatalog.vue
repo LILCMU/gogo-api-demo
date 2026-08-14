@@ -56,7 +56,10 @@
 
 <script>
 import { mapActions, mapGetters } from "vuex";
-import { CONST } from "@/store/const";
+import {
+  CATEGORY, EVENT_CMD, DATALOG_STATUS,
+  parseFileSizes, parseLookupTable, parseDatalogRecords,
+} from '@/gogo/protocol'
 import DatalogChart from "@/components/Chart.vue";
 import Dropdown from "vue-dropdowns";
 import ProgressBar from "vue-simple-progress";
@@ -93,24 +96,21 @@ export default {
     msg: String,
   },
   computed: {
-    ...mapGetters(["gogoResponse", "boardStatus"]),
+    ...mapGetters(["lastResponse", "boardStatus"]),
 
     actionHint: function () {
       return this.boardStatus ? "" : "Connect a GoGo Board first";
     },
 
-    computePacket() {
-      if (this.startRetrivedOfflineDatalog) {
-        this.offlineDatalogStatus = this.unpackOfflineDatalogPackets(
-          this.gogoResponse
-        );
-      }
+    computePacket () {
+      if (!this.startRetrivedOfflineDatalog) return ''
+      return this.unpackOfflineDatalogPackets(this.lastResponse)
     },
   },
   mounted() { },
   created() { },
   methods: {
-    ...mapActions(["sendHID", "clearResponseHID", "debugEnabled"]),
+    ...mapActions(["send", "clearResponse"]),
 
     //? Add function for refresh date on you pick
     onSelectedDate() {
@@ -139,144 +139,65 @@ export default {
       return "Retrieve a total of " + nRecords + " records.";
     },
 
-    splitRecordsToChartSeries: function (retrievedRecords) {
-      let chartSeries = [];
-      retrievedRecords.forEach((record) => {
-        //* every() -> it stops iterating through the array whenever the callback function returns a falsy value.
-        let notFoundExistField = chartSeries.every(
-          (eachFieldInChannel) => {
-            //! if field exist need to return false
-            if (eachFieldInChannel["name"] == record[1]) {
-              eachFieldInChannel["data"].push([record[0], record[2]]);
-              return false;
-            }
-            return true;
-          }
-        );
-        //! in case of field not exist
-        if (notFoundExistField) {
-          chartSeries.push({
-            name: record[1],
-            data: [[record[0], record[2]]],
-            animation: false,
-          });
-          // console.log('field not exist: ', chartSeries)
+    splitRecordsToChartSeries: function (records) {
+      const series = []
+      records.forEach((record) => {
+        let target = series.find((s) => s.name === record.field)
+        if (!target) {
+          target = { name: record.field, data: [], animation: false }
+          series.push(target)
         }
-      });
-      // console.log('chart: ', chartSeries)
-
-      //? sorted by timestamp without changing value ascending
-      // for (const [key, channelRecords] of Object.entries(chartSeries)) {
-      //   channelRecords.forEach((fieldRecords) => {
-      //     fieldRecords["data"].sort((a, b) => a[0] - b[0]);
-      //   });
-      // }
-      return chartSeries;
+        target.data.push([record.timestamp, record.value])
+      })
+      return series
     },
 
     unpackOfflineDatalogPackets: function (packet) {
-      if (packet.data && packet.command == CONST.rcmd_get_offline_datalog) {
-        this.dataChunk.push.apply(this.dataChunk, packet.data);
+      if (!packet || packet.command !== EVENT_CMD.GET_DATALOG) return ''
 
-        //todo - update progress percentage by retrieved file size
-        if (this.datalogRecordsFileSize + this.lookupTableFileSize) {
-          this.percentage += (packet.size / (this.datalogRecordsFileSize + this.lookupTableFileSize)) * 100;
-        }
+      this.dataChunk.push.apply(this.dataChunk, Array.from(packet.payload))
 
-        if (packet.status == CONST.offline_datalog_status_empty) {
-          this.startRetrivedOfflineDatalog = false;
-          this.clearResponseHID();
+      const total = this.datalogRecordsFileSize + this.lookupTableFileSize
+      if (total) this.percentage += (packet.length / total) * 100
 
-          return "this file is empty";
-        }
-
-        // NOTE: - retrieve files size
-        else if (packet.status == CONST.offline_datalog_status_file_size) {
-          console.log('filesize', this.dataChunk)
-          let startPoint = 0;
-          for (let i = 0; i < packet.size; i++) {
-            if (String.fromCharCode(this.dataChunk[i]) == "\n") {
-              let tmpSize = parseInt(String.fromCharCode.apply(String, this.dataChunk.slice(startPoint, i)));
-              !startPoint
-                ? (this.lookupTableFileSize = tmpSize)
-                : (this.datalogRecordsFileSize = tmpSize);
-              startPoint = i + 1;
-            }
-          }
-          this.dataChunk = [];
-          startPoint = 0;
-
-          console.log(this.lookupTableFileSize, this.datalogRecordsFileSize);
-          return "retrieved file size...";
-        }
-
-        // NOTE: - retrieve lookup table
-        else if (packet.status == CONST.offline_datalog_status_lookup_table) {
-          console.log('LUT', this.dataChunk)
-          let startPoint = 0;
-          for (let i = 0; i < this.lookupTableFileSize; i++) {
-            if (String.fromCharCode(this.dataChunk[i]) == ",") {
-              this.lookupTable.push(String.fromCharCode.apply(String, this.dataChunk.slice(startPoint, i)));
-              startPoint = i + 1;
-            }
-          }
-          this.dataChunk = [];
-
-          console.log(this.lookupTable);
-          console.time('retrieve_records')
-          return "retrieved lookup table...";
-        }
-
-        // NOTE: - retrieve datalog records and parseing each record
-        else if (packet.status == CONST.offline_datalog_status_records) {
-          console.timeEnd('retrieve_records')
-          this.debugEnabled(false);
-
-          console.time('parse_records');
-          const records = [];
-          const recordCount = this.datalogRecordsFileSize / CONST.offline_datalog_record_size;
-          const dataView = new DataView(new Uint8Array(this.dataChunk).buffer);
-
-          for (let i = 0; i < recordCount; i++) {
-            const startIndex = i * CONST.offline_datalog_record_size;
-
-            const timestamp = dataView.getUint32(startIndex, true) * 1000;
-            const lookupIndex = dataView.getUint16(startIndex + 4, true);
-            const value = dataView.getFloat32(startIndex + 6, true);
-
-            records.push([timestamp, this.lookupTable[lookupIndex], value]);
-          }
-          console.timeEnd('parse_records');
-          this.dataChunk = []; // clear existing data chunk
-          // console.log(records)
-
-          // NOTE: - convert retrieved records to highcharts series object
-          console.time('parse_charts')
-          this.datalogRecords = this.splitRecordsToChartSeries(records);
-          console.timeEnd('parse_charts')
-          // console.log(this.datalogRecords);
-
-          //? clearing all related data stream variables
-          this.startRetrivedOfflineDatalog = false;
-          this.clearResponseHID();
-
-          return this.updateRenderGraph();
-        }
-
-        return "Syncing...";
+      if (packet.status === DATALOG_STATUS.EMPTY) {
+        this.finishSync()
+        return 'No records stored on the board.'
       }
+
+      if (packet.status === DATALOG_STATUS.FILE_SIZE) {
+        const sizes = parseFileSizes(Uint8Array.from(this.dataChunk), packet.length)
+        this.lookupTableFileSize = sizes.lookupTableSize
+        this.datalogRecordsFileSize = sizes.recordsSize
+        this.dataChunk = []
+        return 'Reading file sizes...'
+      }
+
+      if (packet.status === DATALOG_STATUS.LOOKUP_TABLE) {
+        this.lookupTable = parseLookupTable(
+          Uint8Array.from(this.dataChunk), this.lookupTableFileSize
+        )
+        this.dataChunk = []
+        return 'Reading field names...'
+      }
+
+      if (packet.status === DATALOG_STATUS.RECORDS) {
+        const records = parseDatalogRecords(
+          Uint8Array.from(this.dataChunk).slice(0, this.datalogRecordsFileSize),
+          this.lookupTable
+        )
+        this.datalogRecords = this.splitRecordsToChartSeries(records)
+        this.$refs.datalogChart.chartOptions.series = this.datalogRecords
+        this.finishSync()
+        return 'Loaded ' + records.length + ' records.'
+      }
+
+      return 'Syncing...'
     },
 
-    sendCommand: function (data, callback) {
-      var cmdPacket = new Array(64).fill(0); //? HID data 64 bytes ** include report ID
-      for (var i in data) {
-        cmdPacket[parseInt(i)] = data[i];
-      }
-      this.sendHID(cmdPacket);
-
-      if (typeof callback === "function") {
-        callback();
-      }
+    finishSync: function () {
+      this.startRetrivedOfflineDatalog = false
+      this.clearResponse()
     },
 
     syncOfflineDatalogRecords: function () {
@@ -297,13 +218,7 @@ export default {
         //? set flag to retrieve new packets
         this.startRetrivedOfflineDatalog = true;
 
-        var cmdList = [];
-        cmdList[CONST.category_id_index] = CONST.response_packet_type;
-        cmdList[CONST.command_id_index] = CONST.rcmd_get_offline_datalog;
-
-        this.sendCommand(cmdList, null);
-
-        this.debugEnabled(true);
+        this.send({ category: CATEGORY.EVENT_REQUEST, command: EVENT_CMD.GET_DATALOG })
       }
     },
 
@@ -320,11 +235,7 @@ export default {
         return;
       }
 
-      var cmdList = [];
-      cmdList[CONST.category_id_index] = CONST.response_packet_type;
-      cmdList[CONST.command_id_index] = CONST.rcmd_clear_offline_datalog;
-
-      this.sendCommand(cmdList, null);
+      this.send({ category: CATEGORY.EVENT_REQUEST, command: EVENT_CMD.CLEAR_DATALOG })
       this.offlineDatalogStatus = "Datalog deleted from the GoGo Board.";
     },
   },

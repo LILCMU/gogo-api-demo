@@ -6,7 +6,7 @@
       <h3>GoGo Report</h3>
       <ul>
         {{
-          gogoReport
+          report && report.board.typeName
         }}
       </ul>
     </div>
@@ -15,7 +15,7 @@
       <h3>Sensor values</h3>
       <ul>
         {{
-          processSensor
+          sensors
         }}
       </ul>
     </div>
@@ -82,7 +82,8 @@
 
 <script>
 import { mapActions, mapGetters } from "vuex";
-import { CONST } from "../store/const";
+import { CATEGORY, CMD, MEMORY_CMD } from '@/gogo/protocol'
+import { compilerUrl } from '@/config'
 
 export default {
   name: "GoGoAPI",
@@ -101,172 +102,114 @@ export default {
     msg: String,
   },
   computed: {
-    ...mapGetters(["gogoReport", "boardStatus"]),
+    ...mapGetters(["report", "boardStatus"]),
 
     actionHint: function () {
       return this.boardStatus ? "" : "Connect a GoGo Board first";
     },
 
-    //? GoGo 6 and 7 report major.minor.patch from index 19; older boards a single byte at 20
     firmwareVersion: function () {
-      var boardType = this.gogoReport[CONST.board_type_index];
-      var isGogo6OrLater =
-        boardType == CONST.board_type_gogo6 || boardType == CONST.board_type_gogo7;
-
-      return this.gogoReport[
-        isGogo6OrLater
-          ? CONST.firmware_version_index
-          : CONST.legacy_firmware_version_index
-      ];
+      return this.report ? this.report.board.firmwareMajor : 0;
     },
 
-    processSensor: function () {
-        var sensor_values = new Uint16Array(CONST.sensor_count)
-        for (var i = 0; i < CONST.sensor_count; i++)
-        {
-            var index = CONST.sensor_start_index + i * 2
-            sensor_values[i] = (this.gogoReport[index] << 8) + this.gogoReport[index + 1]
-        }
-        return sensor_values
+    sensors: function () {
+      return this.report ? this.report.sensors : [];
     },
   },
   methods: {
-    ...mapActions(["connectDevice", "sendHID"]),
+    ...mapActions(["connect", "send"]),
 
     connectGoGoDevice: function () {
-      this.connectDevice();
+      this.connect();
     },
 
-    report: function (message, failed) {
+    reportAction: function (message, failed) {
       this.actionMessage = message;
       this.actionFailed = !!failed;
     },
 
-    sendCommand: function (data, callback) {
-      var cmdPacket = new Array(64).fill(0); //? HID data 64 bytes ** include report ID
-      for (var i in data) {
-        cmdPacket[parseInt(i)] = data[i];
-      }
-      // console.log(cmdPacket);
-      this.sendHID(cmdPacket);
-
-      if (typeof callback === "function") {
-        callback();
-      }
-    },
-
-    setLogoMemoryPointer: function (callback) {
-      var cmdList = [];
-      cmdList[CONST.category_id_index] = 1;
-      cmdList[CONST.command_id_index] = 1;
-      cmdList[CONST.parameters_index] = 0;
-      cmdList[CONST.parameters_index + 1] = 0;
-      this.sendCommand(cmdList, callback);
-    },
-
-    writeLogoMemory: function (content, callback, offset) {
-      offset = offset || 0;
-      if (offset > content.length) {
-        if (typeof callback === "function") {
-          callback();
-        }
-        return;
-      }
-
-      /* Write content to the flash memory */
-      var txLength = content.length;
-
-      var cmdList = [];
-      cmdList[CONST.category_id_index] = 1;
-      cmdList[CONST.command_id_index] = 3;
-
-      //? set parameter 1 for content length
-      //* # if the content cannot fit in one packet
-      if (txLength - offset > 60) {
-        cmdList[CONST.parameters_index] = 60;
-      } else {
-        cmdList[CONST.parameters_index] = txLength - offset;
-      }
-
-      // # copy the content to be transmitted to the output buffer
-      for (var i = 0; i < cmdList[CONST.parameters_index]; i++) {
-        cmdList[CONST.parameters_index + 1 + Number(i)] =
-          content[offset + Number(i)];
-      }
-      offset += 60;
-
-      this.sendCommand(cmdList, () => {
-        setTimeout(() => {
-          this.writeLogoMemory(content, callback, offset);
-        }, 10);
+    setLogoMemoryPointer: function () {
+      return this.send({
+        category: CATEGORY.MEMORY,
+        command: MEMORY_CMD.SET_LOGO_POINTER,
+        params: [0, 0],
       });
     },
 
-    downloadOpcodeToBoard: function (logoOpcode) {
+    writeLogoMemory: async function (content) {
+      for (let offset = 0; offset < content.length; offset += 60) {
+        const chunk = content.slice(offset, offset + 60);
+        await this.send({
+          category: CATEGORY.MEMORY,
+          command: MEMORY_CMD.WRITE_BYTES,
+          params: [chunk.length].concat(Array.from(chunk)),
+        });
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+      //? the firmware commits to NVS on a chunk shorter than 60, so a program
+      //? whose length is an exact multiple needs a final empty write
+      if (content.length % 60 === 0) {
+        await this.send({
+          category: CATEGORY.MEMORY,
+          command: MEMORY_CMD.WRITE_BYTES,
+          params: [0],
+        });
+      }
+    },
+
+    downloadOpcodeToBoard: async function (logoOpcode) {
       if (!this.boardStatus) {
-        this.report("Connect a GoGo Board first.", true);
+        this.reportAction("Connect a GoGo Board first.", true);
         return;
       }
 
       //? called with no argument from the Logo Opcodes textarea
       if (!logoOpcode) {
         if (!this.logoOpcodes) {
-          this.report("Enter the logo opcodes first.", true);
+          this.reportAction("Enter the logo opcodes first.", true);
           return;
         }
         try {
           logoOpcode = JSON.parse(this.logoOpcodes);
         } catch (error) {
-          this.report("Logo opcodes must be a JSON array of bytes.", true);
+          this.reportAction("Logo opcodes must be a JSON array of bytes.", true);
           return;
         }
       }
 
-      this.setLogoMemoryPointer(() => {
-        this.writeLogoMemory(
-          logoOpcode,
-          () => {
-            setTimeout(() => {
-              //* sending beep packet
-              var cmdList = [];
-              cmdList[CONST.category_id_index] = 0;
-              cmdList[CONST.command_id_index] = 11;
-              this.sendCommand(cmdList, null);
-              this.report("Downloaded to the board.", false);
-            }, 15);
-          },
-          0
-        );
-      });
+      await this.setLogoMemoryPointer();
+      await this.writeLogoMemory(logoOpcode);
+      await this.send({ category: CATEGORY.CONTROL, command: CMD.BEEP });
+      this.reportAction("Downloaded to the board.", false);
     },
 
     downloadLogoProgram: function () {
       if (!this.boardStatus) {
-        this.report("Connect a GoGo Board first.", true);
+        this.reportAction("Connect a GoGo Board first.", true);
         return;
       }
       if (!this.logoProgram) {
-        this.report("Enter a logo program first.", true);
+        this.reportAction("Enter a logo program first.", true);
         return;
       }
 
-      this.report("Compiling...", false);
+      this.reportAction("Compiling...", false);
 
       var sendingData = {
         logo: this.logoProgram,
         firmware_version: this.firmwareVersion,
-        board_type: this.gogoReport[CONST.board_type_index],
-        board_version: this.gogoReport[CONST.board_version_index],
+        board_type: this.report.board.type,
+        board_version: this.report.board.version,
       };
 
       this.$http
-        .post(CONST.compiler_url, sendingData, { emulateJSON: true })
+        .post(compilerUrl, sendingData, { emulateJSON: true })
         .then(
           (response) => {
             if (response.data.data != undefined) {
               this.downloadOpcodeToBoard(response.data.data);
             } else {
-              this.report("Compiler returned no bytecode.", true);
+              this.reportAction("Compiler returned no bytecode.", true);
             }
           },
           (response) => {
@@ -276,9 +219,9 @@ export default {
               response.data.status >= 500 &&
               response.data.status < 600
             ) {
-              this.report("Syntax error in the logo program.", true);
+              this.reportAction("Syntax error in the logo program.", true);
             } else {
-              this.report("Cloud compiler unavailable.", true);
+              this.reportAction("Cloud compiler unavailable.", true);
             }
           }
         );
@@ -286,27 +229,21 @@ export default {
 
     sendControlCommand: function () {
       if (!this.boardStatus) {
-        this.report("Connect a GoGo Board first.", true);
-        return;
+        this.reportAction('Connect a GoGo Board first.', true)
+        return
       }
-
-      var cmdList = [];
-      cmdList[CONST.category_id_index] = Number(this.cmdCategory);
-      cmdList[CONST.command_id_index] = Number(this.cmdID);
-
-      var params = "";
-      if (this.cmdParams != "") params = this.cmdParams.split(",");
-
-      for (var i in params)
-        cmdList[CONST.parameters_index + parseInt(i)] = parseInt(
-          params[parseInt(i)]
-        );
-
-      this.sendCommand(cmdList, null);
-      this.report(
-        "Sent category " + this.cmdCategory + ", command " + this.cmdID + ".",
+      const params = this.cmdParams
+        ? this.cmdParams.split(',').map((value) => parseInt(value, 10))
+        : []
+      this.send({
+        category: Number(this.cmdCategory),
+        command: Number(this.cmdID),
+        params,
+      })
+      this.reportAction(
+        'Sent category ' + this.cmdCategory + ', command ' + this.cmdID + '.',
         false
-      );
+      )
     },
   },
 };
