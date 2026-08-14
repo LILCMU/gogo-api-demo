@@ -1,37 +1,19 @@
 <template>
   <div class="Graph">
     <div class="datapicker">
-        <date-picker
-          v-model="dateTimeOffset"
-          type="datetime"
-          placeholder="select offset timestamp"
-          value-type="timestamp"
-          @change="onSelectedDate()"
-        ></date-picker>
-        <Dropdown
-          class="channel-dropdown"
-          :options="channelsList"
-          :selected="selectedChannel"
-          :placeholder="'Select channel to plot'"
-          v-on:updateOption="onSelectedChannel"
-        >
-        </Dropdown>
+      <date-picker v-model="dateTimeOffset" type="datetime" placeholder="select offset timestamp" value-type="timestamp"
+        @change="onSelectedDate()"></date-picker>
     </div>
     <ul class="bt-container">
-        <button class="sync-bt" @click="syncOfflineDatalogRecords()">
-          Sync Data
-        </button>
-        <button class="delete-bt" @click="$vm2.open('modal')">
-          Delete Data
-        </button>
+      <button class="sync-bt" @click="syncOfflineDatalogRecords()">
+        Sync Data
+      </button>
+      <button class="delete-bt" @click="$vm2.open('modal')">
+        Delete Data
+      </button>
     </ul>
     <div class="progress-bar">
-      <progress-bar
-        v-if="startRetrivedOfflineDatalog"
-        size="medium"
-        bar-color="	#7CFC00"
-        :val="percentage"
-      />
+      <progress-bar v-if="startRetrivedOfflineDatalog" size="medium" bar-color="	#7CFC00" :val="percentage" />
     </div>
     <div id="container">
       {{ offlineDatalogStatus }}
@@ -41,24 +23,19 @@
       <datalog-chart ref="datalogChart" />
     </div>
     <div class="modals">
-      <modal-vue
-        @on-close="$vm2.close('modal')"
-        name="modal"
-        noHeader
-        :footerOptions="{
-          btn1: 'Cancel',
-          btn2: 'Delete',
-          btn2Style: {
-            backgroundColor: 'red',
-          },
-          btn2OnClick: () => {
-            clearData();
-          },
-          btn1OnClick: () => {
-            $vm2.close('modal');
-          },
-        }"
-      >
+      <modal-vue @on-close="$vm2.close('modal')" name="modal" noHeader :footerOptions="{
+        btn1: 'Cancel',
+        btn2: 'Delete',
+        btn2Style: {
+          backgroundColor: 'red',
+        },
+        btn2OnClick: () => {
+          clearData();
+        },
+        btn1OnClick: () => {
+          $vm2.close('modal');
+        },
+      }">
         <div>
           <p>Are you sure you want to delete data from GoGoBoard ?</p>
         </div>
@@ -97,10 +74,6 @@ export default {
       lookupTableFileSize: 0,
       datalogRecordsFileSize: 0,
       percentage: 0,
-      channelsList: [],
-      selectedChannel: {
-        name: "select channel",
-      },
       dateTimeOffset: null,
       timestamp: 0,
       renderData: null,
@@ -120,30 +93,22 @@ export default {
       }
     },
   },
-  mounted() {},
-  created() {},
+  mounted() { },
+  created() { },
   methods: {
-    ...mapActions(["sendHID", "clearResponseHID"]),
+    ...mapActions(["sendHID", "clearResponseHID", "debugEnabled"]),
 
-    onSelectedChannel(payload) {
-      this.selectedChannel = payload;
-      this.updateRenderGraph();
-    },
-    
     //? Add function for refresh date on you pick
     onSelectedDate() {
-      if (this.datalogRecords[this.selectedChannel["name"]]) {
+      if (this.datalogRecords) {
         this.updateRenderGraph();
       }
     },
 
     updateRenderGraph() {
       let nRecords = 0;
-      this.renderData = structuredClone(
-        this.datalogRecords[this.selectedChannel["name"]]
-      ); //Deep Copy
       if (this.dateTimeOffset != null) {
-        this.renderData.forEach((field) => {
+        this.datalogRecords.forEach((field) => {
           for (let i = 0; i < field["data"].length; i++) {
             field["data"][i][0] += this.dateTimeOffset;
           }
@@ -151,49 +116,40 @@ export default {
         });
       }
       //* pass new series data to highcharts
-      this.$refs.datalogChart.chartOptions.series = this.renderData;
+      this.$refs.datalogChart.chartOptions.series = this.datalogRecords;
 
-      this.datalogRecords[this.selectedChannel["name"]].forEach((eachField) => {
+      this.datalogRecords.forEach((eachField) => {
         nRecords += eachField["data"].length;
       });
-      this.offlineDatalogStatus =
-        this.selectedChannel.name + " with " + nRecords + " records.";
+
+      return "Retrieve a total of " + nRecords + " records.";
     },
 
     splitRecordsToChartSeries: function (retrievedRecords) {
-      let chartSeries = {};
+      let chartSeries = [];
       retrievedRecords.forEach((record) => {
-        //! if channel exist
-        if (record[1] in chartSeries) {
-          //* every() -> it stops iterating through the array whenever the callback function returns a falsy value.
-          let notFoundExistField = chartSeries[record[1]].every(
-            (eachFieldInChannel) => {
-              //! if field exist need to return false
-              if (eachFieldInChannel["name"] == record[2]) {
-                eachFieldInChannel["data"].push([record[0], record[3]]);
-                return false;
-              }
-              return true;
+        //* every() -> it stops iterating through the array whenever the callback function returns a falsy value.
+        let notFoundExistField = chartSeries.every(
+          (eachFieldInChannel) => {
+            //! if field exist need to return false
+            if (eachFieldInChannel["name"] == record[1]) {
+              eachFieldInChannel["data"].push([record[0], record[2]]);
+              return false;
             }
-          );
-          //! in case of field not exist
-          if (notFoundExistField) {
-            chartSeries[record[1]].push({
-              name: record[2],
-              data: [[record[0], record[3]]],
-              animation: false,
-            });
+            return true;
           }
-        } else {
-          chartSeries[record[1]] = [
-            {
-              name: record[2],
-              data: [[record[0], record[3]]],
-              animation: false,
-            },
-          ];
+        );
+        //! in case of field not exist
+        if (notFoundExistField) {
+          chartSeries.push({
+            name: record[1],
+            data: [[record[0], record[2]]],
+            animation: false,
+          });
+          // console.log('field not exist: ', chartSeries)
         }
       });
+      // console.log('chart: ', chartSeries)
 
       //? sorted by timestamp without changing value ascending
       // for (const [key, channelRecords] of Object.entries(chartSeries)) {
@@ -205,15 +161,12 @@ export default {
     },
 
     unpackOfflineDatalogPackets: function (packet) {
-      if (packet.data) {
+      if (packet.data && packet.command == CONST.rcmd_get_offline_datalog) {
         this.dataChunk.push.apply(this.dataChunk, packet.data);
 
         //todo - update progress percentage by retrieved file size
         if (this.datalogRecordsFileSize + this.lookupTableFileSize) {
-          this.percentage +=
-            (packet.size /
-              (this.datalogRecordsFileSize + this.lookupTableFileSize)) *
-            100;
+          this.percentage += (packet.size / (this.datalogRecordsFileSize + this.lookupTableFileSize)) * 100;
         }
 
         if (packet.status == CONST.offline_datalog_status_empty) {
@@ -223,17 +176,13 @@ export default {
           return "this file is empty";
         }
 
-        //todo - retrieve files size
+        // NOTE: - retrieve files size
         else if (packet.status == CONST.offline_datalog_status_file_size) {
+          console.log('filesize', this.dataChunk)
           let startPoint = 0;
           for (let i = 0; i < packet.size; i++) {
             if (String.fromCharCode(this.dataChunk[i]) == "\n") {
-              let tmpSize = parseInt(
-                String.fromCharCode.apply(
-                  String,
-                  this.dataChunk.slice(startPoint, i)
-                )
-              );
+              let tmpSize = parseInt(String.fromCharCode.apply(String, this.dataChunk.slice(startPoint, i)));
               !startPoint
                 ? (this.lookupTableFileSize = tmpSize)
                 : (this.datalogRecordsFileSize = tmpSize);
@@ -242,74 +191,62 @@ export default {
           }
           this.dataChunk = [];
           startPoint = 0;
+
           console.log(this.lookupTableFileSize, this.datalogRecordsFileSize);
           return "retrieved file size...";
         }
 
-        //todo - retrieve lookup table
+        // NOTE: - retrieve lookup table
         else if (packet.status == CONST.offline_datalog_status_lookup_table) {
+          console.log('LUT', this.dataChunk)
           let startPoint = 0;
           for (let i = 0; i < this.lookupTableFileSize; i++) {
             if (String.fromCharCode(this.dataChunk[i]) == ",") {
-              this.lookupTable.push(
-                String.fromCharCode.apply(
-                  String,
-                  this.dataChunk.slice(startPoint, i)
-                )
-              );
+              this.lookupTable.push(String.fromCharCode.apply(String, this.dataChunk.slice(startPoint, i)));
               startPoint = i + 1;
             }
           }
           this.dataChunk = [];
+
           console.log(this.lookupTable);
+          console.time('retrieve_records')
           return "retrieved lookup table...";
         }
 
-        //todo - retrieve datalog records
+        // NOTE: - retrieve datalog records and parseing each record
         else if (packet.status == CONST.offline_datalog_status_records) {
-          let eachRecord = [];
-          let records = [];
-          for (let i = 1; i <= this.datalogRecordsFileSize; i++) {
-            eachRecord.push(this.dataChunk[i - 1]);
-            if (i % CONST.offline_datalog_record_size == 0) {
-              records.push(eachRecord);
-              eachRecord = [];
-            }
+          console.timeEnd('retrieve_records')
+          this.debugEnabled(false);
+
+          console.time('parse_records');
+          const records = [];
+          const recordCount = this.datalogRecordsFileSize / CONST.offline_datalog_record_size;
+          const dataView = new DataView(new Uint8Array(this.dataChunk).buffer);
+
+          for (let i = 0; i < recordCount; i++) {
+            const startIndex = i * CONST.offline_datalog_record_size;
+
+            const timestamp = dataView.getUint32(startIndex, true) * 1000;
+            const lookupIndex = dataView.getUint16(startIndex + 4, true);
+            const value = dataView.getFloat32(startIndex + 6, true);
+
+            records.push([timestamp, this.lookupTable[lookupIndex], value]);
           }
-          records.forEach((record) => {
-            this.datalogRecords.push([
-              parseInt(
-                new BigUint64Array(new Uint8Array(record.slice(0, 8)).buffer)[0]
-              ),
-              this.lookupTable[
-                new Uint16Array(new Uint8Array(record.slice(8, 10)).buffer)[0]
-              ],
-              this.lookupTable[
-                new Uint16Array(new Uint8Array(record.slice(10, 12)).buffer)[0]
-              ],
-              new Float32Array(new Uint8Array(record.slice(12, 16)).buffer)[0],
-            ]);
-          });
-          this.dataChunk = [];
+          console.timeEnd('parse_records');
+          this.dataChunk = []; // clear existing data chunk
+          // console.log(records)
 
-          //todo - convert retrieved records to highcharts series object
-          this.datalogRecords = this.splitRecordsToChartSeries(
-            this.datalogRecords
-          );
-          console.log(this.datalogRecords);
+          // NOTE: - convert retrieved records to highcharts series object
+          console.time('parse_charts')
+          this.datalogRecords = this.splitRecordsToChartSeries(records);
+          console.timeEnd('parse_charts')
+          // console.log(this.datalogRecords);
 
-          //todo - push channel to dropdown list
-          this.channelsList = [];
-          Object.keys(this.datalogRecords).forEach((channel) => {
-            this.channelsList.push({
-              name: channel,
-            });
-          });
           //? clearing all related data stream variables
           this.startRetrivedOfflineDatalog = false;
           this.clearResponseHID();
 
-          return "done... please select channel from dropdown list.";
+          return this.updateRenderGraph();
         }
 
         return "Syncing...";
@@ -346,6 +283,8 @@ export default {
         cmdList[CONST.command_id_index] = CONST.rcmd_get_offline_datalog;
 
         this.sendCommand(cmdList, null);
+
+        this.debugEnabled(true);
       }
     },
 
@@ -413,7 +352,7 @@ textarea {
   height: 1em;
   align-items: center;
   width: 100%;
-  margin-bottom: 3em; 
+  margin-bottom: 3em;
 }
 
 .datapicker {
@@ -426,13 +365,13 @@ textarea {
 }
 
 .sync-bt {
-color: #09af32;
-border: 1px solid #09af32;
+  color: #09af32;
+  border: 1px solid #09af32;
 }
 
 .delete-bt {
-color: #eb4e4e;
-border: 1px solid #eb4e4e;
+  color: #eb4e4e;
+  border: 1px solid #eb4e4e;
 }
 
 button {
@@ -450,11 +389,11 @@ button {
 }
 
 button.sync-bt:hover {
-    background-color: rgba(115, 238, 125, 0.3);
+  background-color: rgba(115, 238, 125, 0.3);
 }
 
 button.delete-bt:hover {
-    background-color: #fdc9c9;
+  background-color: #fdc9c9;
 }
 
 .channel-dropdown {
