@@ -83,6 +83,8 @@ export default {
 
 .btn--large { font-size: 18px; padding: 16px 44px; }
 
+.btn--small { font-size: 12px; padding: 4px 12px; }
+
 .btn[disabled] { opacity: 0.4; cursor: not-allowed; }
 
 .control-row {

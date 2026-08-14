@@ -7,6 +7,7 @@ export default {
   state: {
     connected: false,
     report: null,
+    reportRaw: null,
     lastResponse: null,
     error: null,
   },
@@ -15,6 +16,7 @@ export default {
     connected: (state) => state.connected,
     boardStatus: (state) => state.connected && !!state.report,
     report: (state) => state.report,
+    reportRaw: (state) => state.reportRaw,
     lastResponse: (state) => state.lastResponse,
     error: (state) => state.error,
   },
@@ -22,10 +24,18 @@ export default {
   mutations: {
     SET_CONNECTED (state, connected) {
       state.connected = connected
-      if (!connected) state.report = null
+      if (!connected) {
+        state.report = null
+        state.reportRaw = null
+      }
     },
     SET_REPORT (state, report) {
       state.report = report
+    },
+    //? the raw frame is kept alongside the parsed one purely so the Packets
+    //? page can show what actually arrived on the wire
+    SET_REPORT_RAW (state, bytes) {
+      state.reportRaw = bytes
     },
     SET_RESPONSE (state, response) {
       state.lastResponse = response
@@ -70,6 +80,7 @@ export default {
         const report = parseReport(bytes)
         if (report) {
           commit('SET_REPORT', report)
+          commit('SET_REPORT_RAW', bytes)
           return
         }
         const response = parseResponse(bytes)
