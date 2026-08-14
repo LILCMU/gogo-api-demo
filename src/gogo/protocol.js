@@ -219,3 +219,59 @@ export function parseReport (bytes) {
     grading: bytes[REG.GRADING],
   }
 }
+
+export const DATALOG_RECORD_SIZE = 10
+
+//? Type-20 layout past byte 2 is command-specific. Datalog puts a status byte
+//? at 3 and payload from 4; GoGo ID puts the MAC at 3..8 with no status.
+//? Callers must check `command` before trusting `status`.
+export function parseResponse (bytes) {
+  if (!bytes || bytes[REG.PACKET_TYPE] !== PACKET_TYPE.RESPONSE) return null
+
+  const length = bytes[1]
+
+  return {
+    type: PACKET_TYPE.RESPONSE,
+    length,
+    command: bytes[2],
+    status: bytes[3],
+    payload: bytes.slice(4, 4 + length),
+  }
+}
+
+function toText (bytes, size) {
+  return String.fromCharCode.apply(null, Array.from(bytes.slice(0, size)))
+}
+
+export function parseFileSizes (bytes, size) {
+  const [lookupTableSize, recordsSize] = toText(bytes, size).split('\n')
+  return {
+    lookupTableSize: parseInt(lookupTableSize, 10),
+    recordsSize: parseInt(recordsSize, 10),
+  }
+}
+
+export function parseLookupTable (bytes, size) {
+  return toText(bytes, size).split(',').filter((name) => name.length > 0)
+}
+
+//? 7.x offline record: uint32 seconds, uint16 field index, float32 value.
+//? Little-endian, and no channel — channel exists only on the online path.
+export function parseDatalogRecords (bytes, lookupTable) {
+  const view = new DataView(
+    bytes.buffer, bytes.byteOffset, bytes.byteLength
+  )
+  const count = Math.floor(bytes.byteLength / DATALOG_RECORD_SIZE)
+  const records = []
+
+  for (let i = 0; i < count; i++) {
+    const at = i * DATALOG_RECORD_SIZE
+    records.push({
+      timestamp: view.getUint32(at, true) * 1000,
+      field: lookupTable[view.getUint16(at + 4, true)],
+      value: view.getFloat32(at + 6, true),
+    })
+  }
+
+  return records
+}

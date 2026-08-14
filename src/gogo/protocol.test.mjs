@@ -105,3 +105,64 @@ test('parseReport decodes motor and relay arrays', () => {
   assert.deepEqual(report.motors.power, [100, 50, 0, 0])
   assert.deepEqual(report.relays.power, [80, 20, 0, 0])
 })
+
+import {
+  parseResponse, parseDatalogRecords, parseLookupTable, parseFileSizes,
+  DATALOG_STATUS, EVENT_CMD,
+} from './protocol.js'
+
+test('parseResponse returns null for a report packet', () => {
+  assert.equal(parseResponse(new Uint8Array(63)), null)
+})
+
+test('parseResponse splits header from payload', () => {
+  const bytes = new Uint8Array(63)
+  bytes[0] = 20
+  bytes[1] = 3
+  bytes[2] = EVENT_CMD.GET_DATALOG
+  bytes[3] = DATALOG_STATUS.IN_PROGRESS
+  bytes[4] = 0xaa
+  bytes[5] = 0xbb
+  bytes[6] = 0xcc
+
+  const response = parseResponse(bytes)
+  assert.equal(response.command, EVENT_CMD.GET_DATALOG)
+  assert.equal(response.length, 3)
+  assert.equal(response.status, DATALOG_STATUS.IN_PROGRESS)
+  assert.deepEqual(Array.from(response.payload), [0xaa, 0xbb, 0xcc])
+})
+
+test('parseFileSizes reads two newline-delimited numbers', () => {
+  const text = '48\n120\n'
+  const bytes = Uint8Array.from(text, (c) => c.charCodeAt(0))
+  assert.deepEqual(parseFileSizes(bytes, bytes.length), {
+    lookupTableSize: 48,
+    recordsSize: 120,
+  })
+})
+
+test('parseLookupTable splits on commas', () => {
+  const text = 'temp,light,sound,'
+  const bytes = Uint8Array.from(text, (c) => c.charCodeAt(0))
+  assert.deepEqual(parseLookupTable(bytes, bytes.length), ['temp', 'light', 'sound'])
+})
+
+test('parseDatalogRecords reads 10-byte little-endian records', () => {
+  //? timestamp 1700000000 s, field index 1, value 21.5
+  const bytes = new Uint8Array(10)
+  const view = new DataView(bytes.buffer)
+  view.setUint32(0, 1700000000, true)
+  view.setUint16(4, 1, true)
+  view.setFloat32(6, 21.5, true)
+
+  const records = parseDatalogRecords(bytes, ['temp', 'light'])
+  assert.equal(records.length, 1)
+  assert.equal(records[0].timestamp, 1700000000000)
+  assert.equal(records[0].field, 'light')
+  assert.equal(records[0].value, 21.5)
+})
+
+test('parseDatalogRecords ignores a trailing partial record', () => {
+  const records = parseDatalogRecords(new Uint8Array(15), ['a'])
+  assert.equal(records.length, 1)
+})
