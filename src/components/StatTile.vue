@@ -1,7 +1,7 @@
 <template>
   <div class="tile" :class="'tile--' + tone">
     <span class="tile__label">{{ label }}</span>
-    <span class="tile__value" :class="{ 'is-inactive': inactive }">{{ value }}</span>
+    <span class="tile__value">{{ value }}</span>
   </div>
 </template>
 
@@ -12,7 +12,6 @@ export default {
     label: { type: String, required: true },
     value: { type: [Number, String], required: true },
     tone: { type: String, default: "green" },
-    inactive: { type: Boolean, default: false },
   },
 };
 </script>
@@ -45,6 +44,4 @@ export default {
   line-height: 1.15;
   color: var(--gogo-ink);
 }
-
-.tile__value.is-inactive { color: var(--inactive); }
 </style>

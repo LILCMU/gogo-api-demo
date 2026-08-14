@@ -18,7 +18,6 @@
           :label="'Sensor ' + (i + 1)"
           :value="value"
           :tone="tones[i]"
-          :inactive="value === 0"
         />
       </div>
 
