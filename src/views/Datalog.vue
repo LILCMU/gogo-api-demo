@@ -26,7 +26,7 @@
       <progress-bar v-if="startRetrivedOfflineDatalog" size="medium" :bar-color="progressBarColor" :val="percentage" />
     </div>
     <div id="container">
-      {{ offlineDatalogStatus }}
+      <p class="action-message" :class="{ 'is-error': statusFailed }">{{ offlineDatalogStatus }}</p>
       {{ computePacket }}
     </div>
     <p v-if="!datalogRecords.length" class="page__empty">
@@ -83,6 +83,7 @@ export default {
       cmdID: 0,
       cmdParams: "",
       offlineDatalogStatus: "",
+      statusFailed: false,
       startRetrivedOfflineDatalog: false,
       dataChunk: [],
       lookupTable: [],
@@ -212,9 +213,10 @@ export default {
       this.clearResponse()
     },
 
-    syncOfflineDatalogRecords: function () {
+    syncOfflineDatalogRecords: async function () {
       if (!this.boardStatus) {
         this.offlineDatalogStatus = "Connect a GoGo Board first.";
+        this.statusFailed = true;
         return;
       }
 
@@ -229,26 +231,42 @@ export default {
 
         //? set flag to retrieve new packets
         this.startRetrivedOfflineDatalog = true;
+        this.statusFailed = false;
 
-        this.send({ category: CATEGORY.EVENT_REQUEST, command: EVENT_CMD.GET_DATALOG })
+        try {
+          await this.send({ category: CATEGORY.EVENT_REQUEST, command: EVENT_CMD.GET_DATALOG })
+        } catch (error) {
+          //? both buttons are disabled while this flag is set, with no other reset
+          this.startRetrivedOfflineDatalog = false;
+          this.offlineDatalogStatus = error.message;
+          this.statusFailed = true;
+        }
       }
     },
 
-    clearData() {
+    clearData: async function () {
       //? always dismiss the dialog, otherwise a refused delete leaves it stuck open
       this.$vm2.close("modal");
 
       if (this.startRetrivedOfflineDatalog) {
         this.offlineDatalogStatus = "Still syncing - try again once it finishes.";
+        this.statusFailed = true;
         return;
       }
       if (!this.boardStatus) {
         this.offlineDatalogStatus = "Connect a GoGo Board first.";
+        this.statusFailed = true;
         return;
       }
 
-      this.send({ category: CATEGORY.EVENT_REQUEST, command: EVENT_CMD.CLEAR_DATALOG })
-      this.offlineDatalogStatus = "Datalog deleted from the GoGo Board.";
+      try {
+        await this.send({ category: CATEGORY.EVENT_REQUEST, command: EVENT_CMD.CLEAR_DATALOG })
+        this.offlineDatalogStatus = "Datalog deleted from the GoGo Board.";
+        this.statusFailed = false;
+      } catch (error) {
+        this.offlineDatalogStatus = error.message;
+        this.statusFailed = true;
+      }
     },
   },
 };
@@ -327,7 +345,7 @@ textarea {
 }
 
 .delete-bt {
-  color: var(--gogo-pink);
+  color: var(--gogo-pink-text);
   border: 2px solid var(--gogo-pink);
 }
 

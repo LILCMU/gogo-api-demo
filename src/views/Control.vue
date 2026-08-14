@@ -1,30 +1,38 @@
 <template>
   <section class="page">
     <h2 class="section-label">Try it</h2>
-    <button class="btn btn--primary btn--large" :disabled="!boardStatus" @click="beep()">
+    <button class="btn btn--primary btn--large" :disabled="!boardStatus" :title="actionHint" @click="beep()">
       Beep
     </button>
 
     <h2 class="section-label">Motors</h2>
     <div class="control-row" v-for="i in 4" :key="'motor' + i">
       <span class="control-row__name">Motor {{ i }}</span>
-      <button class="btn" :disabled="!boardStatus" @click="motor(i, true)">On</button>
-      <button class="btn" :disabled="!boardStatus" @click="motor(i, false)">Off</button>
-      <button class="btn" :disabled="!boardStatus" @click="reverse(i)">Reverse</button>
+      <button class="btn" :disabled="!boardStatus" :title="actionHint" @click="motor(i, true)">On</button>
+      <button class="btn" :disabled="!boardStatus" :title="actionHint" @click="motor(i, false)">Off</button>
+      <button class="btn" :disabled="!boardStatus" :title="actionHint" @click="reverse(i)">Reverse</button>
     </div>
 
     <h2 class="section-label">Servos</h2>
     <div class="control-row" v-for="i in 4" :key="'servo' + i">
       <span class="control-row__name">Servo {{ i }}</span>
       <input type="range" min="0" max="180" v-model.number="angles[i - 1]"
-             :disabled="!boardStatus" @change="servo(i)" />
+             :disabled="!boardStatus" :title="actionHint" @change="servo(i)" />
       <span class="control-row__value">{{ angles[i - 1] }}°</span>
+    </div>
+
+    <h2 class="section-label">Relays</h2>
+    <div class="control-row" v-for="i in 4" :key="'relay' + i">
+      <span class="control-row__name">Relay {{ i }}</span>
+      <input type="range" min="0" max="100" v-model.number="relayPower[i - 1]"
+             :disabled="!boardStatus" :title="actionHint" @change="relay(i)" />
+      <span class="control-row__value">{{ relayPower[i - 1] }}%</span>
     </div>
 
     <h2 class="section-label">LED</h2>
     <div class="control-row">
-      <button class="btn" :disabled="!boardStatus" @click="led(true)">On</button>
-      <button class="btn" :disabled="!boardStatus" @click="led(false)">Off</button>
+      <button class="btn" :disabled="!boardStatus" :title="actionHint" @click="led(true)">On</button>
+      <button class="btn" :disabled="!boardStatus" :title="actionHint" @click="led(false)">Off</button>
     </div>
 
     <p class="action-message" :class="{ 'is-error': failed }">{{ message }}</p>
@@ -38,10 +46,19 @@ import { CATEGORY, CMD } from "@/gogo/protocol";
 export default {
   name: "Control",
   data: function () {
-    return { angles: [90, 90, 90, 90], message: "", failed: false };
+    return {
+      angles: [90, 90, 90, 90],
+      relayPower: [0, 0, 0, 0],
+      message: "",
+      failed: false,
+    };
   },
   computed: {
     ...mapGetters(["boardStatus"]),
+
+    actionHint: function () {
+      return this.boardStatus ? "" : "Connect a GoGo Board first";
+    },
   },
   methods: {
     ...mapActions(["send"]),
@@ -84,6 +101,12 @@ export default {
       const angle = this.angles[port - 1];
       this.run(CMD.SERVO_SET_ANGLE, [this.mask(port), angle >> 8, angle & 0xff],
         "Servo " + port + " to " + angle + "°.");
+    },
+
+    relay: function (port) {
+      const power = this.relayPower[port - 1];
+      this.run(CMD.RELAY_SET_POWER, [this.mask(port), power >> 8, power & 0xff],
+        "Relay " + port + " to " + power + "%.");
     },
 
     led: function (on) {

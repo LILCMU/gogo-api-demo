@@ -99,8 +99,8 @@ export default {
 .control-row__value { color: var(--muted); min-width: 48px; }
 
 .readout { display: flex; flex-direction: column; gap: 2px; }
-.readout span { font-size: 11px; color: #8fb3c4; font-weight: 700; }
-.readout strong { font-size: 18px; color: #fff; }
+.readout span { font-size: 11px; color: var(--dark-panel-label); font-weight: 700; }
+.readout strong { font-size: 18px; color: var(--dark-panel-value); }
 
 .bytes {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -113,5 +113,5 @@ export default {
 }
 
 .action-message { min-height: 1.2em; margin-top: 16px; font-size: 14px; color: var(--muted); }
-.action-message.is-error { color: var(--gogo-pink); }
+.action-message.is-error { color: var(--gogo-pink-text); }
 </style>

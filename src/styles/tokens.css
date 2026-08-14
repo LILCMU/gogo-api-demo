@@ -11,10 +11,17 @@
   --gogo-blue-tint: #e1f4fe;
   --gogo-pink-tint: #fbe7f1;
 
+  /* --gogo-pink fails 4.5:1 as body text (3.87:1 on --page-bg) — use this for text instead */
+  --gogo-pink-text: #c73980;
+
   --page-bg: #f7f8fa;
   --card-bg: #ffffff;
   --muted: #4f6b7d;
   --hairline: #e4e9ee;
+
+  --dark-panel-label: #8fb3c4;
+  --dark-panel-value: #ffffff;
+  --status-disconnected-bg: #eef1f4;
 
   --radius-card: 18px;
   --radius-pill: 999px;

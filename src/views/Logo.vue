@@ -121,10 +121,14 @@ export default {
         }
       }
 
-      await this.setLogoMemoryPointer();
-      await this.writeLogoMemory(logoOpcode);
-      await this.send({ category: CATEGORY.CONTROL, command: CMD.BEEP });
-      this.reportAction("Downloaded to the board.", false);
+      try {
+        await this.setLogoMemoryPointer();
+        await this.writeLogoMemory(logoOpcode);
+        await this.send({ category: CATEGORY.CONTROL, command: CMD.BEEP });
+        this.reportAction("Downloaded to the board.", false);
+      } catch (error) {
+        this.reportAction(error.message, true);
+      }
     },
 
     downloadLogoProgram: function () {

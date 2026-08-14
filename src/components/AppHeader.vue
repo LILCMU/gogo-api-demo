@@ -11,19 +11,40 @@
       <router-link to="/packets">Packets</router-link>
     </nav>
 
-    <span class="app-header__status" :class="boardStatus ? 'is-connected' : 'is-disconnected'">
-      {{ boardStatus ? "Connected" : "No board" }}
-    </span>
+    <div class="app-header__right">
+      <div v-if="!boardStatus" class="app-header__connect-area">
+        <p v-if="error" class="action-message is-error app-header__error">{{ error }}</p>
+        <button class="btn app-header__connect" @click="handleConnect">Connect a board</button>
+      </div>
+
+      <span class="app-header__status" :class="boardStatus ? 'is-connected' : 'is-disconnected'">
+        {{ boardStatus ? "Connected" : "No board" }}
+      </span>
+    </div>
   </header>
 </template>
 
 <script>
-import { mapGetters } from "vuex";
+import { mapActions, mapGetters, mapMutations } from "vuex";
 
 export default {
   name: "AppHeader",
   computed: {
-    ...mapGetters(["boardStatus"]),
+    ...mapGetters(["boardStatus", "error"]),
+  },
+  methods: {
+    ...mapActions(["connect"]),
+    ...mapMutations(["SET_ERROR"]),
+
+    //? requestDevice needs a real click; device.open() can still reject (e.g.
+    //? the board is held open by another app), which connect() doesn't catch
+    handleConnect: async function () {
+      try {
+        await this.connect({ prompt: true });
+      } catch (error) {
+        this.SET_ERROR(error.message);
+      }
+    },
   },
 };
 </script>
@@ -57,8 +78,18 @@ export default {
   background: var(--hairline);
 }
 
-.app-header__status {
+.app-header__right {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.app-header__connect-area { display: flex; align-items: center; gap: 12px; }
+
+.app-header__error { margin: 0; }
+
+.app-header__status {
   font-size: 12px;
   font-weight: 700;
   padding: 6px 14px;
@@ -66,5 +97,5 @@ export default {
 }
 
 .app-header__status.is-connected { background: var(--gogo-green); color: var(--gogo-ink); }
-.app-header__status.is-disconnected { background: #eef1f4; color: var(--muted); }
+.app-header__status.is-disconnected { background: var(--status-disconnected-bg); color: var(--muted); }
 </style>

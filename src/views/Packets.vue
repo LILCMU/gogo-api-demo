@@ -5,7 +5,7 @@
       <label>Category <input type="number" v-model.number="category" /></label>
       <label>Command <input type="number" v-model.number="command" /></label>
       <label>Params <input type="text" v-model="params" placeholder="1,2,3" /></label>
-      <button class="btn btn--primary" :disabled="!boardStatus" @click="sendPacket()">Send</button>
+      <button class="btn btn--primary" :disabled="!boardStatus" :title="actionHint" @click="sendPacket()">Send</button>
     </div>
 
     <h2 class="section-label">Frame preview</h2>
@@ -31,6 +31,10 @@ export default {
   },
   computed: {
     ...mapGetters(["boardStatus", "lastResponse"]),
+
+    actionHint: function () {
+      return this.boardStatus ? "" : "Connect a GoGo Board first";
+    },
 
     paramBytes: function () {
       return this.params

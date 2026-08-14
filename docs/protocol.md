@@ -17,7 +17,7 @@ The board also exposes a keyboard HID interface on the same device. `navigator.h
 
 Both directions use a 64-byte frame where **index 0 is the HID report ID**. Inbound and outbound differ in whether you see that byte:
 
-- **Outbound** — WebHID's `sendReport(0, payload)` takes only bytes 1..63. Build a 64-entry array indexed as in the tables below, then drop index 0 before sending. That is what the store's `sendHID` action does with `data.slice(1)`.
+- **Outbound** — WebHID's `sendReport(0, payload)` supplies the report ID itself; `buildCommand` in `src/gogo/protocol.js` emits the 63 bytes that follow directly, with no report-ID byte to drop. Table index N below is payload index N−1.
 - **Inbound** — `oninputreport` gives 63 bytes with **no shift**: `event.data` byte 0 *is* frame byte 0, the packet type.
 
 Unused bytes are zero.

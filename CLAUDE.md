@@ -48,7 +48,7 @@ Vue 2 SPA (Options API, Vue CLI 4, Vuex, vue-router) that talks to a GoGo Board 
 
 **Vuex adapter — `src/store/gogo.js`.** A thin layer over the device service: one `GogoTransport` instance, `bindTransport` wires its events to mutations (`SET_CONNECTED`, `SET_REPORT`, `SET_RESPONSE`, `SET_ERROR`), and the `send`/`connect`/`disconnect` actions call straight through to `transport`. `boardStatus` (used throughout the views to disable controls) is `connected && !!report` — a report has to have arrived, not just a HID open.
 
-- Outbound: `buildCommand(category, command, params)` returns the full frame; `transport.send` strips the report-ID byte before `sendReport(0, …)`.
+- Outbound: `buildCommand(category, command, params)` returns the 63-byte frame with the report-ID byte already dropped (category at 0, command at 1); `transport.send` strips nothing — WebHID's `sendReport(0, payload)` supplies the report ID itself.
 - Inbound: every `report` event is tried against `parseReport` (type-0 device register) first, then `parseResponse` (type-20 command response) — whichever matches commits.
 
 **Pages — `src/views/`.** `Live.vue` (streaming sensor tiles), `Control.vue` (motors/servos/relays/beep), `Datalog.vue` (offline datalog sync + chart), `Logo.vue` (compile/download Logo programs and raw opcodes), `Packets.vue` (raw packet builder/sender). Routes are registered in `src/router/index.js`.

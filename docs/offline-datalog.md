@@ -51,7 +51,7 @@ Group records by field into Highcharts series, then feed them to the chart.
 
 ## Chart wiring
 
-`Chart.vue` registers as `datalog-chart` and owns nothing but the Highcharts options. `OfflineDatalog.vue` pushes series straight into it:
+`Chart.vue` registers as `datalog-chart` and owns nothing but the Highcharts options. `Datalog.vue` pushes series straight into it:
 
 ```js
 this.$refs.datalogChart.chartOptions.series = series
@@ -69,4 +69,4 @@ Records land in LittleFS under `/datalog/` as 30 rotating files of ~10,000 recor
 
 On 6.x a record was 16 bytes: 8-byte millisecond timestamp, 2-byte channel, 2-byte field, 4-byte value. The 7.x record above is 10 bytes and **carries no channel** — channel survives only on the online (MQTT) path.
 
-The migration landed via `feature/datalog-v2`. It dropped the channel concept along with its dropdown, moved parsing to `DataView`, and gated the unpacker on `packet.command == rcmd_get_offline_datalog` so unrelated type-20 responses can no longer corrupt the receive buffer. The store also gained an opt-in raw-packet debug buffer (`debugEnabled` action).
+The migration landed via `feature/datalog-v2`. It dropped the channel concept along with its dropdown, moved parsing to `DataView`, and gated the unpacker on `packet.command == rcmd_get_offline_datalog` so unrelated type-20 responses can no longer corrupt the receive buffer.
