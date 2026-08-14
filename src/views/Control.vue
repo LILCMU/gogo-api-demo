@@ -46,15 +46,20 @@ export default {
   methods: {
     ...mapActions(["send"]),
 
-    run: function (command, params, note) {
+    run: async function (command, params, note) {
       if (!this.boardStatus) {
         this.message = "Connect a GoGo Board first.";
         this.failed = true;
         return;
       }
-      this.send({ category: CATEGORY.CONTROL, command, params });
-      this.message = note;
-      this.failed = false;
+      try {
+        await this.send({ category: CATEGORY.CONTROL, command, params });
+        this.message = note;
+        this.failed = false;
+      } catch (error) {
+        this.message = error.message;
+        this.failed = true;
+      }
     },
 
     //? port number to the firmware's one-bit-per-port mask
