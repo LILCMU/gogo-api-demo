@@ -39,6 +39,13 @@ export default {
   text-align: center;
 }
 
+/*? inside a card the full-page empty state is far too tall */
+.page__empty--compact {
+  padding: 16px;
+  text-align: left;
+  font-size: 13px;
+}
+
 .section-label {
   font-size: 11px;
   letter-spacing: 1px;
