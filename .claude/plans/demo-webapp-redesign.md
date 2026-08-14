@@ -852,8 +852,10 @@ export default {
   },
 
   actions: {
-    async connect ({ commit }) {
-      await transport.connect()
+    //? `prompt: false` on the startup attempt — requestDevice() needs a user
+    //? gesture, so an unprompted call at load can only reach granted devices
+    async connect (context, { prompt = true } = {}) {
+      await transport.connect({ prompt })
     },
 
     async disconnect () {
@@ -899,10 +901,12 @@ Vue.use(Vuex)
 const store = new Vuex.Store(gogo)
 
 store.dispatch('bindTransport')
-store.dispatch('connect')
+store.dispatch('connect', { prompt: false })
 
 export default store
 ```
+
+The startup `connect` must pass `prompt: false`. `navigator.hid.requestDevice()` throws without a user gesture, so an unprompted call at page load may only reach devices the user already granted. The picker opens from a button instead.
 
 - [ ] **Step 4: Verify it builds**
 
@@ -991,7 +995,7 @@ Replace every `sendCommand(cmdList, cb)` call with a direct `send`:
 ```js
 sendControlCommand: function () {
   if (!this.boardStatus) {
-    this.report('Connect a GoGo Board first.', true)
+    this.reportAction('Connect a GoGo Board first.', true)
     return
   }
   const params = this.cmdParams
@@ -1424,15 +1428,35 @@ git mv src/views/OfflineDatalog.vue src/views/Datalog.vue
 
 Change its `name: "Graph"` to `name: "Datalog"`.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 7: Stub the three views the router now needs**
 
-Tasks 8–10 create `Control.vue`, `Logo.vue` and `Packets.vue`; the build will fail until then. Commit anyway so the router change is reviewable on its own.
+Tasks 8–10 fill these in. Create each with only an empty page section so the
+build stays green and this task stays independently reviewable.
+
+`src/views/Control.vue`, `src/views/Logo.vue`, `src/views/Packets.vue`, each:
+
+```vue
+<template>
+  <section class="page"></section>
+</template>
+
+<script>
+export default { name: "Control" };
+</script>
+```
+
+Use the matching `name` in each file: `Control`, `Logo`, `Packets`.
+
+- [ ] **Step 8: Verify build**
+
+Run: `NODE_OPTIONS=--openssl-legacy-provider npm run build`
+Expected: `DONE Build complete.`
+
+- [ ] **Step 9: Commit**
 
 ```bash
 git add -A
-git commit -m "feat(views): header, router and Live page
-
-Build is broken until Control, Logo and Packets land in the next tasks."
+git commit -m "feat(views): header, router and Live page"
 ```
 
 ---
