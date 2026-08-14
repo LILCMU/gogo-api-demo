@@ -24,3 +24,6 @@ pnpm-debug.log*
 
 # Claude scratch
 .claude/tmp/
+
+# Brainstorm mockups
+.superpowers/
