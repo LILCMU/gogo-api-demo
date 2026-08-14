@@ -39,10 +39,16 @@ npm run build    # production build to dist/
 ./deploy.sh      # build + force-push dist/ to gh-pages
 ```
 
+On Node 17 or newer, webpack 4 dies with `ERR_OSSL_EVP_UNSUPPORTED`. Either use Node 14 or prefix the command:
+
+```bash
+NODE_OPTIONS=--openssl-legacy-provider npm run build
+```
+
 Live demo: https://lilcmu.github.io/gogo-api-demo
 
 ## Status
 
-This demo targets **GoGo Board 6.x** and current hardware is **7.x**. The protocol drift is documented — see [Changes since 6.x](docs/protocol.md#changes-since-6x).
+Current hardware is **GoGo Board 7.x**; parts of this demo still assume 6.x. The drift is documented — see [Changes since 6.x](docs/protocol.md#changes-since-6x).
 
-Still open on `develop`: the firmware version is read from the wrong register byte. The offline datalog migration to 7.x records is written but sits unmerged on `feature/datalog-v2`.
+Offline datalog is migrated. Still open: the GoGoAPI page reads the firmware version from the wrong register byte.

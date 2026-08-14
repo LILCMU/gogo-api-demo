@@ -202,4 +202,4 @@ The old spreadsheet described 6.x. Confirmed differences on 7.x:
 
 Anything the sheet listed under Raspberry Pi control beyond WiFi connect, and the whole Hopher category, never shipped a handler.
 
-**Not yet updated in this demo:** `develop` still reads the firmware version from byte 20 (7.x minor version). The datalog record migration is done but unmerged — see [offline-datalog.md](offline-datalog.md#6x-vs-7x).
+**Not yet updated in this demo:** `GoGoAPI.vue` still reads the firmware version from byte 20, which is the 7.x *minor* version. Offline datalog is already on the 7.x format.

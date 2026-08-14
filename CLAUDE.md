@@ -18,7 +18,7 @@ Sibling repos to consult (local, not vendored here):
 
 This repo has been unmaintained for a while and still demos **GoGo Board 6.x**; current hardware is **7.x**. Work in progress:
 
-- bring the app up to 7.x (protocol drift is documented in `docs/protocol.md`); `origin/feature/datalog-v2` already carries the datalog half and is waiting to merge
+- bring the app up to 7.x (protocol drift is documented in `docs/protocol.md`) — offline datalog is done; the device-register reads in `GoGoAPI.vue` are not
 - replace the stale docs — the old README, `OfflineDatalogNote.md`, and the Google-Sheets protocol table are being folded into maintained markdown under `docs/`
 - lower the barrier for future work on this repo
 
@@ -33,7 +33,9 @@ npm run build      # production build to dist/
 ./deploy.sh        # builds, then FORCE-PUSHES dist/ to gh-pages of LILCMU/gogo-api-demo — a live deploy, not a local step
 ```
 
-There is no test suite and no linter configured (no eslint plugin in devDependencies). "Verify" here means `npm run serve` plus a browser.
+There is no test suite and no linter configured (no eslint plugin in devDependencies). "Verify" here means `npm run serve` plus a browser — or at minimum a build, which does catch syntax and import errors.
+
+On Node 17+ the webpack 4 toolchain fails with `ERR_OSSL_EVP_UNSUPPORTED`; prefix with `NODE_OPTIONS=--openssl-legacy-provider`.
 
 WebHID requires Chromium (Chrome/Edge), a secure context, and a user gesture for `requestDevice()`. Nothing device-facing can be exercised without a physical GoGo Board.
 
@@ -64,7 +66,7 @@ Two gotchas there:
 - `computePacket` is a **computed property with side effects** — it is what drives the sync state machine on every new `gogoResponse`. Refactoring it into a "pure" computed breaks syncing.
 - The chart is fed by direct ref mutation, `this.$refs.datalogChart.chartOptions.series = …`, not via props.
 
-`develop` parses the 6.x 16-byte record; the 7.x 10-byte migration is written and unmerged on **`origin/feature/datalog-v2`** (drops the channel dropdown, parses via `DataView`). Merge it rather than redoing the work.
+Records are on the 7.x 10-byte format, parsed via `DataView`. There is no channel concept offline — series are keyed by field.
 
 ## gh-pages coupling
 

@@ -5,9 +5,8 @@ The board records sensor data to its own flash while disconnected. This page cov
 ## Using it
 
 1. **Sync Data** — pulls all records off the board; a progress bar tracks the transfer.
-2. **Select channel** — the dropdown fills in once the sync completes. *(Removed on `feature/datalog-v2` — see [6.x vs 7.x](#6x-vs-7x).)*
-3. The chart renders the records.
-4. **Delete Data** — erases the board's records. Not undoable.
+2. The chart renders the records once the sync completes, one series per field.
+3. **Delete Data** — erases the board's records. Not undoable.
 
 ## Sync protocol
 
@@ -70,11 +69,4 @@ Records land in LittleFS under `/datalog/` as 30 rotating files of ~10,000 recor
 
 On 6.x a record was 16 bytes: 8-byte millisecond timestamp, 2-byte channel, 2-byte field, 4-byte value. The 7.x record above is 10 bytes and **carries no channel** — channel survives only on the online (MQTT) path.
 
-`develop` still parses the 6.x record and still has the channel dropdown. The 7.x version lives on the unmerged **`feature/datalog-v2`** branch, which:
-
-- sets `offline_datalog_record_size` to 10 and parses via `DataView` (little-endian: `getUint32` timestamp ×1000, `getUint16` field index, `getFloat32` value)
-- drops the channel concept — series are keyed by field, and the dropdown goes away
-- gates the unpacker on `packet.command == rcmd_get_offline_datalog`, so unrelated type-20 responses no longer corrupt the buffer
-- adds an opt-in raw-packet debug buffer to the store
-
-Merge that branch rather than reimplementing the migration.
+The migration landed via `feature/datalog-v2`. It dropped the channel concept along with its dropdown, moved parsing to `DataView`, and gated the unpacker on `packet.command == rcmd_get_offline_datalog` so unrelated type-20 responses can no longer corrupt the receive buffer. The store also gained an opt-in raw-packet debug buffer (`debugEnabled` action).
