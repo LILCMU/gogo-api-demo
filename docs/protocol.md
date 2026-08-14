@@ -59,7 +59,6 @@ Unused bytes are zero.
 | 17 | Servo set angle | target servos | angle 0–180 hi | lo |
 | 18 | Toggle active servo port | port number | | |
 | 19 | Relay set power (raw PWM duty) | target relay | power 0–100 hi | lo |
-| 10 | LED control | 0 off, 1 on | | |
 | 11 | Beep | *(7.x ignores all parameters)* | | |
 | 12 | Logo autorun state | 0 disable, 1 enable | | |
 | 13 | Logo control | 0 stop, 1 start, 2 toggle | | |
@@ -72,6 +71,8 @@ Unused bytes are zero.
 | 250 | Enter bootloader | | | |
 
 **No-ops on 7.x.** These are defined but have no HID handler: `1` ping, `5` motor break, `20` set active relay ports, `61` long text, `62` clear screen, `70`–`74` voice recorder, `81`–`83` keyboard, `91` IR send, `200` OTA update, `201` serial firmware update (explicitly deprecated in the source), `220` co-MCU hello (an ESP↔Arduino-bridge frame, not host-facing).
+
+**Command 10 — LED control — silently inert on 7.x.** Unlike the no-ops above, this one *is* dispatched: `CMD_LED_CONTROL` has a `case` in the firmware switch. But the case body is commented out pending NeoPixel support, so it reads and discards `[3]` and does nothing. There is also no NeoPixel command in the host-facing protocol at all — no constant, no dispatch case — so there is currently no way to drive any LED over USB HID on 7.x.
 
 ### Category 1 — memory
 

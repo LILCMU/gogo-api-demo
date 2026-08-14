@@ -29,12 +29,6 @@
       <span class="control-row__value">{{ relayPower[i - 1] }}%</span>
     </div>
 
-    <h2 class="section-label">LED</h2>
-    <div class="control-row">
-      <button class="btn" :disabled="!boardStatus" :title="actionHint" @click="led(true)">On</button>
-      <button class="btn" :disabled="!boardStatus" :title="actionHint" @click="led(false)">Off</button>
-    </div>
-
     <p class="action-message" :class="{ 'is-error': failed }">{{ message }}</p>
   </section>
 </template>
@@ -107,10 +101,6 @@ export default {
       const power = this.relayPower[port - 1];
       this.run(CMD.RELAY_SET_POWER, [this.mask(port), power >> 8, power & 0xff],
         "Relay " + port + " to " + power + "%.");
-    },
-
-    led: function (on) {
-      this.run(CMD.LED_CONTROL, [on ? 1 : 0], on ? "LED on." : "LED off.");
     },
   },
 };

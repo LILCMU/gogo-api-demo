@@ -25,7 +25,7 @@ Router replaces the current two-page split. `/` redirects to `/live`.
 | Route | Page | Capability | Audience |
 |---|---|---|---|
 | `/live` | Live | Read the type-0 report — sensors, board info, built-in sensors | Child |
-| `/control` | Control | Send commands — motors, servos, relay, LED, beep | Child |
+| `/control` | Control | Send commands — motors, servos, relay, beep | Child |
 | `/datalog` | Datalog | Offline sync and chart | Child |
 | `/logo` | Logo | Compile a Logo program and download bytecode | Developer |
 | `/packets` | Packets | Build any packet by hand, watch live traffic | Developer |
