@@ -224,6 +224,10 @@ export function parseReport (bytes) {
 
 export const LOGO_CHUNK_SIZE = 60
 
+//? firmware limit on stored Logo bytecode, mirrored from GoGoCode's
+//? CONFIG.maxByteCodeLength (src/services/const.js:335)
+export const MAX_LOGO_BYTECODE_LENGTH = 2048
+
 //? the firmware commits to NVS only on a chunk shorter than LOGO_CHUNK_SIZE, so
 //? a program whose length is an exact multiple needs a trailing empty write
 export function buildLogoWriteSequence (bytecode) {

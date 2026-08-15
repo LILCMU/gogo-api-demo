@@ -90,7 +90,13 @@
 
 <script>
 import { mapActions, mapGetters } from "vuex";
-import { CATEGORY, CMD, MEMORY_CMD, buildLogoWriteSequence } from "@/gogo/protocol";
+import {
+  CATEGORY,
+  CMD,
+  MEMORY_CMD,
+  MAX_LOGO_BYTECODE_LENGTH,
+  buildLogoWriteSequence,
+} from "@/gogo/protocol";
 import { compilerUrl } from "@/config";
 import ByteDump from "@/components/ByteDump.vue";
 
@@ -198,6 +204,21 @@ export default {
         return;
       }
 
+      //? guarding here rather than only after a compile also covers the raw
+      //? opcodes tab, which can paste an oversized array directly
+      if (logoOpcode.length > MAX_LOGO_BYTECODE_LENGTH) {
+        this.reportAction(
+          "Program is too large for the board: " +
+            logoOpcode.length +
+            " bytes, limit is " +
+            MAX_LOGO_BYTECODE_LENGTH +
+            ".",
+          true
+        );
+        this.sentToBoard = false;
+        return;
+      }
+
       try {
         await this.setLogoMemoryPointer();
         await this.writeLogoMemory(logoOpcode);
@@ -238,18 +259,36 @@ export default {
             //? the compiler returns HTTP 200 for a syntax error too, with
             //? result: false and the error in message — so branch on result,
             //? never on whether data happens to be non-empty
+            //*  order mirrors GoGoCode's compileAndDownloadSecond
+            //*  (gogo-code/src/services/deviceControl.js:1215): result first,
+            //*  then the bytecode-length limit, then download — deliberately
+            //*  matched rather than arrived at independently
             const body = response.data;
-            if (body && body.result === true) {
-              this.compileError = null;
-              this.compiledOpcodes = body.data;
-              this.downloadOpcodeToBoard(body.data);
-            } else if (body && body.result === false) {
+
+            if (!body || !body.result) {
               this.compiledOpcodes = null;
-              this.compileError = body.message;
-              this.reportAction("Compile error - see details below.", true);
-            } else {
-              this.reportAction("Compiler returned an unexpected response.", true);
+              this.compileError = (body && body.message) || null;
+              this.reportAction(
+                this.compileError ? "Compile error - see details below." : "Compiler returned an unexpected response.",
+                true
+              );
+              return;
             }
+
+            if (body.data.length > MAX_LOGO_BYTECODE_LENGTH) {
+              this.compiledOpcodes = null;
+              this.compileError = null;
+              this.reportAction(
+                "Logo program is " + body.data.length + " bytes, over the board's " +
+                  MAX_LOGO_BYTECODE_LENGTH + "-byte limit.",
+                true
+              );
+              return;
+            }
+
+            this.compileError = null;
+            this.compiledOpcodes = body.data;
+            this.downloadOpcodeToBoard(body.data);
           },
           (response) => {
             //? a real transport failure, not a compile error — the compiler

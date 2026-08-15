@@ -205,7 +205,13 @@ test('parseDatalogRecords ignores a trailing partial record', () => {
   assert.equal(records.length, 1)
 })
 
-import { buildLogoWriteSequence, LOGO_CHUNK_SIZE } from './protocol.js'
+import { buildLogoWriteSequence, LOGO_CHUNK_SIZE, MAX_LOGO_BYTECODE_LENGTH } from './protocol.js'
+
+//? mirrors GoGoCode's CONFIG.maxByteCodeLength (src/services/const.js:335) —
+//? pinned so the two codebases cannot silently drift apart
+test('MAX_LOGO_BYTECODE_LENGTH matches the GoGoCode firmware limit', () => {
+  assert.equal(MAX_LOGO_BYTECODE_LENGTH, 2048)
+})
 
 //? pins the firmware's short-chunk-commits rule at the chunk boundary and
 //? on both sides of it, plus a second full chunk to rule out an off-by-one

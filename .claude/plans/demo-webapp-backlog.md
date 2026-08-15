@@ -144,9 +144,11 @@ the doc deliberately contrasts against the no-ops.
 
 ## Backlog — UX and UI
 
-1. Add a `:focus-visible` rule in `App.vue` applied to buttons, tabs, inputs and nav links. Currently no page authors one.
-2. Rename both Logo primary buttons to "Send to board" — in a browser, "Download" reads as save-a-file, the opposite of what it does.
-3. Add a persistent visible "Connect a GoGo Board to use these controls" line to Control and Logo, and replace `opacity: 0.4` on disabled buttons with a token that keeps labels legible.
+> Items 1–3 were closed by the pre-merge waves and are struck here so they are not
+> redone: the `:focus-visible` rule now lives in `App.vue`, both Logo buttons read
+> "Send to board", Control and Logo carry a visible disconnected line, and
+> `.btn[disabled]` uses a legible token treatment instead of `opacity: 0.4`.
+
 4. Style `input[type=range]` with `--gogo-blue`; the sliders currently render in the OS accent colour, the most off-brand pixels in the app.
 5. Style the Packets number/text inputs to the pill vocabulary, and label them with the resolved protocol constant — "Command 11 · BEEP" — so the page teaches while you use it.
 6. Reflect board state in Control: drive button emphasis from `report.motors.onOff`/`direction` and slider positions from `report.servos.angles`, so a command visibly round-trips.
