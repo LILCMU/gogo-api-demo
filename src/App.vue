@@ -157,4 +157,11 @@ export default {
 
 .action-message { min-height: 1.2em; margin-top: 16px; font-size: 14px; color: var(--muted); }
 .action-message.is-error { color: var(--gogo-pink-text); }
+
+.btn:focus-visible,
+input:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--gogo-blue);
+  outline-offset: 2px;
+}
 </style>

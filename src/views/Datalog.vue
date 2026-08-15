@@ -1,12 +1,10 @@
 <template>
-  <div class="Graph">
-    <div class="datapicker">
-      <date-picker v-model="dateTimeOffset" type="datetime" placeholder="select offset timestamp" value-type="timestamp"
-        @change="onSelectedDate()"></date-picker>
-    </div>
-    <ul class="bt-container">
+  <section class="page">
+    <h2 class="section-label">Sync</h2>
+
+    <div class="datalog-actions">
       <button
-        class="sync-bt"
+        class="btn btn--primary"
         @click="syncOfflineDatalogRecords()"
         :disabled="!boardStatus || startRetrivedOfflineDatalog"
         :title="actionHint"
@@ -14,47 +12,44 @@
         Sync Data
       </button>
       <button
-        class="delete-bt"
-        @click="$vm2.open('modal')"
+        class="btn btn--danger"
+        @click="confirmingDelete = true"
         :disabled="!boardStatus || startRetrivedOfflineDatalog"
         :title="actionHint"
       >
         Delete Data
       </button>
-    </ul>
-    <div class="progress-bar">
-      <progress-bar v-if="startRetrivedOfflineDatalog" size="medium" :bar-color="progressBarColor" :val="percentage" />
     </div>
-    <div id="container">
-      <p class="action-message" :class="{ 'is-error': statusFailed }">{{ offlineDatalogStatus }}</p>
-      {{ computePacket }}
+
+    <div class="datapicker">
+      <date-picker v-model="dateTimeOffset" type="datetime" placeholder="select offset timestamp" value-type="timestamp"
+        @change="onSelectedDate()"></date-picker>
     </div>
+
+    <div class="progress-bar" v-if="startRetrivedOfflineDatalog">
+      <progress-bar size="medium" :bar-color="progressBarColor" :val="percentage" />
+    </div>
+
+    <p class="action-message" :class="{ 'is-error': statusFailed }">{{ offlineDatalogStatus }}</p>
+
     <p v-if="!datalogRecords.length" class="page__empty">
       No records loaded. Press Sync Data to pull them off the board.
     </p>
     <div v-else class="chart-container">
       <datalog-chart ref="datalogChart" />
     </div>
-    <div class="modals">
-      <modal-vue @on-close="$vm2.close('modal')" name="modal" noHeader :footerOptions="{
-        btn1: 'Cancel',
-        btn2: 'Delete',
-        btn2Style: {
-          backgroundColor: 'var(--gogo-pink)',
-        },
-        btn2OnClick: () => {
-          clearData();
-        },
-        btn1OnClick: () => {
-          $vm2.close('modal');
-        },
-      }">
-        <div>
-          <p>Are you sure you want to delete data from GoGoBoard ?</p>
+
+    <div class="confirm-overlay" v-if="confirmingDelete">
+      <div class="confirm-dialog">
+        <p>Delete all datalog records from the GoGo Board?</p>
+        <p class="confirm-dialog__note">This cannot be undone.</p>
+        <div class="confirm-dialog__actions">
+          <button class="btn" @click="confirmingDelete = false">Cancel</button>
+          <button class="btn btn--danger" @click="clearData()">Delete</button>
         </div>
-      </modal-vue>
+      </div>
     </div>
-  </div>
+  </section>
 </template>
 
 <script>
@@ -64,7 +59,6 @@ import {
   parseFileSizes, parseLookupTable, parseDatalogRecords,
 } from '@/gogo/protocol'
 import DatalogChart from "@/components/Chart.vue";
-import Dropdown from "vue-dropdowns";
 import ProgressBar from "vue-simple-progress";
 import DatePicker from "vue2-datepicker";
 import "vue2-datepicker/index.css";
@@ -73,18 +67,15 @@ export default {
   name: "Datalog",
   components: {
     DatalogChart,
-    Dropdown,
     ProgressBar,
     DatePicker,
   },
   data: function () {
     return {
-      cmdCategory: 0,
-      cmdID: 0,
-      cmdParams: "",
       offlineDatalogStatus: "",
       statusFailed: false,
       startRetrivedOfflineDatalog: false,
+      confirmingDelete: false,
       dataChunk: [],
       lookupTable: [],
       datalogRecords: [],
@@ -92,13 +83,8 @@ export default {
       datalogRecordsFileSize: 0,
       percentage: 0,
       dateTimeOffset: null,
-      timestamp: 0,
-      renderData: null,
       progressBarColor: "#a5d442", //? --gogo-green
     };
-  },
-  props: {
-    msg: String,
   },
   computed: {
     ...mapGetters(["lastResponse", "boardStatus"]),
@@ -106,44 +92,37 @@ export default {
     actionHint: function () {
       return this.boardStatus ? "" : "Connect a GoGo Board first";
     },
-
-    computePacket () {
-      if (!this.startRetrivedOfflineDatalog) return ''
-      return this.unpackOfflineDatalogPackets(this.lastResponse)
+  },
+  watch: {
+    lastResponse: function (packet) {
+      if (!this.startRetrivedOfflineDatalog) return
+      this.unpackOfflineDatalogPackets(packet)
     },
   },
-  mounted() { },
-  created() { },
   methods: {
     ...mapActions(["send", "clearResponse"]),
 
     //? Add function for refresh date on you pick
     onSelectedDate() {
-      if (this.datalogRecords) {
+      if (this.datalogRecords.length) {
         this.updateRenderGraph();
       }
     },
 
     updateRenderGraph() {
-      let nRecords = 0;
-      if (this.dateTimeOffset != null) {
-        this.datalogRecords.forEach((field) => {
-          for (let i = 0; i < field["data"].length; i++) {
-            field["data"][i][0] += this.dateTimeOffset;
-          }
-          return field["data"];
-        });
-      }
-      //* pass new series data to highcharts
       if (this.$refs.datalogChart) {
-        this.$refs.datalogChart.chartOptions.series = this.datalogRecords;
+        this.$refs.datalogChart.chartOptions.series = this.offsetSeries();
       }
+    },
 
-      this.datalogRecords.forEach((eachField) => {
-        nRecords += eachField["data"].length;
-      });
-
-      return "Retrieve a total of " + nRecords + " records.";
+    //* derives a shifted series from the untouched parsed records so
+    //* picking a date offset twice does not compound on the live series
+    offsetSeries() {
+      const offset = this.dateTimeOffset || 0;
+      return this.datalogRecords.map((field) => ({
+        ...field,
+        data: field.data.map(([timestamp, value]) => [timestamp + offset, value]),
+      }));
     },
 
     splitRecordsToChartSeries: function (records) {
@@ -160,7 +139,7 @@ export default {
     },
 
     unpackOfflineDatalogPackets: function (packet) {
-      if (!packet || packet.command !== EVENT_CMD.GET_DATALOG) return ''
+      if (!packet || packet.command !== EVENT_CMD.GET_DATALOG) return
 
       this.dataChunk.push.apply(this.dataChunk, Array.from(packet.payload))
 
@@ -171,13 +150,13 @@ export default {
         this.offlineDatalogStatus = 'The board reported a failure while sending records.'
         this.statusFailed = true
         this.finishSync()
-        return ''
+        return
       }
 
       if (packet.status === DATALOG_STATUS.EMPTY) {
         this.offlineDatalogStatus = 'No records stored on the board.'
         this.finishSync()
-        return ''
+        return
       }
 
       if (packet.status === DATALOG_STATUS.FILE_SIZE) {
@@ -185,7 +164,8 @@ export default {
         this.lookupTableFileSize = sizes.lookupTableSize
         this.datalogRecordsFileSize = sizes.recordsSize
         this.dataChunk = []
-        return 'Reading file sizes...'
+        this.offlineDatalogStatus = 'Reading file sizes...'
+        return
       }
 
       if (packet.status === DATALOG_STATUS.LOOKUP_TABLE) {
@@ -193,7 +173,8 @@ export default {
           Uint8Array.from(this.dataChunk), this.lookupTableFileSize
         )
         this.dataChunk = []
-        return 'Reading field names...'
+        this.offlineDatalogStatus = 'Reading field names...'
+        return
       }
 
       if (packet.status === DATALOG_STATUS.RECORDS) {
@@ -209,10 +190,10 @@ export default {
         })
         this.offlineDatalogStatus = 'Loaded ' + records.length + ' records.'
         this.finishSync()
-        return ''
+        return
       }
 
-      return 'Syncing...'
+      this.offlineDatalogStatus = 'Syncing...'
     },
 
     finishSync: function () {
@@ -253,7 +234,7 @@ export default {
 
     clearData: async function () {
       //? always dismiss the dialog, otherwise a refused delete leaves it stuck open
-      this.$vm2.close("modal");
+      this.confirmingDelete = false;
 
       if (this.startRetrivedOfflineDatalog) {
         this.offlineDatalogStatus = "Still syncing - try again once it finishes.";
@@ -280,111 +261,67 @@ export default {
 </script>
 
 <style scoped>
-h3 {
-  margin: 40px 0 0;
-}
-
-ul {
-  list-style-type: none;
-  padding: 0;
-}
-
-li {
-  display: inline-block;
-  margin: 0 10px;
-}
-
-a {
-  color: var(--gogo-ink);
-}
-
-textarea {
-  width: 500px;
-  height: 200px;
-}
-
-.Graph {
+.datalog-actions {
   display: flex;
   justify-content: center;
-  align-items: center;
-  width: 100%;
-  height: 100%;
-  flex-direction: column;
-}
-
-.chart-container {
-  width: 85%;
-  margin: auto;
-}
-
-.Graph .page__empty {
-  width: 85%;
-  box-sizing: border-box;
-  margin: auto;
-}
-
-.progress-bar {
-  width: 50%;
-  margin: auto;
-}
-
-.bt-container {
-  display: flex;
-  justify-content: center;
-  height: 1em;
-  align-items: center;
-  width: 100%;
-  margin-bottom: 3em;
+  gap: var(--gap);
+  margin-bottom: 1.5em;
 }
 
 .datapicker {
   display: flex;
   justify-content: center;
-  height: 2em;
   margin: 0.5em;
-  align-items: center;
+}
+
+.progress-bar {
+  width: 50%;
+  margin: 1em auto;
+}
+
+.chart-container {
   width: 100%;
+  margin: 1em auto;
 }
 
-.sync-bt {
-  color: var(--gogo-ink);
-  border: 2px solid var(--gogo-green);
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(1, 53, 76, 0.45); /*? --gogo-ink, translucent */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
 }
 
-.delete-bt {
+.confirm-dialog {
+  background: var(--card-bg);
+  border-radius: var(--radius-card);
+  padding: 24px 28px;
+  max-width: 360px;
+  width: calc(100% - 48px);
+}
+
+.confirm-dialog__note {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.confirm-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.btn--danger {
   color: var(--gogo-pink-text);
-  border: 2px solid var(--gogo-pink);
+  background: var(--gogo-pink-tint);
+  border-color: var(--gogo-pink);
 }
 
-button {
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  outline: none;
-  text-align: center;
-  padding: 9px 20px;
-  margin: 0.5em;
-  border-radius: var(--radius-pill);
-  display: inline-block;
-  background-color: transparent;
-  transition: background 0.15s ease;
-}
-
-button.sync-bt:hover {
-  background-color: var(--gogo-green-tint);
-}
-
-button.delete-bt:hover {
-  background-color: var(--gogo-pink-tint);
-}
-
-.channel-dropdown {
-  border-radius: 5px;
-  margin: 0.5em 1em;
-}
-
-.datapicker date-picker {
-  margin: 0.5em 1em;
-  border-radius: 5px;
+.btn--danger:hover:not([disabled]) {
+  background: var(--gogo-pink-tint);
 }
 </style>

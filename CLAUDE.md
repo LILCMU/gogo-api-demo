@@ -59,8 +59,9 @@ Vue 2 SPA (Options API, Vue CLI 4, Vuex, vue-router) that talks to a GoGo Board 
 
 Gotchas there:
 
-- `computePacket` is a **computed property with side effects** — it is what drives the sync state machine on every new `lastResponse`. Refactoring it into a "pure" computed breaks syncing.
+- The sync state machine is driven by a `watch` on the `lastResponse` getter, gated by `startRetrivedOfflineDatalog`, which calls `unpackOfflineDatalogPackets`. It used to run from a computed property (`computePacket`) interpolated into the template as `{{ computePacket }}`, which committed a Vuex mutation during render — do not reintroduce a side-effecting computed here.
 - The chart only renders once `datalogRecords` is non-empty (`v-else` on `<datalog-chart ref="datalogChart">`), so the chart is fed by a `$nextTick`-guarded ref mutation, `this.$refs.datalogChart.chartOptions.series = …`, not via props. Skipping the guard throws the first time records arrive on an empty page.
+- `datalogRecords` holds the parsed series untouched; the date offset picker derives a shifted copy (`offsetSeries`) rather than mutating `field.data` in place, so picking a date twice does not compound the shift.
 
 Records are on the 7.x 10-byte format, parsed via `DataView`. There is no channel concept offline — series are keyed by field.
 
