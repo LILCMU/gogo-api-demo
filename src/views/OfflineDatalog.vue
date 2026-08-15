@@ -5,10 +5,20 @@
         @change="onSelectedDate()"></date-picker>
     </div>
     <ul class="bt-container">
-      <button class="sync-bt" @click="syncOfflineDatalogRecords()">
+      <button
+        class="sync-bt"
+        @click="syncOfflineDatalogRecords()"
+        :disabled="!boardStatus || startRetrivedOfflineDatalog"
+        :title="actionHint"
+      >
         Sync Data
       </button>
-      <button class="delete-bt" @click="$vm2.open('modal')">
+      <button
+        class="delete-bt"
+        @click="$vm2.open('modal')"
+        :disabled="!boardStatus || startRetrivedOfflineDatalog"
+        :title="actionHint"
+      >
         Delete Data
       </button>
     </ul>
@@ -84,6 +94,10 @@ export default {
   },
   computed: {
     ...mapGetters(["gogoResponse", "boardStatus"]),
+
+    actionHint: function () {
+      return this.boardStatus ? "" : "Connect a GoGo Board first";
+    },
 
     computePacket() {
       if (this.startRetrivedOfflineDatalog) {
@@ -266,7 +280,12 @@ export default {
     },
 
     syncOfflineDatalogRecords: function () {
-      if (!this.startRetrivedOfflineDatalog && this.boardStatus) {
+      if (!this.boardStatus) {
+        this.offlineDatalogStatus = "Connect a GoGo Board first.";
+        return;
+      }
+
+      if (!this.startRetrivedOfflineDatalog) {
         //? clear all variables
         this.dataChunk = [];
         this.lookupTable = [];
@@ -289,15 +308,24 @@ export default {
     },
 
     clearData() {
-      if (!this.startRetrivedOfflineDatalog && this.boardStatus) {
-        var cmdList = [];
-        cmdList[CONST.category_id_index] = CONST.response_packet_type;
-        cmdList[CONST.command_id_index] = CONST.rcmd_clear_offline_datalog;
+      //? always dismiss the dialog, otherwise a refused delete leaves it stuck open
+      this.$vm2.close("modal");
 
-        this.sendCommand(cmdList, null);
-        alert("Data in GoGoBoard has been deleted");
-        this.$vm2.close("modal");
+      if (this.startRetrivedOfflineDatalog) {
+        this.offlineDatalogStatus = "Still syncing - try again once it finishes.";
+        return;
       }
+      if (!this.boardStatus) {
+        this.offlineDatalogStatus = "Connect a GoGo Board first.";
+        return;
+      }
+
+      var cmdList = [];
+      cmdList[CONST.category_id_index] = CONST.response_packet_type;
+      cmdList[CONST.command_id_index] = CONST.rcmd_clear_offline_datalog;
+
+      this.sendCommand(cmdList, null);
+      this.offlineDatalogStatus = "Datalog deleted from the GoGo Board.";
     },
   },
 };

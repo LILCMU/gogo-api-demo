@@ -28,7 +28,13 @@
         </textarea>
         <div></div>
 
-        <button @click="downloadLogoProgram()">Download</button>
+        <button
+          @click="downloadLogoProgram()"
+          :disabled="!boardStatus"
+          :title="actionHint"
+        >
+          Download
+        </button>
       </div>
     </div>
 
@@ -40,7 +46,13 @@
         </textarea>
         <div></div>
 
-        <button @click="downloadOpcodeToBoard()">Download</button>
+        <button
+          @click="downloadOpcodeToBoard()"
+          :disabled="!boardStatus"
+          :title="actionHint"
+        >
+          Download
+        </button>
       </div>
     </div>
 
@@ -53,8 +65,18 @@
         <li>Command Params: <input type="text" v-model="cmdParams" /></li>
       </div>
       <br />
-      <button @click="sendControlCommand()">Send command</button>
+      <button
+        @click="sendControlCommand()"
+        :disabled="!boardStatus"
+        :title="actionHint"
+      >
+        Send command
+      </button>
     </div>
+
+    <p class="action-message" :class="{ 'is-error': actionFailed }">
+      {{ actionMessage }}
+    </p>
   </div>
 </template>
 
@@ -71,6 +93,8 @@ export default {
       cmdCategory: 0,
       cmdID: 0,
       cmdParams: "",
+      actionMessage: "",
+      actionFailed: false,
     };
   },
   props: {
@@ -78,6 +102,10 @@ export default {
   },
   computed: {
     ...mapGetters(["gogoReport", "boardStatus"]),
+
+    actionHint: function () {
+      return this.boardStatus ? "" : "Connect a GoGo Board first";
+    },
 
     //? GoGo 6 and 7 report major.minor.patch from index 19; older boards a single byte at 20
     firmwareVersion: function () {
@@ -107,6 +135,11 @@ export default {
 
     connectGoGoDevice: function () {
       this.connectDevice();
+    },
+
+    report: function (message, failed) {
+      this.actionMessage = message;
+      this.actionFailed = !!failed;
     },
 
     sendCommand: function (data, callback) {
@@ -170,10 +203,24 @@ export default {
     },
 
     downloadOpcodeToBoard: function (logoOpcode) {
-      if (!logoOpcode && this.logoOpcodes && this.boardStatus) {
-        logoOpcode = JSON.parse(this.logoOpcodes)
+      if (!this.boardStatus) {
+        this.report("Connect a GoGo Board first.", true);
+        return;
       }
-      console.info(logoOpcode)
+
+      //? called with no argument from the Logo Opcodes textarea
+      if (!logoOpcode) {
+        if (!this.logoOpcodes) {
+          this.report("Enter the logo opcodes first.", true);
+          return;
+        }
+        try {
+          logoOpcode = JSON.parse(this.logoOpcodes);
+        } catch (error) {
+          this.report("Logo opcodes must be a JSON array of bytes.", true);
+          return;
+        }
+      }
 
       this.setLogoMemoryPointer(() => {
         this.writeLogoMemory(
@@ -185,6 +232,7 @@ export default {
               cmdList[CONST.category_id_index] = 0;
               cmdList[CONST.command_id_index] = 11;
               this.sendCommand(cmdList, null);
+              this.report("Downloaded to the board.", false);
             }, 15);
           },
           0
@@ -193,46 +241,55 @@ export default {
     },
 
     downloadLogoProgram: function () {
-      if (this.logoProgram && this.boardStatus) {
-        console.log(this.logoProgram);
-
-        var sendingData = {
-          logo: this.logoProgram,
-          firmware_version: this.firmwareVersion,
-          board_type: this.gogoReport[CONST.board_type_index],
-          board_version: this.gogoReport[CONST.board_version_index],
-        };
-
-        this.$http
-          .post(CONST.compiler_url, sendingData, { emulateJSON: true })
-          .then(
-            (response) => {
-              if (response.data.data != undefined) {
-                console.info(response.data);
-                this.downloadOpcodeToBoard(response.data.data);
-              } else {
-                console.error(response.data);
-              }
-            },
-            (response) => {
-              if (
-                response.data &&
-                response.data.status &&
-                response.data.status >= 500 &&
-                response.data.status < 600
-              ) {
-                console.error("syntax error");
-              } else {
-                console.error("cloud service unavailable");
-              }
-            }
-          );
-      } else {
-        console.error("board not connected or no logo program to download");
+      if (!this.boardStatus) {
+        this.report("Connect a GoGo Board first.", true);
+        return;
       }
+      if (!this.logoProgram) {
+        this.report("Enter a logo program first.", true);
+        return;
+      }
+
+      this.report("Compiling...", false);
+
+      var sendingData = {
+        logo: this.logoProgram,
+        firmware_version: this.firmwareVersion,
+        board_type: this.gogoReport[CONST.board_type_index],
+        board_version: this.gogoReport[CONST.board_version_index],
+      };
+
+      this.$http
+        .post(CONST.compiler_url, sendingData, { emulateJSON: true })
+        .then(
+          (response) => {
+            if (response.data.data != undefined) {
+              this.downloadOpcodeToBoard(response.data.data);
+            } else {
+              this.report("Compiler returned no bytecode.", true);
+            }
+          },
+          (response) => {
+            if (
+              response.data &&
+              response.data.status &&
+              response.data.status >= 500 &&
+              response.data.status < 600
+            ) {
+              this.report("Syntax error in the logo program.", true);
+            } else {
+              this.report("Cloud compiler unavailable.", true);
+            }
+          }
+        );
     },
 
     sendControlCommand: function () {
+      if (!this.boardStatus) {
+        this.report("Connect a GoGo Board first.", true);
+        return;
+      }
+
       var cmdList = [];
       cmdList[CONST.category_id_index] = Number(this.cmdCategory);
       cmdList[CONST.command_id_index] = Number(this.cmdID);
@@ -246,6 +303,10 @@ export default {
         );
 
       this.sendCommand(cmdList, null);
+      this.report(
+        "Sent category " + this.cmdCategory + ", command " + this.cmdID + ".",
+        false
+      );
     },
   },
 };
