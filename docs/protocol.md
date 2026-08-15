@@ -15,9 +15,9 @@ The board also exposes a keyboard HID interface on the same device. `navigator.h
 
 ### Index convention
 
-Both directions use a 64-byte frame where **index 0 is the HID report ID**. Inbound and outbound differ in whether you see that byte:
+Outbound frames carry a report ID; inbound frames do not. The tables below use **outbound frame indices** (report ID at index 0) for host → board, and **payload indices** (packet type at index 0, since there is no report-ID byte to offset from) for board → host:
 
-- **Outbound** — WebHID's `sendReport(0, payload)` takes only bytes 1..63. Build a 64-entry array indexed as in the tables below, then drop index 0 before sending. That is what the store's `sendHID` action does with `data.slice(1)`.
+- **Outbound** — WebHID's `sendReport(0, payload)` supplies the report ID itself; `buildCommand` in `src/gogo/protocol.js` emits the 63 bytes that follow directly, with no report-ID byte to drop. Table index N below is payload index N−1.
 - **Inbound** — `oninputreport` gives 63 bytes with **no shift**: `event.data` byte 0 *is* frame byte 0, the packet type.
 
 Unused bytes are zero.
@@ -59,7 +59,6 @@ Unused bytes are zero.
 | 17 | Servo set angle | target servos | angle 0–180 hi | lo |
 | 18 | Toggle active servo port | port number | | |
 | 19 | Relay set power (raw PWM duty) | target relay | power 0–100 hi | lo |
-| 10 | LED control | 0 off, 1 on | | |
 | 11 | Beep | *(7.x ignores all parameters)* | | |
 | 12 | Logo autorun state | 0 disable, 1 enable | | |
 | 13 | Logo control | 0 stop, 1 start, 2 toggle | | |
@@ -71,7 +70,12 @@ Unused bytes are zero.
 | 100 | Reboot | | | |
 | 250 | Enter bootloader | | | |
 
-**No-ops on 7.x.** These are defined but have no HID handler: `1` ping, `5` motor break, `20` set active relay ports, `61` long text, `62` clear screen, `70`–`74` voice recorder, `81`–`83` keyboard, `91` IR send, `200` OTA update, `201` serial firmware update (explicitly deprecated in the source), `220` co-MCU hello (an ESP↔Arduino-bridge frame, not host-facing).
+**No-ops on 7.x.** These are defined but have no HID handler at all: `1` ping, `5` motor break, `20` set active relay ports, `61` long text, `62` clear screen, `70`–`74` voice recorder, `81`–`83` keyboard, `91` IR send, `200` OTA update, `220` co-MCU hello (an ESP↔Arduino-bridge frame, not host-facing).
+
+**Dispatched but inert — commands `10` and `201`.** These are the more dangerous case, because checking the firmware shows a `case` and suggests they work.
+
+- `10` LED control: `CMD_LED_CONTROL` is dispatched, but its body is commented out pending NeoPixel support, so it reads and discards `[3]` and does nothing. There is no NeoPixel command in the host-facing protocol either — no constant, no dispatch case — so there is currently no way to drive any LED over USB HID on 7.x.
+- `201` serial firmware update: dispatched, body commented out, marked DEPRECATED in the source. `RCMD_FIRMWARE_UPDATE_SERIAL` is likewise absent from the event-request switch, so neither route does anything.
 
 ### Category 1 — memory
 
@@ -110,7 +114,7 @@ Byte 0 identifies the packet.
 | 20 | Command response / datalog stream |
 | 21 | Image notification |
 
-Type 0 streams unprompted from power-up; no request is needed. A type 20 or 21 packet preempts one report cycle.
+Type 0 streams unprompted from power-up; no request is needed. A type 20 or 21 packet preempts one report cycle — **except** during a datalog transfer (category 20, command 2): the firmware sets `RESPONSE_REPORT_PACKET_DATALOG_STREAM` before the send loop and clears it only after, so `sendReportPkt()` returns early and type 0 is suppressed for the **entire** transfer, not one cycle. A client treating type 0 as a heartbeat will conclude the board died mid-sync.
 
 ### Type 0 — device register
 
@@ -202,4 +206,4 @@ The old spreadsheet described 6.x. Confirmed differences on 7.x:
 
 Anything the sheet listed under Raspberry Pi control beyond WiFi connect, and the whole Hopher category, never shipped a handler.
 
-**Not yet updated in this demo:** `GoGoAPI.vue` still reads the firmware version from byte 20, which is the 7.x *minor* version. Offline datalog is already on the 7.x format.
+**Up to date in this demo:** firmware version is read from byte 19 (major), matching the 7.x layout, and offline datalog is on the 7.x format.

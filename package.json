@@ -4,17 +4,16 @@
   "private": true,
   "scripts": {
     "serve": "vue-cli-service serve",
-    "build": "vue-cli-service build"
+    "build": "vue-cli-service build",
+    "test": "node --test 'src/gogo/**/*.test.mjs'"
   },
   "dependencies": {
-    "@burhanahmeed/vue-modal-2": "^1.1.11",
     "chart.js": "^2.9.4",
     "core-js": "^3.6.5",
     "highcharts": "^9.1.1",
     "highcharts-vue": "^1.4.0",
     "numeral": "^2.0.6",
     "vue": "^2.6.11",
-    "vue-dropdowns": "^1.1.2",
     "vue-native-websocket": "^2.0.14",
     "vue-resource": "^1.5.2",
     "vue-router": "^3.5.1",

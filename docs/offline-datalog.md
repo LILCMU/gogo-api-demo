@@ -18,6 +18,11 @@ Send category `20`, command `2`. The board replies with a stream of type-20 pack
 
 Status drives a four-stage state machine. Each stage is split across as many packets as it needs; every packet is `1` (in progress) except the last of a stage, which carries the stage's own code.
 
+**The type-0 report stream stops for the whole transfer.** The firmware sets
+`RESPONSE_REPORT_PACKET_DATALOG_STREAM` before the send loop and clears it only
+after, so `sendReportPkt()` returns early throughout. If your client treats the
+type-0 stream as a heartbeat, it will conclude the board died mid-sync.
+
 | Status | Meaning |
 |---|---|
 | 1 | in progress |
@@ -41,9 +46,20 @@ Fixed 10-byte binary records, little-endian:
 
 | Offset | Size | Field |
 |---|---|---|
-| 0 | 4 | Unix timestamp, **seconds** (`uint32`) |
+| 0 | 4 | board-clock timestamp, **seconds** (`uint32`) — see below |
 | 4 | 2 | field — index into the lookup table (`uint16`) |
 | 6 | 4 | value (`float32`) |
+
+**The timestamp is not necessarily wall-clock time.** It comes from
+`gogoTime.getUnixTime()`, which is only real Unix time once the board's clock has
+been set — by NTP, or by the host sending category 0 command 50. A board that has
+logged since power-up without ever syncing produces timestamps counted from a
+1970 epoch, and the chart will place those records in 1970.
+
+This is what the **date offset picker** on the Datalog page is for: it adds a
+chosen constant to every record timestamp so an unsynced board's records can be
+shifted onto real time. If the board's clock was synced, leave the offset unset.
+Treat it as a display correction, never as a fix to the stored data.
 
 ### Stage 4 — plot
 
@@ -51,7 +67,7 @@ Group records by field into Highcharts series, then feed them to the chart.
 
 ## Chart wiring
 
-`Chart.vue` registers as `datalog-chart` and owns nothing but the Highcharts options. `OfflineDatalog.vue` pushes series straight into it:
+`Chart.vue` registers as `datalog-chart` and owns nothing but the Highcharts options. `Datalog.vue` pushes series straight into it:
 
 ```js
 this.$refs.datalogChart.chartOptions.series = series
@@ -69,4 +85,4 @@ Records land in LittleFS under `/datalog/` as 30 rotating files of ~10,000 recor
 
 On 6.x a record was 16 bytes: 8-byte millisecond timestamp, 2-byte channel, 2-byte field, 4-byte value. The 7.x record above is 10 bytes and **carries no channel** — channel survives only on the online (MQTT) path.
 
-The migration landed via `feature/datalog-v2`. It dropped the channel concept along with its dropdown, moved parsing to `DataView`, and gated the unpacker on `packet.command == rcmd_get_offline_datalog` so unrelated type-20 responses can no longer corrupt the receive buffer. The store also gained an opt-in raw-packet debug buffer (`debugEnabled` action).
+The migration landed via `feature/datalog-v2`. It dropped the channel concept along with its dropdown, moved parsing to `DataView`, and gated the unpacker on `packet.command == rcmd_get_offline_datalog` so unrelated type-20 responses can no longer corrupt the receive buffer.

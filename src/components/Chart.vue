@@ -32,14 +32,14 @@ export default {
           },
         },
       },
-      colors: ["#77a1e5", "#2c3e50"],
+      colors: ["#02a8f4", "#db3f8d"], //? --gogo-blue, --gogo-pink
       title: {
         text: null,
         style: {
           "font-family": "Avenir, Helvetica, Arial, sans-serif",
           "-webkit-font-smoothing": "antialiased",
           "-moz-osx-font-smoothing": "grayscale",
-          color: "#2c3e50",
+          color: "#01354c", //? --gogo-ink
           "font-weight": "bold",
           "font-size": "100%",
         },
