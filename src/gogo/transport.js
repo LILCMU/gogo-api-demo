@@ -46,7 +46,9 @@ export class GogoTransport {
 
     let devices = await navigator.hid.getDevices()
 
-    if (!devices.length && prompt) {
+    //? getDevices() returns every HID device granted to this origin, not just
+    //? GoGo ones, so the picker must open unless a GoGo device is among them
+    if (!devices.some(isGogoDevice) && prompt) {
       devices = await navigator.hid.requestDevice({
         filters: [{ vendorId: GOGO_VENDOR_ID, productId: GOGO_PRODUCT_ID }],
       })
@@ -54,7 +56,10 @@ export class GogoTransport {
 
     const device = devices.find(isGogoDevice)
     if (!device) {
-      if (devices.length) {
+      const gogoWithoutRawHid = devices.some(
+        (d) => d.vendorId === GOGO_VENDOR_ID && d.productId === GOGO_PRODUCT_ID
+      )
+      if (gogoWithoutRawHid) {
         this._emit('error', new Error('found a GoGo Board but not its raw HID interface'))
       }
       return null

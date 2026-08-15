@@ -18,6 +18,11 @@ Send category `20`, command `2`. The board replies with a stream of type-20 pack
 
 Status drives a four-stage state machine. Each stage is split across as many packets as it needs; every packet is `1` (in progress) except the last of a stage, which carries the stage's own code.
 
+**The type-0 report stream stops for the whole transfer.** The firmware sets
+`RESPONSE_REPORT_PACKET_DATALOG_STREAM` before the send loop and clears it only
+after, so `sendReportPkt()` returns early throughout. If your client treats the
+type-0 stream as a heartbeat, it will conclude the board died mid-sync.
+
 | Status | Meaning |
 |---|---|
 | 1 | in progress |
@@ -41,9 +46,20 @@ Fixed 10-byte binary records, little-endian:
 
 | Offset | Size | Field |
 |---|---|---|
-| 0 | 4 | Unix timestamp, **seconds** (`uint32`) |
+| 0 | 4 | board-clock timestamp, **seconds** (`uint32`) — see below |
 | 4 | 2 | field — index into the lookup table (`uint16`) |
 | 6 | 4 | value (`float32`) |
+
+**The timestamp is not necessarily wall-clock time.** It comes from
+`gogoTime.getUnixTime()`, which is only real Unix time once the board's clock has
+been set — by NTP, or by the host sending category 0 command 50. A board that has
+logged since power-up without ever syncing produces timestamps counted from a
+1970 epoch, and the chart will place those records in 1970.
+
+This is what the **date offset picker** on the Datalog page is for: it adds a
+chosen constant to every record timestamp so an unsynced board's records can be
+shifted onto real time. If the board's clock was synced, leave the offset unset.
+Treat it as a display correction, never as a fix to the stored data.
 
 ### Stage 4 — plot
 

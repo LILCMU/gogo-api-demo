@@ -15,7 +15,7 @@ The board also exposes a keyboard HID interface on the same device. `navigator.h
 
 ### Index convention
 
-Both directions use a 64-byte frame where **index 0 is the HID report ID**. Inbound and outbound differ in whether you see that byte:
+Outbound frames carry a report ID; inbound frames do not. The tables below use **outbound frame indices** (report ID at index 0) for host → board, and **payload indices** (packet type at index 0, since there is no report-ID byte to offset from) for board → host:
 
 - **Outbound** — WebHID's `sendReport(0, payload)` supplies the report ID itself; `buildCommand` in `src/gogo/protocol.js` emits the 63 bytes that follow directly, with no report-ID byte to drop. Table index N below is payload index N−1.
 - **Inbound** — `oninputreport` gives 63 bytes with **no shift**: `event.data` byte 0 *is* frame byte 0, the packet type.
@@ -70,9 +70,12 @@ Unused bytes are zero.
 | 100 | Reboot | | | |
 | 250 | Enter bootloader | | | |
 
-**No-ops on 7.x.** These are defined but have no HID handler: `1` ping, `5` motor break, `20` set active relay ports, `61` long text, `62` clear screen, `70`–`74` voice recorder, `81`–`83` keyboard, `91` IR send, `200` OTA update, `201` serial firmware update (explicitly deprecated in the source), `220` co-MCU hello (an ESP↔Arduino-bridge frame, not host-facing).
+**No-ops on 7.x.** These are defined but have no HID handler at all: `1` ping, `5` motor break, `20` set active relay ports, `61` long text, `62` clear screen, `70`–`74` voice recorder, `81`–`83` keyboard, `91` IR send, `200` OTA update, `220` co-MCU hello (an ESP↔Arduino-bridge frame, not host-facing).
 
-**Command 10 — LED control — silently inert on 7.x.** Unlike the no-ops above, this one *is* dispatched: `CMD_LED_CONTROL` has a `case` in the firmware switch. But the case body is commented out pending NeoPixel support, so it reads and discards `[3]` and does nothing. There is also no NeoPixel command in the host-facing protocol at all — no constant, no dispatch case — so there is currently no way to drive any LED over USB HID on 7.x.
+**Dispatched but inert — commands `10` and `201`.** These are the more dangerous case, because checking the firmware shows a `case` and suggests they work.
+
+- `10` LED control: `CMD_LED_CONTROL` is dispatched, but its body is commented out pending NeoPixel support, so it reads and discards `[3]` and does nothing. There is no NeoPixel command in the host-facing protocol either — no constant, no dispatch case — so there is currently no way to drive any LED over USB HID on 7.x.
+- `201` serial firmware update: dispatched, body commented out, marked DEPRECATED in the source. `RCMD_FIRMWARE_UPDATE_SERIAL` is likewise absent from the event-request switch, so neither route does anything.
 
 ### Category 1 — memory
 
@@ -111,7 +114,7 @@ Byte 0 identifies the packet.
 | 20 | Command response / datalog stream |
 | 21 | Image notification |
 
-Type 0 streams unprompted from power-up; no request is needed. A type 20 or 21 packet preempts one report cycle.
+Type 0 streams unprompted from power-up; no request is needed. A type 20 or 21 packet preempts one report cycle — **except** during a datalog transfer (category 20, command 2): the firmware sets `RESPONSE_REPORT_PACKET_DATALOG_STREAM` before the send loop and clears it only after, so `sendReportPkt()` returns early and type 0 is suppressed for the **entire** transfer, not one cycle. A client treating type 0 as a heartbeat will conclude the board died mid-sync.
 
 ### Type 0 — device register
 
