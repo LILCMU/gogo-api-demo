@@ -222,6 +222,25 @@ export function parseReport (bytes) {
   }
 }
 
+export const LOGO_CHUNK_SIZE = 60
+
+//? the firmware commits to NVS only on a chunk shorter than LOGO_CHUNK_SIZE, so
+//? a program whose length is an exact multiple needs a trailing empty write
+export function buildLogoWriteSequence (bytecode) {
+  const bytes = Array.from(bytecode)
+  const writes = []
+
+  for (let offset = 0; offset < bytes.length; offset += LOGO_CHUNK_SIZE) {
+    const chunk = bytes.slice(offset, offset + LOGO_CHUNK_SIZE)
+    writes.push([chunk.length, ...chunk])
+  }
+  if (bytes.length % LOGO_CHUNK_SIZE === 0) {
+    writes.push([0])
+  }
+
+  return writes
+}
+
 export const DATALOG_RECORD_SIZE = 10
 
 //? Type-20 layout past byte 2 is command-specific. Datalog puts a status byte

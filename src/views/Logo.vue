@@ -22,6 +22,8 @@
       </button>
     </div>
 
+    <p v-if="!boardStatus" class="page__empty page__empty--compact">Connect a GoGo Board to use these controls.</p>
+
     <template v-if="mode === 'program'">
       <p class="tabs__hint">Write Logo source, compile it in the cloud, and send the result to the board.</p>
 
@@ -47,11 +49,11 @@
         :disabled="!boardStatus"
         :title="actionHint"
       >
-        Download
+        Send to board
       </button>
 
       <template v-if="compiledOpcodes">
-        <h2 class="section-label">Compiled opcodes &middot; sent to the board</h2>
+        <h2 class="section-label">{{ compiledOpcodesHeading }}</h2>
         <byte-dump :bytes="compiledOpcodes" />
       </template>
     </template>
@@ -71,7 +73,7 @@
         :disabled="!boardStatus"
         :title="actionHint"
       >
-        Download
+        Send to board
       </button>
     </template>
 
@@ -83,7 +85,7 @@
 
 <script>
 import { mapActions, mapGetters } from "vuex";
-import { CATEGORY, CMD, MEMORY_CMD } from "@/gogo/protocol";
+import { CATEGORY, CMD, MEMORY_CMD, buildLogoWriteSequence } from "@/gogo/protocol";
 import { compilerUrl } from "@/config";
 import ByteDump from "@/components/ByteDump.vue";
 
@@ -107,6 +109,7 @@ export default {
       logoProgram: "",
       logoOpcodes: "",
       compiledOpcodes: null,
+      sentToBoard: false,
       actionMessage: "",
       actionFailed: false,
       examples: EXAMPLES,
@@ -117,6 +120,12 @@ export default {
 
     actionHint: function () {
       return this.boardStatus ? "" : "Connect a GoGo Board first";
+    },
+
+    compiledOpcodesHeading: function () {
+      return this.sentToBoard
+        ? "Compiled opcodes · sent to the board"
+        : "Compiled opcodes";
     },
 
     firmwareVersion: function () {
@@ -144,29 +153,20 @@ export default {
     },
 
     writeLogoMemory: async function (content) {
-      for (let offset = 0; offset < content.length; offset += 60) {
-        const chunk = content.slice(offset, offset + 60);
+      for (const params of buildLogoWriteSequence(content)) {
         await this.send({
           category: CATEGORY.MEMORY,
           command: MEMORY_CMD.WRITE_BYTES,
-          params: [chunk.length].concat(Array.from(chunk)),
+          params,
         });
         await new Promise((resolve) => setTimeout(resolve, 10));
-      }
-      //? the firmware commits to NVS on a chunk shorter than 60, so a program
-      //? whose length is an exact multiple needs a final empty write
-      if (content.length % 60 === 0) {
-        await this.send({
-          category: CATEGORY.MEMORY,
-          command: MEMORY_CMD.WRITE_BYTES,
-          params: [0],
-        });
       }
     },
 
     downloadOpcodeToBoard: async function (logoOpcode) {
       if (!this.boardStatus) {
         this.reportAction("Connect a GoGo Board first.", true);
+        this.sentToBoard = false;
         return;
       }
 
@@ -189,8 +189,10 @@ export default {
         await this.writeLogoMemory(logoOpcode);
         await this.send({ category: CATEGORY.CONTROL, command: CMD.BEEP });
         this.reportAction("Downloaded to the board.", false);
+        this.sentToBoard = true;
       } catch (error) {
         this.reportAction(error.message, true);
+        this.sentToBoard = false;
       }
     },
 
@@ -205,6 +207,7 @@ export default {
       }
 
       this.reportAction("Compiling...", false);
+      this.sentToBoard = false;
 
       var sendingData = {
         logo: this.logoProgram,

@@ -92,7 +92,15 @@ export default {
 
 .btn--small { font-size: 12px; padding: 4px 12px; }
 
-.btn[disabled] { opacity: 0.4; cursor: not-allowed; }
+/*? overrides .btn--primary's green fill too, via the attribute selector's
+    higher specificity — opacity alone made disabled Beep pale grey on pale
+    green, which fails legibility */
+.btn[disabled] {
+  color: var(--muted);
+  background: var(--status-disconnected-bg);
+  border-color: var(--hairline);
+  cursor: not-allowed;
+}
 
 .control-row {
   display: flex;

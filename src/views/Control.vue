@@ -1,5 +1,7 @@
 <template>
   <section class="page">
+    <p v-if="!boardStatus" class="page__empty page__empty--compact">Connect a GoGo Board to use these controls.</p>
+
     <h2 class="section-label">Try it</h2>
     <button class="btn btn--primary btn--large" :disabled="!boardStatus" :title="actionHint" @click="beep()">
       Beep

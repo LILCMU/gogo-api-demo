@@ -195,6 +195,30 @@ test('parseDatalogRecords ignores a trailing partial record', () => {
   assert.equal(records.length, 1)
 })
 
+import { buildLogoWriteSequence, LOGO_CHUNK_SIZE } from './protocol.js'
+
+//? pins the firmware's short-chunk-commits rule at the chunk boundary and
+//? on both sides of it, plus a second full chunk to rule out an off-by-one
+;[
+  { length: 0, lengths: [0] },
+  { length: 59, lengths: [59] },
+  { length: LOGO_CHUNK_SIZE, lengths: [60, 0] },
+  { length: 61, lengths: [60, 1] },
+  { length: 120, lengths: [60, 60, 0] },
+].forEach(({ length, lengths }) => {
+  test(`buildLogoWriteSequence at length ${length} writes chunks of ${lengths.join(',')}`, () => {
+    const bytecode = Array.from({ length }, (unused, i) => i & 0xff)
+    const writes = buildLogoWriteSequence(bytecode)
+
+    assert.equal(writes.length, lengths.length)
+    writes.forEach((write, i) => {
+      assert.equal(write[0], lengths[i])
+      //? [length, ...chunkBytes] framing, not just the declared length
+      assert.equal(write.length, lengths[i] + 1)
+    })
+  })
+})
+
 test('parseResponse exposes the raw packet for commands whose layout differs', () => {
   const bytes = new Uint8Array(63)
   bytes[0] = 20

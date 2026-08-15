@@ -1,27 +1,30 @@
 <template>
-  <header class="app-header">
-    <img class="app-header__logo" src="@/assets/gogo-logo.png" alt="GoGo Board" />
+  <div class="app-header-wrap">
+    <header class="app-header">
+      <img class="app-header__logo" src="@/assets/gogo-logo.png" alt="GoGo Board" />
 
-    <nav class="app-header__nav">
-      <router-link to="/live">Live</router-link>
-      <router-link to="/control">Control</router-link>
-      <router-link to="/datalog">Datalog</router-link>
-      <span class="app-header__divider"></span>
-      <router-link to="/logo">Logo</router-link>
-      <router-link to="/packets">Packets</router-link>
-    </nav>
+      <nav class="app-header__nav">
+        <router-link to="/live">Live</router-link>
+        <router-link to="/control">Control</router-link>
+        <router-link to="/datalog">Datalog</router-link>
+        <span class="app-header__divider"></span>
+        <router-link to="/logo">Logo</router-link>
+        <router-link to="/packets">Packets</router-link>
+      </nav>
 
-    <div class="app-header__right">
-      <div v-if="!boardStatus" class="app-header__connect-area">
-        <p v-if="error" class="action-message is-error app-header__error">{{ error }}</p>
-        <button class="btn app-header__connect" @click="handleConnect">Connect a board</button>
+      <div class="app-header__right">
+        <button v-if="!boardStatus" class="btn app-header__connect" @click="handleConnect">Connect a board</button>
+
+        <span class="app-header__status" :class="boardStatus ? 'is-connected' : 'is-disconnected'">
+          {{ boardStatus ? "Connected" : "No board" }}
+        </span>
       </div>
+    </header>
 
-      <span class="app-header__status" :class="boardStatus ? 'is-connected' : 'is-disconnected'">
-        {{ boardStatus ? "Connected" : "No board" }}
-      </span>
-    </div>
-  </header>
+    <!--? full-width banner, not part of the header's flex row — inline placement
+         wrapped at 1024px and pushed the connect button/status pill onto two lines -->
+    <p v-if="!boardStatus && error" class="action-message is-error app-header__error">{{ error }}</p>
+  </div>
 </template>
 
 <script>
@@ -85,9 +88,14 @@ export default {
   gap: 12px;
 }
 
-.app-header__connect-area { display: flex; align-items: center; gap: 12px; }
-
-.app-header__error { margin: 0; }
+/*? compound selector so this reliably outranks .action-message's margin-top
+    regardless of CSS module load order */
+p.app-header__error {
+  margin: 0;
+  padding: 10px 24px;
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--hairline);
+}
 
 .app-header__status {
   font-size: 12px;
