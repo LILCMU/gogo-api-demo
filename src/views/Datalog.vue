@@ -30,7 +30,7 @@
       <progress-bar size="medium" :bar-color="progressBarColor" :val="percentage" />
     </div>
 
-    <p class="action-message" :class="{ 'is-error': statusFailed }">{{ offlineDatalogStatus }}</p>
+    <p class="action-message" :class="{ 'is-error': actionFailed }">{{ actionMessage }}</p>
 
     <p v-if="!datalogRecords.length" class="page__empty">
       No records loaded. Press Sync Data to pull them off the board.
@@ -62,6 +62,7 @@ import DatalogChart from "@/components/Chart.vue";
 import ProgressBar from "vue-simple-progress";
 import DatePicker from "vue2-datepicker";
 import "vue2-datepicker/index.css";
+import boardAction from "@/mixins/boardAction";
 
 export default {
   name: "Datalog",
@@ -70,10 +71,9 @@ export default {
     ProgressBar,
     DatePicker,
   },
+  mixins: [boardAction],
   data: function () {
     return {
-      offlineDatalogStatus: "",
-      statusFailed: false,
       startRetrivedOfflineDatalog: false,
       confirmingDelete: false,
       dataChunk: [],
@@ -87,11 +87,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(["lastResponse", "boardStatus"]),
-
-    actionHint: function () {
-      return this.boardStatus ? "" : "Connect a GoGo Board first";
-    },
+    ...mapGetters(["lastResponse"]),
   },
   watch: {
     lastResponse: function (packet) {
@@ -105,8 +101,7 @@ export default {
       if (connected || !this.startRetrivedOfflineDatalog) return
       this.startRetrivedOfflineDatalog = false
       this.dataChunk = []
-      this.offlineDatalogStatus = 'Sync interrupted - board disconnected.'
-      this.statusFailed = true
+      this.reportAction('Sync interrupted - board disconnected.', true)
     },
   },
   methods: {
@@ -157,14 +152,13 @@ export default {
       if (total) this.percentage += (packet.length / total) * 100
 
       if (packet.status === DATALOG_STATUS.FAILURE) {
-        this.offlineDatalogStatus = 'The board reported a failure while sending records.'
-        this.statusFailed = true
+        this.reportAction('The board reported a failure while sending records.', true)
         this.finishSync()
         return
       }
 
       if (packet.status === DATALOG_STATUS.EMPTY) {
-        this.offlineDatalogStatus = 'No records stored on the board.'
+        this.reportAction('No records stored on the board.')
         this.finishSync()
         return
       }
@@ -174,7 +168,7 @@ export default {
         this.lookupTableFileSize = sizes.lookupTableSize
         this.datalogRecordsFileSize = sizes.recordsSize
         this.dataChunk = []
-        this.offlineDatalogStatus = 'Reading file sizes...'
+        this.reportAction('Reading file sizes...')
         return
       }
 
@@ -183,7 +177,7 @@ export default {
           Uint8Array.from(this.dataChunk), this.lookupTableFileSize
         )
         this.dataChunk = []
-        this.offlineDatalogStatus = 'Reading field names...'
+        this.reportAction('Reading field names...')
         return
       }
 
@@ -198,12 +192,12 @@ export default {
             this.$refs.datalogChart.chartOptions.series = this.datalogRecords
           }
         })
-        this.offlineDatalogStatus = 'Loaded ' + records.length + ' records.'
+        this.reportAction('Loaded ' + records.length + ' records.')
         this.finishSync()
         return
       }
 
-      this.offlineDatalogStatus = 'Syncing...'
+      this.reportAction('Syncing...')
     },
 
     finishSync: function () {
@@ -212,11 +206,7 @@ export default {
     },
 
     syncOfflineDatalogRecords: async function () {
-      if (!this.boardStatus) {
-        this.offlineDatalogStatus = "Connect a GoGo Board first.";
-        this.statusFailed = true;
-        return;
-      }
+      if (!this.requireBoard()) return;
 
       if (!this.startRetrivedOfflineDatalog) {
         //? clear all variables
@@ -229,15 +219,14 @@ export default {
 
         //? set flag to retrieve new packets
         this.startRetrivedOfflineDatalog = true;
-        this.statusFailed = false;
+        this.actionFailed = false;
 
         try {
           await this.send({ category: CATEGORY.EVENT_REQUEST, command: EVENT_CMD.GET_DATALOG })
         } catch (error) {
           //? both buttons are disabled while this flag is set, with no other reset
           this.startRetrivedOfflineDatalog = false;
-          this.offlineDatalogStatus = error.message;
-          this.statusFailed = true;
+          this.reportAction(error.message, true);
         }
       }
     },
@@ -247,23 +236,16 @@ export default {
       this.confirmingDelete = false;
 
       if (this.startRetrivedOfflineDatalog) {
-        this.offlineDatalogStatus = "Still syncing - try again once it finishes.";
-        this.statusFailed = true;
+        this.reportAction("Still syncing - try again once it finishes.", true);
         return;
       }
-      if (!this.boardStatus) {
-        this.offlineDatalogStatus = "Connect a GoGo Board first.";
-        this.statusFailed = true;
-        return;
-      }
+      if (!this.requireBoard()) return;
 
       try {
         await this.send({ category: CATEGORY.EVENT_REQUEST, command: EVENT_CMD.CLEAR_DATALOG })
-        this.offlineDatalogStatus = "Datalog deleted from the GoGo Board.";
-        this.statusFailed = false;
+        this.reportAction("Datalog deleted from the GoGo Board.", false);
       } catch (error) {
-        this.offlineDatalogStatus = error.message;
-        this.statusFailed = true;
+        this.reportAction(error.message, true);
       }
     },
   },

@@ -5,7 +5,8 @@
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
-    "test": "node --test 'src/gogo/**/*.test.mjs'"
+    "test": "node --test 'src/gogo/**/*.test.mjs'",
+    "lint": "eslint --ext .js,.mjs,.vue src"
   },
   "dependencies": {
     "chart.js": "^2.9.4",
@@ -26,6 +27,8 @@
     "@vue/cli-plugin-router": "^4.5.13",
     "@vue/cli-plugin-vuex": "~4.5.0",
     "@vue/cli-service": "~4.5.0",
+    "eslint": "^8.57.1",
+    "eslint-plugin-vue": "^9.33.0",
     "vue-template-compiler": "^2.6.11"
   }
 }

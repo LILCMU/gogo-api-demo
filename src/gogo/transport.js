@@ -125,6 +125,6 @@ export class GogoTransport {
   }
 
   _emit (event, payload) {
-    ;(this._handlers.get(event) || []).forEach((handler) => handler(payload))
+    (this._handlers.get(event) || []).forEach((handler) => handler(payload))
   }
 }

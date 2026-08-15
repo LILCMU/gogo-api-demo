@@ -99,6 +99,7 @@ import {
 } from "@/gogo/protocol";
 import { compilerUrl } from "@/config";
 import ByteDump from "@/components/ByteDump.vue";
+import boardAction from "@/mixins/boardAction";
 
 const EXAMPLES = [
   {
@@ -114,6 +115,7 @@ const EXAMPLES = [
 export default {
   name: "Logo",
   components: { ByteDump },
+  mixins: [boardAction],
   data: function () {
     return {
       mode: "program",
@@ -122,17 +124,11 @@ export default {
       compiledOpcodes: null,
       compileError: null,
       sentToBoard: false,
-      actionMessage: "",
-      actionFailed: false,
       examples: EXAMPLES,
     };
   },
   computed: {
-    ...mapGetters(["report", "boardStatus"]),
-
-    actionHint: function () {
-      return this.boardStatus ? "" : "Connect a GoGo Board first";
-    },
+    ...mapGetters(["report"]),
 
     compiledOpcodesHeading: function () {
       return this.sentToBoard
@@ -146,11 +142,6 @@ export default {
   },
   methods: {
     ...mapActions(["send"]),
-
-    reportAction: function (message, failed) {
-      this.actionMessage = message;
-      this.actionFailed = !!failed;
-    },
 
     loadExample: function (program) {
       this.logoProgram = program;
@@ -176,8 +167,7 @@ export default {
     },
 
     downloadOpcodeToBoard: async function (logoOpcode) {
-      if (!this.boardStatus) {
-        this.reportAction("Connect a GoGo Board first.", true);
+      if (!this.requireBoard()) {
         this.sentToBoard = false;
         return;
       }
@@ -232,10 +222,7 @@ export default {
     },
 
     downloadLogoProgram: function () {
-      if (!this.boardStatus) {
-        this.reportAction("Connect a GoGo Board first.", true);
-        return;
-      }
+      if (!this.requireBoard()) return;
       if (!this.logoProgram) {
         this.reportAction("Enter a logo program first.", true);
         return;
@@ -290,7 +277,7 @@ export default {
             this.compiledOpcodes = body.data;
             this.downloadOpcodeToBoard(body.data);
           },
-          (response) => {
+          () => {
             //? a real transport failure, not a compile error — the compiler
             //? itself always answers with HTTP 200
             this.reportAction("Cloud compiler unavailable.", true);

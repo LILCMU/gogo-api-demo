@@ -36,7 +36,7 @@
         </dl>
       </div>
 
-      <p class="action-message" :class="{ 'is-error': failed }">{{ message }}</p>
+      <p class="action-message" :class="{ 'is-error': actionFailed }">{{ actionMessage }}</p>
     </div>
 
     <div class="card">
@@ -86,6 +86,7 @@
 import { mapActions, mapGetters } from "vuex";
 import { buildCommand, FRAME_SIZE } from "@/gogo/protocol";
 import ByteDump from "@/components/ByteDump.vue";
+import boardAction from "@/mixins/boardAction";
 
 const ROW_SIZE = 16;
 //? type-0 reports arrive ~20x a second; nobody can read that, and repainting
@@ -95,13 +96,12 @@ const REPORT_REFRESH_MS = 200;
 export default {
   name: "Packets",
   components: { ByteDump },
+  mixins: [boardAction],
   data: function () {
     return {
       category: 0,
       command: 11,
       params: "",
-      message: "",
-      failed: false,
       showFullFrame: false,
       paused: false,
       shownReport: null,
@@ -110,11 +110,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(["boardStatus", "lastResponse", "reportRaw", "report"]),
-
-    actionHint: function () {
-      return this.boardStatus ? "" : "Connect a GoGo Board first";
-    },
+    ...mapGetters(["lastResponse", "reportRaw", "report"]),
 
     paramBytes: function () {
       return this.params
@@ -183,11 +179,7 @@ export default {
     },
 
     sendPacket: async function () {
-      if (!this.boardStatus) {
-        this.message = "Connect a GoGo Board first.";
-        this.failed = true;
-        return;
-      }
+      if (!this.requireBoard()) return;
 
       try {
         await this.send({
@@ -195,11 +187,9 @@ export default {
           command: this.command,
           params: this.paramBytes,
         });
-        this.message = "Sent.";
-        this.failed = false;
+        this.reportAction("Sent.", false);
       } catch (error) {
-        this.message = error.message;
-        this.failed = true;
+        this.reportAction(error.message, true);
       }
     },
   },

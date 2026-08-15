@@ -31,47 +31,34 @@
       <span class="control-row__value">{{ relayPower[i - 1] }}%</span>
     </div>
 
-    <p class="action-message" :class="{ 'is-error': failed }">{{ message }}</p>
+    <p class="action-message" :class="{ 'is-error': actionFailed }">{{ actionMessage }}</p>
   </section>
 </template>
 
 <script>
-import { mapActions, mapGetters } from "vuex";
+import { mapActions } from "vuex";
 import { CATEGORY, CMD } from "@/gogo/protocol";
+import boardAction from "@/mixins/boardAction";
 
 export default {
   name: "Control",
+  mixins: [boardAction],
   data: function () {
     return {
       angles: [90, 90, 90, 90],
       relayPower: [0, 0, 0, 0],
-      message: "",
-      failed: false,
     };
-  },
-  computed: {
-    ...mapGetters(["boardStatus"]),
-
-    actionHint: function () {
-      return this.boardStatus ? "" : "Connect a GoGo Board first";
-    },
   },
   methods: {
     ...mapActions(["send"]),
 
     run: async function (command, params, note) {
-      if (!this.boardStatus) {
-        this.message = "Connect a GoGo Board first.";
-        this.failed = true;
-        return;
-      }
+      if (!this.requireBoard()) return;
       try {
         await this.send({ category: CATEGORY.CONTROL, command, params });
-        this.message = note;
-        this.failed = false;
+        this.reportAction(note, false);
       } catch (error) {
-        this.message = error.message;
-        this.failed = true;
+        this.reportAction(error.message, true);
       }
     },
 

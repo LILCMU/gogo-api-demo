@@ -42,7 +42,7 @@ test('buildCommand rejects params that overflow the frame', () => {
   )
 })
 
-import { parseReport, isReport, REG } from './protocol.js'
+import { parseReport, isReport } from './protocol.js'
 
 //? builds a 63-byte type-0 report with specific registers set
 function reportBytes (overrides = {}) {
