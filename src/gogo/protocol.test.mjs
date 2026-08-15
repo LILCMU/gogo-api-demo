@@ -62,6 +62,16 @@ test('parseReport returns null for a non-report packet', () => {
   assert.equal(parseReport(reportBytes({ 0: 20 })), null)
 })
 
+test('parseReport returns null for a frame shorter than FRAME_SIZE', () => {
+  //? byte 0 is 0 (REPORT), but the frame is truncated — must not parse to
+  //? an object full of undefined/NaN
+  assert.equal(parseReport(new Uint8Array(10)), null)
+})
+
+test('parseReport parses a frame that is exactly FRAME_SIZE bytes', () => {
+  assert.notEqual(parseReport(reportBytes()), null)
+})
+
 test('parseReport decodes sensors as big-endian 16-bit pairs', () => {
   //? sensor 1 = 0x0200 = 512, sensor 2 = 0x0058 = 88
   const report = parseReport(reportBytes({ 1: 0x02, 2: 0x00, 3: 0x00, 4: 0x58 }))

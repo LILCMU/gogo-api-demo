@@ -143,7 +143,7 @@ function hardwareVersion (id) {
 }
 
 export function isReport (bytes) {
-  return !!bytes && bytes[REG.PACKET_TYPE] === PACKET_TYPE.REPORT
+  return !!bytes && bytes.length === FRAME_SIZE && bytes[REG.PACKET_TYPE] === PACKET_TYPE.REPORT
 }
 
 export function parseReport (bytes) {

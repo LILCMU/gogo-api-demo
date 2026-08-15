@@ -98,6 +98,16 @@ export default {
       if (!this.startRetrivedOfflineDatalog) return
       this.unpackOfflineDatalogPackets(packet)
     },
+
+    //* a mid-sync disconnect must not leave both buttons disabled forever —
+    //* only reconnecting should ever require a page reload before this fix
+    boardStatus: function (connected) {
+      if (connected || !this.startRetrivedOfflineDatalog) return
+      this.startRetrivedOfflineDatalog = false
+      this.dataChunk = []
+      this.offlineDatalogStatus = 'Sync interrupted - board disconnected.'
+      this.statusFailed = true
+    },
   },
   methods: {
     ...mapActions(["send", "clearResponse"]),

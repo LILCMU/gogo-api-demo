@@ -56,6 +56,11 @@
         <h2 class="section-label">{{ compiledOpcodesHeading }}</h2>
         <byte-dump :bytes="compiledOpcodes" />
       </template>
+
+      <template v-if="compileError">
+        <h2 class="section-label">Compiler error</h2>
+        <pre class="bytes bytes--error">{{ compileError }}</pre>
+      </template>
     </template>
 
     <template v-else>
@@ -109,6 +114,7 @@ export default {
       logoProgram: "",
       logoOpcodes: "",
       compiledOpcodes: null,
+      compileError: null,
       sentToBoard: false,
       actionMessage: "",
       actionFailed: false,
@@ -184,6 +190,14 @@ export default {
         }
       }
 
+      //? an empty program is never a legitimate download — most importantly,
+      //? it is exactly the zero-length write the firmware treats as "commit"
+      if (!logoOpcode.length) {
+        this.reportAction("No opcodes to send.", true);
+        this.sentToBoard = false;
+        return;
+      }
+
       try {
         await this.setLogoMemoryPointer();
         await this.writeLogoMemory(logoOpcode);
@@ -208,6 +222,7 @@ export default {
 
       this.reportAction("Compiling...", false);
       this.sentToBoard = false;
+      this.compileError = null;
 
       var sendingData = {
         logo: this.logoProgram,
@@ -220,24 +235,26 @@ export default {
         .post(compilerUrl, sendingData, { emulateJSON: true })
         .then(
           (response) => {
-            if (response.data.data != undefined) {
-              this.compiledOpcodes = response.data.data;
-              this.downloadOpcodeToBoard(response.data.data);
+            //? the compiler returns HTTP 200 for a syntax error too, with
+            //? result: false and the error in message — so branch on result,
+            //? never on whether data happens to be non-empty
+            const body = response.data;
+            if (body && body.result === true) {
+              this.compileError = null;
+              this.compiledOpcodes = body.data;
+              this.downloadOpcodeToBoard(body.data);
+            } else if (body && body.result === false) {
+              this.compiledOpcodes = null;
+              this.compileError = body.message;
+              this.reportAction("Compile error - see details below.", true);
             } else {
-              this.reportAction("Compiler returned no bytecode.", true);
+              this.reportAction("Compiler returned an unexpected response.", true);
             }
           },
           (response) => {
-            if (
-              response.data &&
-              response.data.status &&
-              response.data.status >= 500 &&
-              response.data.status < 600
-            ) {
-              this.reportAction("Syntax error in the logo program.", true);
-            } else {
-              this.reportAction("Cloud compiler unavailable.", true);
-            }
+            //? a real transport failure, not a compile error — the compiler
+            //? itself always answers with HTTP 200
+            this.reportAction("Cloud compiler unavailable.", true);
           }
         );
     },
@@ -264,6 +281,13 @@ export default {
 
 .textarea--mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/*? .bytes is the monospace block token, already a <pre> that preserves
+    whitespace; this just picks up the same error colour as
+    .action-message.is-error */
+.bytes--error {
+  color: var(--gogo-pink-text);
 }
 
 .tabs {

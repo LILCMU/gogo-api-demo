@@ -52,8 +52,7 @@ export default {
         },
       },
       yAxis: {
-        max: 1100,
-        tickAmount: 5
+        min: 0,
       },
       time: {
         useUTC: false,
