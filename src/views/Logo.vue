@@ -55,7 +55,10 @@
       </button>
 
       <template v-if="compiledOpcodes">
-        <h2 class="section-label">{{ compiledOpcodesHeading }}</h2>
+        <div class="section-row">
+          <h2 class="section-label">{{ compiledOpcodesHeading }}</h2>
+          <button class="btn btn--small" @click="copyOpcodes()">Copy opcodes</button>
+        </div>
         <byte-dump :bytes="compiledOpcodes" />
       </template>
 
@@ -147,6 +150,16 @@ export default {
 
     loadExample: function (program) {
       this.logoProgram = program;
+    },
+
+    //? async Clipboard API only — no clipboard library added for this
+    copyOpcodes: async function () {
+      try {
+        await navigator.clipboard.writeText(JSON.stringify(Array.from(this.compiledOpcodes)));
+        this.reportAction("Opcodes copied to the clipboard.", false);
+      } catch (error) {
+        this.reportAction("Could not copy opcodes: " + error.message, true);
+      }
     },
 
     setLogoMemoryPointer: function () {
@@ -309,6 +322,12 @@ export default {
 
 .textarea--mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.section-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 /*? .bytes is the monospace block token, already a <pre> that preserves

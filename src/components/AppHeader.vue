@@ -15,12 +15,17 @@
       <div class="app-header__right">
         <button v-if="!boardStatus" class="btn app-header__connect" @click="handleConnect">Connect a board</button>
 
-        <span
-          class="app-header__status"
-          :class="boardStatus ? 'is-connected' : 'is-disconnected'"
-          aria-live="polite"
-        >
-          {{ boardStatus ? "Connected" : "No board" }}
+        <span class="app-header__status-wrap" aria-live="polite">
+          <button
+            v-if="boardStatus"
+            type="button"
+            class="app-header__status is-connected"
+            aria-label="Disconnect the GoGo Board"
+            @click="handleDisconnect"
+          >
+            Connected
+          </button>
+          <span v-else class="app-header__status is-disconnected">No board</span>
         </span>
       </div>
     </header>
@@ -50,7 +55,7 @@ export default {
     },
   },
   methods: {
-    ...mapActions(["connect"]),
+    ...mapActions(["connect", "disconnect"]),
     ...mapMutations(["SET_ERROR"]),
 
     //? requestDevice needs a real click; device.open() can still reject (e.g.
@@ -58,6 +63,15 @@ export default {
     handleConnect: async function () {
       try {
         await this.connect({ prompt: true });
+      } catch (error) {
+        this.SET_ERROR(error.message);
+      }
+    },
+
+    //? the only way to release the device short of reloading the page
+    handleDisconnect: async function () {
+      try {
+        await this.disconnect();
       } catch (error) {
         this.SET_ERROR(error.message);
       }
@@ -118,12 +132,19 @@ p.app-header__error {
 }
 
 .app-header__status {
+  font-family: inherit;
   font-size: 12px;
   font-weight: 700;
   padding: 6px 14px;
+  border: 0;
   border-radius: var(--radius-pill);
 }
 
-.app-header__status.is-connected { background: var(--gogo-green); color: var(--gogo-ink); }
+.app-header__status.is-connected { background: var(--gogo-green); color: var(--gogo-ink); cursor: pointer; }
 .app-header__status.is-disconnected { background: var(--status-disconnected-bg); color: var(--muted); }
+
+.app-header__status.is-connected:focus-visible {
+  outline: 2px solid var(--gogo-blue);
+  outline-offset: 2px;
+}
 </style>

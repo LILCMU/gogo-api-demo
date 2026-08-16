@@ -32,7 +32,15 @@ export default {
           },
         },
       },
-      colors: ["#02a8f4", "#db3f8d"], //? --gogo-blue, --gogo-pink
+      credits: { enabled: false },
+      colors: [
+        "#02a8f4", //? --gogo-blue
+        "#db3f8d", //? --gogo-pink
+        "#a5d442", //? --gogo-green
+        "#f3a73c", //? --gogo-orange
+        "#01354c", //? --gogo-ink
+        "#4f6b7d", //? --muted
+      ],
       title: {
         text: null,
         style: {

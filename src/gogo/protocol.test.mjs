@@ -235,6 +235,20 @@ test('MAX_LOGO_BYTECODE_LENGTH matches the GoGoCode firmware limit', () => {
   })
 })
 
+import { describeCommand } from './protocol.js'
+
+test('describeCommand resolves a known category/command pair', () => {
+  assert.equal(describeCommand(CATEGORY.CONTROL, CMD.BEEP), 'BEEP')
+})
+
+test('describeCommand returns null for an unknown command in a known category', () => {
+  assert.equal(describeCommand(CATEGORY.CONTROL, 999), null)
+})
+
+test('describeCommand returns null for an unknown category', () => {
+  assert.equal(describeCommand(99, 0), null)
+})
+
 test('parseResponse exposes the raw packet for commands whose layout differs', () => {
   const bytes = new Uint8Array(63)
   bytes[0] = 20

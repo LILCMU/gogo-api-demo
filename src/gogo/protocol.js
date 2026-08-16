@@ -49,6 +49,27 @@ export const EVENT_CMD = {
   CLEAR_DATALOG: 3,
 }
 
+function invert (obj) {
+  const inverted = {}
+  for (const key in obj) inverted[obj[key]] = key
+  return inverted
+}
+
+//? command name tables, one per category that defines commands — used to
+//? resolve the (category, command) pair a caller is about to send into the
+//? human name the protocol doc uses, e.g. category 0 / command 11 -> "BEEP"
+const COMMAND_NAMES_BY_CATEGORY = {
+  [CATEGORY.CONTROL]: invert(CMD),
+  [CATEGORY.MEMORY]: invert(MEMORY_CMD),
+  [CATEGORY.EVENT_REQUEST]: invert(EVENT_CMD),
+}
+
+//? null for any category with no command table, or a command missing from it
+export function describeCommand (category, command) {
+  const names = COMMAND_NAMES_BY_CATEGORY[category]
+  return (names && names[command]) || null
+}
+
 export const REG = {
   PACKET_TYPE: 0,
   SENSOR_START: 1,

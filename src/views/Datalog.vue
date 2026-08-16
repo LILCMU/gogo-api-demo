@@ -21,6 +21,13 @@
       >
         Delete Data
       </button>
+      <button
+        v-if="startRetrivedOfflineDatalog"
+        class="btn"
+        @click="cancelSync()"
+      >
+        Cancel
+      </button>
     </div>
 
     <div class="datapicker">
@@ -219,6 +226,17 @@ export default {
     finishSync: function () {
       this.startRetrivedOfflineDatalog = false
       this.clearResponse()
+    },
+
+    //? there is no cancel command in this protocol — this only stops the app
+    //? from listening for more datalog packets. The board has no idea the
+    //? sync was cancelled and may keep sending records into the void.
+    cancelSync: function () {
+      this.startRetrivedOfflineDatalog = false
+      this.dataChunk = []
+      this.reportAction(
+        'Sync cancelled in the app. The board has no cancel command, so it may keep sending records the app is no longer listening for.'
+      )
     },
 
     syncOfflineDatalogRecords: async function () {

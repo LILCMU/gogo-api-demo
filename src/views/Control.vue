@@ -15,6 +15,10 @@
       <button class="btn" :disabled="!boardStatus" :title="actionHint" @click="motor(i, true)">On</button>
       <button class="btn" :disabled="!boardStatus" :title="actionHint" @click="motor(i, false)">Off</button>
       <button class="btn" :disabled="!boardStatus" :title="actionHint" @click="reverse(i)">Reverse</button>
+      <span class="board-state" v-if="report">
+        <span class="board-state__label">Board</span>
+        <strong class="board-state__value">{{ motorState(i) }}</strong>
+      </span>
     </div>
 
     <h2 class="section-label">Servos</h2>
@@ -24,6 +28,10 @@
              :aria-label="'Servo ' + i + ' angle'"
              :disabled="!boardStatus" :title="actionHint" @change="servo(i)" />
       <span class="control-row__value">{{ angles[i - 1] }}°</span>
+      <span class="board-state" v-if="report">
+        <span class="board-state__label">Board</span>
+        <strong class="board-state__value">{{ report.servos.angles[i - 1] }}&deg;</strong>
+      </span>
     </div>
 
     <h2 class="section-label">Relays</h2>
@@ -33,6 +41,10 @@
              :aria-label="'Relay ' + i + ' power'"
              :disabled="!boardStatus" :title="actionHint" @change="relay(i)" />
       <span class="control-row__value">{{ relayPower[i - 1] }}%</span>
+      <span class="board-state" v-if="report">
+        <span class="board-state__label">Board</span>
+        <strong class="board-state__value">{{ report.relays.power[i - 1] }}%</strong>
+      </span>
     </div>
 
     <p class="action-message" :class="{ 'is-error': actionFailed }" aria-live="polite">{{ actionMessage }}</p>
@@ -40,7 +52,7 @@
 </template>
 
 <script>
-import { mapActions } from "vuex";
+import { mapActions, mapGetters } from "vuex";
 import { CATEGORY, CMD } from "@/gogo/protocol";
 import boardAction from "@/mixins/boardAction";
 
@@ -53,8 +65,18 @@ export default {
       relayPower: [0, 0, 0, 0],
     };
   },
+  computed: {
+    ...mapGetters(["report"]),
+  },
   methods: {
     ...mapActions(["send"]),
+
+    //? reads the board's reported on/off and direction bitmasks — separate
+    //? from the sliders/buttons above, which only ever reflect what was sent
+    motorState: function (port) {
+      if (!(this.report.motors.onOff & this.mask(port))) return "Off";
+      return "On · " + (this.report.motors.direction & this.mask(port) ? "CW" : "CCW");
+    },
 
     run: async function (command, params, note) {
       if (!this.requireBoard()) return;
@@ -98,3 +120,32 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+/*? ink background with light text — the same contrast DarkPanel/.readout use
+    on Live — deliberately unlike the light card the control itself sits in,
+    so "what the board reports" reads as a different source from "what you set" */
+.board-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding: 4px 10px;
+  background: var(--gogo-ink);
+  border-radius: var(--radius-pill);
+}
+
+.board-state__label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--dark-panel-label);
+}
+
+.board-state__value {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--dark-panel-value);
+}
+</style>

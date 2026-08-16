@@ -9,6 +9,7 @@
         <label>Category <input type="number" v-model.number="category" /></label>
         <label>Command <input type="number" v-model.number="command" /></label>
         <label>Params <input type="text" v-model="params" placeholder="1,2,3" /></label>
+        <span class="constant-name" v-if="commandName">Command {{ command }} &middot; {{ commandName }}</span>
         <button class="btn btn--primary" :disabled="!boardStatus" :title="actionHint" @click="sendPacket()">Send</button>
       </div>
 
@@ -52,9 +53,11 @@
       </div>
       <div class="split" v-if="shownReport">
         <div class="split__main">
-          <byte-dump :bytes="shownReport" :highlights="{ 0: 'bytes__cell--category' }" />
-          <p class="bytes-note">
-            byte 0 packet type &middot; 1&ndash;8 sensors &middot; 17&ndash;21 board identity
+          <byte-dump :bytes="shownReport" :highlights="reportHighlights" />
+          <p class="bytes-legend">
+            <span class="bytes-legend__chip bytes-legend__chip--category">byte 0</span> packet type &middot;
+            <span class="bytes-legend__chip bytes-legend__chip--sensors">bytes 1&ndash;8</span> sensors &middot;
+            <span class="bytes-legend__chip bytes-legend__chip--board">bytes 17&ndash;21</span> board identity
             <template v-if="paused"> &middot; frozen</template>
           </p>
         </div>
@@ -77,8 +80,21 @@
       <p v-else class="page__empty page__empty--compact">No report yet. The board streams this continuously once connected.</p>
 
       <h2 class="section-label">Last response &middot; type 20</h2>
-      <pre class="bytes" v-if="lastResponse">command {{ lastResponse.command }}  status {{ lastResponse.status }}  length {{ lastResponse.length }}
+      <div class="split" v-if="lastResponse">
+        <div class="split__main">
+          <pre class="bytes">command {{ lastResponse.command }}  status {{ lastResponse.status }}  length {{ lastResponse.length }}
 {{ hex(lastResponse.payload) }}</pre>
+        </div>
+
+        <dl class="facts">
+          <dt>Command</dt>
+          <dd>{{ lastResponse.command }}<template v-if="lastResponseCommandName"> &middot; {{ lastResponseCommandName }}</template></dd>
+          <dt>Status</dt>
+          <dd>{{ lastResponse.status }}<template v-if="lastResponseStatusName"> &middot; {{ lastResponseStatusName }}</template></dd>
+          <dt>Payload</dt>
+          <dd>{{ lastResponse.length }} byte{{ lastResponse.length === 1 ? "" : "s" }}</dd>
+        </dl>
+      </div>
       <p v-else class="page__empty page__empty--compact">Nothing received yet.</p>
     </div>
   </section>
@@ -86,7 +102,16 @@
 
 <script>
 import { mapActions, mapGetters } from "vuex";
-import { buildCommand, FRAME_SIZE } from "@/gogo/protocol";
+import {
+  buildCommand,
+  describeCommand,
+  FRAME_SIZE,
+  CATEGORY,
+  EVENT_CMD,
+  DATALOG_STATUS,
+  REG,
+  SENSOR_COUNT,
+} from "@/gogo/protocol";
 import ByteDump from "@/components/ByteDump.vue";
 import boardAction from "@/mixins/boardAction";
 import { boardLabel } from "@/utils/formatBoard";
@@ -114,6 +139,41 @@ export default {
   },
   computed: {
     ...mapGetters(["lastResponse", "reportRaw", "report"]),
+
+    commandName: function () {
+      return describeCommand(this.category, this.command);
+    },
+
+    //? every type-20 response in this app comes from an EVENT_REQUEST command
+    //? (see docs/protocol.md, "Responses") — the response itself carries no
+    //? category byte, so resolving its name assumes that fixed category
+    lastResponseCommandName: function () {
+      return this.lastResponse
+        ? describeCommand(CATEGORY.EVENT_REQUEST, this.lastResponse.command)
+        : null;
+    },
+
+    //? status is only a shared concept for the datalog command — GoGo ID
+    //? puts a MAC where the status byte would be, so nothing to name there
+    lastResponseStatusName: function () {
+      if (!this.lastResponse || this.lastResponse.command !== EVENT_CMD.GET_DATALOG) return null;
+      return Object.keys(DATALOG_STATUS).find(
+        (name) => DATALOG_STATUS[name] === this.lastResponse.status
+      ) || null;
+    },
+
+    //? byte ranges the report legend used to describe in prose, now fed to
+    //? ByteDump's highlight map instead
+    reportHighlights: function () {
+      const highlights = { [REG.PACKET_TYPE]: "bytes__cell--category" };
+      for (let i = 0; i < SENSOR_COUNT * 2; i++) {
+        highlights[REG.SENSOR_START + i] = "bytes__cell--sensors";
+      }
+      for (let i = REG.BOARD_TYPE; i <= REG.FIRMWARE + 2; i++) {
+        highlights[i] = "bytes__cell--board";
+      }
+      return highlights;
+    },
 
     paramBytes: function () {
       return this.params
@@ -240,6 +300,12 @@ export default {
   margin: 8px 0 0;
   font-size: 12px;
   color: var(--muted);
+}
+
+.constant-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gogo-ink);
 }
 
 /*? the dump has a fixed natural width; the remainder carries the decode */

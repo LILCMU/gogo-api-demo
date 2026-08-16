@@ -170,6 +170,8 @@ export default {
 .bytes__cell--gap { margin-left: 1ch; }
 .bytes__cell--category { background: var(--gogo-blue-tint); color: var(--gogo-ink); border-radius: 4px; }
 .bytes__cell--command { background: var(--gogo-orange-tint); color: var(--gogo-ink); border-radius: 4px; }
+.bytes__cell--sensors { background: var(--gogo-green-tint); color: var(--gogo-ink); border-radius: 4px; }
+.bytes__cell--board { background: var(--gogo-pink-tint); color: var(--gogo-ink); border-radius: 4px; }
 .bytes__row--header .bytes__cell { color: var(--muted); }
 
 .bytes-legend { margin-top: 8px; font-size: 12px; color: var(--muted); }
@@ -177,6 +179,8 @@ export default {
 .bytes-legend__chip { padding: 1px 6px; border-radius: 4px; }
 .bytes-legend__chip--category { background: var(--gogo-blue-tint); color: var(--gogo-ink); }
 .bytes-legend__chip--command { background: var(--gogo-orange-tint); color: var(--gogo-ink); }
+.bytes-legend__chip--sensors { background: var(--gogo-green-tint); color: var(--gogo-ink); }
+.bytes-legend__chip--board { background: var(--gogo-pink-tint); color: var(--gogo-ink); }
 
 .action-message { min-height: 1.2em; margin-top: 16px; font-size: 14px; color: var(--muted); }
 .action-message.is-error { color: var(--gogo-pink-text); }
@@ -186,5 +190,56 @@ input:focus-visible,
 a:focus-visible {
   outline: 2px solid var(--gogo-blue);
   outline-offset: 2px;
+}
+
+/*? bare OS control otherwise — height covers the 36px tablet hit-target
+    floor even though the visible track is much thinner */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 160px;
+  height: 36px;
+  padding: 0;
+  background: transparent;
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  background: var(--gogo-blue);
+  border-radius: var(--radius-pill);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  margin-top: -11px; /*? centers the 28px thumb on the 6px track */
+  background: var(--gogo-blue);
+  border: 3px solid var(--card-bg);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--gogo-blue);
+}
+
+input[type="range"]::-moz-range-track {
+  height: 6px;
+  background: var(--gogo-blue);
+  border-radius: var(--radius-pill);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 28px;
+  height: 28px;
+  background: var(--gogo-blue);
+  border: 3px solid var(--card-bg);
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+input[type="range"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
 }
 </style>
