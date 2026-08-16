@@ -18,10 +18,10 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(["boardStatus"]),
+    ...mapGetters(["isBoardReady"]),
 
     actionHint: function () {
-      return this.boardStatus ? "" : "Connect a GoGo Board first";
+      return this.isBoardReady ? "" : "Connect a GoGo Board first";
     },
   },
   methods: {
@@ -31,7 +31,7 @@ export default {
     },
 
     requireBoard: function () {
-      if (this.boardStatus) return true;
+      if (this.isBoardReady) return true;
       this.reportAction("Connect a GoGo Board first.", true);
       return false;
     },

@@ -8,7 +8,7 @@
       <button
         class="btn btn--primary"
         @click="syncOfflineDatalogRecords()"
-        :disabled="!boardStatus || startRetrivedOfflineDatalog"
+        :disabled="!isBoardReady || syncInProgress"
         :title="actionHint"
       >
         Sync Data
@@ -16,13 +16,13 @@
       <button
         class="btn btn--danger"
         @click="confirmingDelete = true"
-        :disabled="!boardStatus || startRetrivedOfflineDatalog"
+        :disabled="!isBoardReady || syncInProgress"
         :title="actionHint"
       >
         Delete Data
       </button>
       <button
-        v-if="startRetrivedOfflineDatalog"
+        v-if="syncInProgress"
         class="btn"
         @click="cancelSync()"
       >
@@ -49,7 +49,7 @@
       </p>
     </div>
 
-    <div class="progress-bar" v-if="startRetrivedOfflineDatalog">
+    <div class="progress-bar" v-if="syncInProgress">
       <progress-bar size="medium" :bar-color="progressBarColor" :val="percentage" />
     </div>
 
@@ -97,7 +97,7 @@ export default {
   mixins: [boardAction],
   data: function () {
     return {
-      startRetrivedOfflineDatalog: false,
+      syncInProgress: false,
       confirmingDelete: false,
       dataChunk: [],
       lookupTable: [],
@@ -114,15 +114,15 @@ export default {
   },
   watch: {
     lastResponse: function (packet) {
-      if (!this.startRetrivedOfflineDatalog) return
+      if (!this.syncInProgress) return
       this.unpackOfflineDatalogPackets(packet)
     },
 
     //* a mid-sync disconnect must not leave both buttons disabled forever —
     //* only reconnecting should ever require a page reload before this fix
-    boardStatus: function (connected) {
-      if (connected || !this.startRetrivedOfflineDatalog) return
-      this.startRetrivedOfflineDatalog = false
+    isBoardReady: function (connected) {
+      if (connected || !this.syncInProgress) return
+      this.syncInProgress = false
       this.dataChunk = []
       this.reportAction('Sync interrupted - board disconnected.', true)
     },
@@ -224,7 +224,7 @@ export default {
     },
 
     finishSync: function () {
-      this.startRetrivedOfflineDatalog = false
+      this.syncInProgress = false
       this.clearResponse()
     },
 
@@ -232,7 +232,7 @@ export default {
     //? from listening for more datalog packets. The board has no idea the
     //? sync was cancelled and may keep sending records into the void.
     cancelSync: function () {
-      this.startRetrivedOfflineDatalog = false
+      this.syncInProgress = false
       this.dataChunk = []
       this.reportAction(
         'Sync cancelled in the app. The board has no cancel command, so it may keep sending records the app is no longer listening for.'
@@ -242,7 +242,7 @@ export default {
     syncOfflineDatalogRecords: async function () {
       if (!this.requireBoard()) return;
 
-      if (!this.startRetrivedOfflineDatalog) {
+      if (!this.syncInProgress) {
         //? clear all variables
         this.dataChunk = [];
         this.lookupTable = [];
@@ -252,14 +252,14 @@ export default {
         this.percentage = 0;
 
         //? set flag to retrieve new packets
-        this.startRetrivedOfflineDatalog = true;
+        this.syncInProgress = true;
         this.actionFailed = false;
 
         try {
           await this.send({ category: CATEGORY.EVENT_REQUEST, command: EVENT_CMD.GET_DATALOG })
         } catch (error) {
           //? both buttons are disabled while this flag is set, with no other reset
-          this.startRetrivedOfflineDatalog = false;
+          this.syncInProgress = false;
           this.reportAction(error.message, true);
         }
       }
@@ -269,7 +269,7 @@ export default {
       //? always dismiss the dialog, otherwise a refused delete leaves it stuck open
       this.confirmingDelete = false;
 
-      if (this.startRetrivedOfflineDatalog) {
+      if (this.syncInProgress) {
         this.reportAction("Still syncing - try again once it finishes.", true);
         return;
       }

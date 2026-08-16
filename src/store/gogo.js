@@ -14,7 +14,7 @@ export default {
 
   getters: {
     connected: (state) => state.connected,
-    boardStatus: (state) => state.connected && !!state.report,
+    isBoardReady: (state) => state.connected && !!state.report,
     report: (state) => state.report,
     reportRaw: (state) => state.reportRaw,
     lastResponse: (state) => state.lastResponse,

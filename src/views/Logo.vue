@@ -24,7 +24,7 @@
       </button>
     </div>
 
-    <p v-if="!boardStatus" class="page__empty page__empty--compact">Connect a GoGo Board to use these controls.</p>
+    <p v-if="!isBoardReady" class="page__empty page__empty--compact">Connect a GoGo Board to use these controls.</p>
 
     <template v-if="mode === 'program'">
       <p class="tabs__hint">Write Logo source, compile it in the cloud, and send the result to the board.</p>
@@ -48,7 +48,7 @@
       <button
         class="btn btn--primary"
         @click="downloadLogoProgram()"
-        :disabled="!boardStatus"
+        :disabled="!isBoardReady"
         :title="actionHint"
       >
         Send to board
@@ -80,7 +80,7 @@
       <button
         class="btn btn--primary"
         @click="downloadOpcodeToBoard()"
-        :disabled="!boardStatus"
+        :disabled="!isBoardReady"
         :title="actionHint"
       >
         Send to board

@@ -2,19 +2,19 @@
   <section class="page">
     <h1 class="page-title">Control</h1>
 
-    <p v-if="!boardStatus" class="page__empty page__empty--compact">Connect a GoGo Board to use these controls.</p>
+    <p v-if="!isBoardReady" class="page__empty page__empty--compact">Connect a GoGo Board to use these controls.</p>
 
     <h2 class="section-label">Try it</h2>
-    <button class="btn btn--primary btn--large" :disabled="!boardStatus" :title="actionHint" @click="beep()">
+    <button class="btn btn--primary btn--large" :disabled="!isBoardReady" :title="actionHint" @click="beep()">
       Beep
     </button>
 
     <h2 class="section-label">Motors</h2>
     <div class="control-row" v-for="i in 4" :key="'motor' + i">
       <span class="control-row__name">Motor {{ i }}</span>
-      <button class="btn" :disabled="!boardStatus" :title="actionHint" @click="motor(i, true)">On</button>
-      <button class="btn" :disabled="!boardStatus" :title="actionHint" @click="motor(i, false)">Off</button>
-      <button class="btn" :disabled="!boardStatus" :title="actionHint" @click="reverse(i)">Reverse</button>
+      <button class="btn" :disabled="!isBoardReady" :title="actionHint" @click="motor(i, true)">On</button>
+      <button class="btn" :disabled="!isBoardReady" :title="actionHint" @click="motor(i, false)">Off</button>
+      <button class="btn" :disabled="!isBoardReady" :title="actionHint" @click="reverse(i)">Reverse</button>
       <span class="board-state" v-if="report">
         <span class="board-state__label">Board</span>
         <strong class="board-state__value">{{ motorState(i) }}</strong>
@@ -26,7 +26,7 @@
       <span class="control-row__name">Servo {{ i }}</span>
       <input type="range" min="0" max="180" v-model.number="angles[i - 1]"
              :aria-label="'Servo ' + i + ' angle'"
-             :disabled="!boardStatus" :title="actionHint" @change="servo(i)" />
+             :disabled="!isBoardReady" :title="actionHint" @change="servo(i)" />
       <span class="control-row__value">{{ angles[i - 1] }}°</span>
       <span class="board-state" v-if="report">
         <span class="board-state__label">Board</span>
@@ -39,7 +39,7 @@
       <span class="control-row__name">Relay {{ i }}</span>
       <input type="range" min="0" max="100" v-model.number="relayPower[i - 1]"
              :aria-label="'Relay ' + i + ' power'"
-             :disabled="!boardStatus" :title="actionHint" @change="relay(i)" />
+             :disabled="!isBoardReady" :title="actionHint" @change="relay(i)" />
       <span class="control-row__value">{{ relayPower[i - 1] }}%</span>
       <span class="board-state" v-if="report">
         <span class="board-state__label">Board</span>

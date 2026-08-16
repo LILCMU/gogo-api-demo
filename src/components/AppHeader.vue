@@ -13,11 +13,11 @@
       </nav>
 
       <div class="app-header__right">
-        <button v-if="!boardStatus" class="btn app-header__connect" @click="handleConnect">Connect a board</button>
+        <button v-if="!isBoardReady" class="btn app-header__connect" @click="handleConnect">Connect a board</button>
 
         <span class="app-header__status-wrap" aria-live="polite">
           <button
-            v-if="boardStatus"
+            v-if="isBoardReady"
             type="button"
             class="app-header__status is-connected"
             aria-label="Disconnect the GoGo Board"
@@ -34,7 +34,7 @@
          wrapped at 1024px and pushed the connect button/status pill onto two lines -->
     <!--? role="status" (polite, not "alert") — this is a connection state that
          changes routinely, not an urgent interruption -->
-    <p v-if="!boardStatus && error" class="action-message is-error app-header__error" role="status">
+    <p v-if="!isBoardReady && error" class="action-message is-error app-header__error" role="status">
       {{ displayError }}
     </p>
   </div>
@@ -46,7 +46,7 @@ import { mapActions, mapGetters, mapMutations } from "vuex";
 export default {
   name: "AppHeader",
   computed: {
-    ...mapGetters(["boardStatus", "error"]),
+    ...mapGetters(["isBoardReady", "error"]),
 
     //? src/gogo/ throws lower-case error strings; the app's own copy is
     //? sentence case, so normalise on display without touching the throw site

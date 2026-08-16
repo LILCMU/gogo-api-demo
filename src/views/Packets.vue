@@ -10,7 +10,7 @@
         <label>Command <input type="number" v-model.number="command" /></label>
         <label>Params <input type="text" v-model="params" placeholder="1,2,3" /></label>
         <span class="constant-name" v-if="commandName">Command {{ command }} &middot; {{ commandName }}</span>
-        <button class="btn btn--primary" :disabled="!boardStatus" :title="actionHint" @click="sendPacket()">Send</button>
+        <button class="btn btn--primary" :disabled="!isBoardReady" :title="actionHint" @click="sendPacket()">Send</button>
       </div>
 
       <h2 class="section-label">Frame preview</h2>
