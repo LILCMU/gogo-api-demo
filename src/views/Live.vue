@@ -12,7 +12,7 @@
         <span class="pill">Firmware {{ report.board.firmware }}</span>
       </div>
 
-      <h2 class="section-label">Sensors</h2>
+      <h2 class="section-label">Sensors <span class="section-label__note">0&ndash;1023</span></h2>
       <div class="tile-grid">
         <stat-tile
           v-for="(value, i) in report.sensors"

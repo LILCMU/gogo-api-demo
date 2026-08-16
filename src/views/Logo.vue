@@ -79,7 +79,7 @@
       ></textarea>
       <button
         class="btn btn--primary"
-        @click="downloadOpcodeToBoard()"
+        @click="sendPastedOpcodes()"
         :disabled="!isBoardReady"
         :title="actionHint"
       >
@@ -181,24 +181,29 @@ export default {
       }
     },
 
-    downloadOpcodeToBoard: async function (logoOpcode) {
-      if (!this.requireBoard()) {
-        this.sentToBoard = false;
+    //* click handler for the Raw opcodes tab — parses the textarea, then hands
+    //* off to sendOpcodes, which is what the compile path calls directly
+    sendPastedOpcodes: async function () {
+      if (!this.logoOpcodes) {
+        this.reportAction("Enter the logo opcodes first.", true);
         return;
       }
 
-      //? called with no argument from the Logo Opcodes textarea
-      if (!logoOpcode) {
-        if (!this.logoOpcodes) {
-          this.reportAction("Enter the logo opcodes first.", true);
-          return;
-        }
-        try {
-          logoOpcode = JSON.parse(this.logoOpcodes);
-        } catch (error) {
-          this.reportAction("Logo opcodes must be a JSON array of bytes.", true);
-          return;
-        }
+      let parsed;
+      try {
+        parsed = JSON.parse(this.logoOpcodes);
+      } catch (error) {
+        this.reportAction("Logo opcodes must be a JSON array of bytes.", true);
+        return;
+      }
+
+      await this.sendOpcodes(parsed);
+    },
+
+    sendOpcodes: async function (logoOpcode) {
+      if (!this.requireBoard()) {
+        this.sentToBoard = false;
+        return;
       }
 
       //? an empty program is never a legitimate download — most importantly,
@@ -290,7 +295,7 @@ export default {
 
             this.compileError = null;
             this.compiledOpcodes = body.data;
-            this.downloadOpcodeToBoard(body.data);
+            this.sendOpcodes(body.data);
           },
           () => {
             //? a real transport failure, not a compile error — the compiler

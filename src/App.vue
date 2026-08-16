@@ -131,6 +131,10 @@ export default {
 .control-row__value { color: var(--muted); min-width: 48px; }
 
 .readout { display: flex; flex-direction: column; gap: 2px; }
+
+/*? scale cue on the Sensors heading — a bare number tells a child nothing
+    about whether 512 is a lot */
+.section-label__note { font-weight: 400; letter-spacing: 0; opacity: 0.75; }
 .readout span { font-size: 11px; color: var(--dark-panel-label); font-weight: 700; }
 .readout strong { font-size: 18px; color: var(--dark-panel-value); }
 

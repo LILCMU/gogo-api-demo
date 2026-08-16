@@ -130,7 +130,6 @@ export default {
   methods: {
     ...mapActions(["send", "clearResponse"]),
 
-    //? Add function for refresh date on you pick
     onSelectedDate() {
       if (this.datalogRecords.length) {
         this.updateRenderGraph();
@@ -243,7 +242,6 @@ export default {
       if (!this.requireBoard()) return;
 
       if (!this.syncInProgress) {
-        //? clear all variables
         this.dataChunk = [];
         this.lookupTable = [];
         this.datalogRecords = [];
@@ -251,7 +249,6 @@ export default {
         this.datalogRecordsFileSize = 0;
         this.percentage = 0;
 
-        //? set flag to retrieve new packets
         this.syncInProgress = true;
         this.actionFailed = false;
 
