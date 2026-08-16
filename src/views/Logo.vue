@@ -1,5 +1,7 @@
 <template>
   <section class="page">
+    <h1 class="page-title">Logo</h1>
+
     <!--? two alternative ways to put a program on the board, never two steps of one flow -->
     <div class="tabs" role="tablist">
       <button
@@ -82,7 +84,7 @@
       </button>
     </template>
 
-    <p class="action-message" :class="{ 'is-error': actionFailed }">
+    <p class="action-message" :class="{ 'is-error': actionFailed }" aria-live="polite">
       {{ actionMessage }}
     </p>
   </section>

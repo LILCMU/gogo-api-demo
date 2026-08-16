@@ -1,12 +1,14 @@
 <template>
   <section class="page">
+    <h1 class="page-title">Live</h1>
+
     <p v-if="!report" class="page__empty">
       Connect a GoGo Board to see live readings.
     </p>
 
     <template v-else>
       <div class="pills">
-        <span class="pill">{{ report.board.typeName }} {{ report.board.version }}</span>
+        <span class="pill">{{ boardLabel(report.board) }}</span>
         <span class="pill">Firmware {{ report.board.firmware }}</span>
       </div>
 
@@ -36,6 +38,7 @@
 import { mapGetters } from "vuex";
 import StatTile from "@/components/StatTile.vue";
 import DarkPanel from "@/components/DarkPanel.vue";
+import { boardLabel } from "@/utils/formatBoard";
 
 export default {
   name: "Live",
@@ -46,5 +49,6 @@ export default {
   computed: {
     ...mapGetters(["report"]),
   },
+  methods: { boardLabel },
 };
 </script>

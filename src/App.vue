@@ -1,7 +1,9 @@
 <template>
   <div id="app">
     <app-header />
-    <router-view />
+    <main>
+      <router-view />
+    </main>
   </div>
 </template>
 
@@ -44,6 +46,17 @@ export default {
   padding: 16px;
   text-align: left;
   font-size: 13px;
+}
+
+/*? the visible h1 every page opens with — sits above .section-label's h2s
+    rather than hidden, closing the heading-level gap that skipped from
+    nothing straight to h2 */
+.page-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--gogo-ink);
+  line-height: 1.2;
+  margin: 0 0 20px;
 }
 
 .section-label {
@@ -90,7 +103,9 @@ export default {
 
 .btn--large { font-size: 18px; padding: 16px 44px; }
 
-.btn--small { font-size: 12px; padding: 4px 12px; }
+/*? vertical padding alone (not font-size) clears the 36px tablet hit-target
+    floor — the ~26px height came from 4px, not from the 12px text */
+.btn--small { font-size: 12px; padding: 12px 16px; }
 
 /*? overrides .btn--primary's green fill too, via the attribute selector's
     higher specificity — opacity alone made disabled Beep pale grey on pale

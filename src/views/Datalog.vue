@@ -1,5 +1,7 @@
 <template>
   <section class="page">
+    <h1 class="page-title">Datalog</h1>
+
     <h2 class="section-label">Sync</h2>
 
     <div class="datalog-actions">
@@ -22,15 +24,29 @@
     </div>
 
     <div class="datapicker">
-      <date-picker v-model="dateTimeOffset" type="datetime" placeholder="select offset timestamp" value-type="timestamp"
-        @change="onSelectedDate()"></date-picker>
+      <label for="datalog-date-offset" class="datapicker__label">Date offset</label>
+      <date-picker
+        v-model="dateTimeOffset"
+        type="datetime"
+        placeholder="select offset timestamp"
+        value-type="timestamp"
+        :input-attr="{ id: 'datalog-date-offset', 'aria-describedby': 'datalog-date-offset-help' }"
+        @change="onSelectedDate()"
+      ></date-picker>
+      <!--? datalog timestamps come from the board's clock, real wall-clock time
+           only after an RTC/NTP sync — an unsynced board logs from 1970, and
+           this offset is a display-only correction for that -->
+      <p id="datalog-date-offset-help" class="datapicker__help">
+        Optional — only needed if the board's clock hasn't been synced. An unsynced board
+        logs records starting from 1970, and this offset shifts them onto real time.
+      </p>
     </div>
 
     <div class="progress-bar" v-if="startRetrivedOfflineDatalog">
       <progress-bar size="medium" :bar-color="progressBarColor" :val="percentage" />
     </div>
 
-    <p class="action-message" :class="{ 'is-error': actionFailed }">{{ actionMessage }}</p>
+    <p class="action-message" :class="{ 'is-error': actionFailed }" aria-live="polite">{{ actionMessage }}</p>
 
     <p v-if="!datalogRecords.length" class="page__empty">
       No records loaded. Press Sync Data to pull them off the board.
@@ -262,8 +278,23 @@ export default {
 
 .datapicker {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
   margin: 0.5em;
+}
+
+.datapicker__label {
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.datapicker__help {
+  max-width: 480px;
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
 }
 
 .progress-bar {

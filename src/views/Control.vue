@@ -1,5 +1,7 @@
 <template>
   <section class="page">
+    <h1 class="page-title">Control</h1>
+
     <p v-if="!boardStatus" class="page__empty page__empty--compact">Connect a GoGo Board to use these controls.</p>
 
     <h2 class="section-label">Try it</h2>
@@ -19,6 +21,7 @@
     <div class="control-row" v-for="i in 4" :key="'servo' + i">
       <span class="control-row__name">Servo {{ i }}</span>
       <input type="range" min="0" max="180" v-model.number="angles[i - 1]"
+             :aria-label="'Servo ' + i + ' angle'"
              :disabled="!boardStatus" :title="actionHint" @change="servo(i)" />
       <span class="control-row__value">{{ angles[i - 1] }}°</span>
     </div>
@@ -27,11 +30,12 @@
     <div class="control-row" v-for="i in 4" :key="'relay' + i">
       <span class="control-row__name">Relay {{ i }}</span>
       <input type="range" min="0" max="100" v-model.number="relayPower[i - 1]"
+             :aria-label="'Relay ' + i + ' power'"
              :disabled="!boardStatus" :title="actionHint" @change="relay(i)" />
       <span class="control-row__value">{{ relayPower[i - 1] }}%</span>
     </div>
 
-    <p class="action-message" :class="{ 'is-error': actionFailed }">{{ actionMessage }}</p>
+    <p class="action-message" :class="{ 'is-error': actionFailed }" aria-live="polite">{{ actionMessage }}</p>
   </section>
 </template>
 

@@ -15,7 +15,11 @@
       <div class="app-header__right">
         <button v-if="!boardStatus" class="btn app-header__connect" @click="handleConnect">Connect a board</button>
 
-        <span class="app-header__status" :class="boardStatus ? 'is-connected' : 'is-disconnected'">
+        <span
+          class="app-header__status"
+          :class="boardStatus ? 'is-connected' : 'is-disconnected'"
+          aria-live="polite"
+        >
           {{ boardStatus ? "Connected" : "No board" }}
         </span>
       </div>
@@ -23,7 +27,11 @@
 
     <!--? full-width banner, not part of the header's flex row — inline placement
          wrapped at 1024px and pushed the connect button/status pill onto two lines -->
-    <p v-if="!boardStatus && error" class="action-message is-error app-header__error">{{ error }}</p>
+    <!--? role="status" (polite, not "alert") — this is a connection state that
+         changes routinely, not an urgent interruption -->
+    <p v-if="!boardStatus && error" class="action-message is-error app-header__error" role="status">
+      {{ displayError }}
+    </p>
   </div>
 </template>
 
@@ -34,6 +42,12 @@ export default {
   name: "AppHeader",
   computed: {
     ...mapGetters(["boardStatus", "error"]),
+
+    //? src/gogo/ throws lower-case error strings; the app's own copy is
+    //? sentence case, so normalise on display without touching the throw site
+    displayError: function () {
+      return this.error ? this.error.charAt(0).toUpperCase() + this.error.slice(1) : this.error;
+    },
   },
   methods: {
     ...mapActions(["connect"]),
@@ -67,6 +81,12 @@ export default {
 .app-header__nav { display: flex; align-items: center; gap: 18px; }
 
 .app-header__nav a {
+  display: inline-flex;
+  align-items: center;
+  /*? 11px top/bottom brings the ~19px text line up past the 36px tablet
+      hit-target floor; 8px sides do the same for "Live", the shortest link,
+      whose width was otherwise the smaller (and failing) dimension */
+  padding: 11px 8px;
   font-weight: 700;
   font-size: 14px;
   color: var(--muted);

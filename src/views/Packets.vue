@@ -1,5 +1,7 @@
 <template>
   <section class="page page--dev">
+    <h1 class="page-title">Packets</h1>
+
     <div class="card">
       <h2 class="card__title">Send a command</h2>
 
@@ -17,10 +19,10 @@
           <byte-dump :bytes="visibleFrame" :highlights="{ 0: 'bytes__cell--category', 1: 'bytes__cell--command' }" />
           <p class="bytes-note" v-if="hiddenFrameBytes">
             bytes {{ visibleFrame.length }}&ndash;62 zero &middot; sent, not shown
-            <button class="btn btn--small" @click="showFullFrame = true">show all</button>
+            <button class="btn btn--small" @click="showFullFrame = true">Show all</button>
           </p>
           <p class="bytes-note" v-else-if="showFullFrame && trimmedFrameLength < FRAME_SIZE">
-            <button class="btn btn--small" @click="showFullFrame = false">collapse</button>
+            <button class="btn btn--small" @click="showFullFrame = false">Collapse</button>
           </p>
         </div>
 
@@ -36,7 +38,7 @@
         </dl>
       </div>
 
-      <p class="action-message" :class="{ 'is-error': actionFailed }">{{ actionMessage }}</p>
+      <p class="action-message" :class="{ 'is-error': actionFailed }" aria-live="polite">{{ actionMessage }}</p>
     </div>
 
     <div class="card">
@@ -63,7 +65,7 @@
           <dt>Sensors</dt>
           <dd>{{ report.sensors.join(" · ") }}</dd>
           <dt>Board</dt>
-          <dd>{{ report.board.typeName }} {{ report.board.version }}</dd>
+          <dd>{{ boardLabel(report.board) }}</dd>
           <dt>Firmware</dt>
           <dd>{{ report.board.firmware }}</dd>
           <dt>Temp / RH</dt>
@@ -87,6 +89,7 @@ import { mapActions, mapGetters } from "vuex";
 import { buildCommand, FRAME_SIZE } from "@/gogo/protocol";
 import ByteDump from "@/components/ByteDump.vue";
 import boardAction from "@/mixins/boardAction";
+import { boardLabel } from "@/utils/formatBoard";
 
 const ROW_SIZE = 16;
 //? type-0 reports arrive ~20x a second; nobody can read that, and repainting
@@ -172,6 +175,8 @@ export default {
   methods: {
     ...mapActions(["send"]),
 
+    boardLabel,
+
     hex: function (bytes) {
       return Array.from(bytes)
         .map((b) => b.toString(16).padStart(2, "0"))
@@ -215,6 +220,20 @@ export default {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+/*? native number/text inputs had no sizing at all — ~22px tall, under the
+    36px tablet hit-target floor */
+.control-row input {
+  box-sizing: border-box;
+  height: 36px;
+  padding: 6px 10px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--gogo-ink);
+  background: var(--card-bg);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-card);
 }
 
 .bytes-note {
