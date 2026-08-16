@@ -24,12 +24,24 @@ device service (`src/gogo/`, no Vue, 35 unit tests) behind five capability pages
 `docs/protocol.md` and `docs/offline-datalog.md` replaced the old Google Sheet and are
 verified against firmware source. The visual system uses GoGoCode's real palette.
 
-**The open gate is hardware.** No view logic is covered by automated tests, and
-nothing in the app has ever run against a physical board — populated states have only
-been faked through the store. Pairing from a fresh browser profile, Logo
-compile-and-download, packet send, datalog sync/delete, and the relay control are all
-correct on paper only. Treat a board smoke test as the next real milestone, not an
-optional check.
+**Hardware: mostly verified.** A smoke test against a physical **GoGo Board 7F,
+firmware 4.0.0** confirmed the read and write paths end to end:
+
+- `parseReport` decodes a real frame — board type 6 → "GoGo Board 7", hardware ID
+  `0x75` → `7F`, firmware bytes 19–21 → `4.0.0`, sensors big-endian, accelerometer
+  ≈1 g at rest. The byte-19 firmware fix is proven on hardware: byte 20 reads `0` on
+  this board, so the old code sent `firmware_version: 0` to the compiler.
+- Beep, a hand-built packet from the Packets page, and a Logo compile-and-download all
+  succeed. A syntax error correctly shows the compiler's message and sends nothing.
+- **Closed loop confirmed**: setting servo 1 to 120° came back in the board's own
+  report as `angles [90,90,90,90] → [120,90,90,90]`.
+
+Still unverified on hardware: the datalog three-stage record path (the test board had
+no records, so only the EMPTY branch ran), the relay control (shares the servo's
+parameter shape but was not driven), motors, and a Logo program whose bytecode length
+is an exact multiple of 60 — the case needing the trailing zero-length write.
+
+No view logic is covered by automated tests; `npm test` covers `src/gogo/` only.
 
 **Then the backlog.** `.claude/plans/demo-webapp-backlog.md` holds 47 items from three
 pre-merge reviews (code, UX, docs), ordered by value. The highest-value ones:
