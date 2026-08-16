@@ -2,6 +2,8 @@
 
 Replaces the old Google Sheets protocol table. Values here are read from **GoGo Board 7.x firmware** (`gogo-firmware/include/gogo-firmware.h` and `processCMD()` in `src/gogo-firmware.cpp`); parameter semantics come from the original sheet. Where the two disagree, the firmware wins — see [Changes since 6.x](#changes-since-6x).
 
+There is an illustrated datasheet of this protocol, with worked example packets, at <https://claude.ai/code/artifact/5adc8bd8-8799-4636-b508-db098818c737>.
+
 ## Transport
 
 | | |

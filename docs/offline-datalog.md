@@ -2,6 +2,8 @@
 
 The board records sensor data to its own flash while disconnected. This page covers pulling those records over USB HID and plotting them. Packet framing is in [protocol.md](protocol.md).
 
+There is an illustrated datasheet of the transfer — every packet decoded byte by byte — at <https://claude.ai/code/artifact/5dceaae4-cce4-4823-8a7d-8dfb3b6f1f23>.
+
 ## Using it
 
 - **Sync Data** — pulls all records off the board. A progress bar tracks the transfer (`percentage`, driven by bytes-received against the file-size totals from stage 1 below). Both buttons stay disabled until a board is connected, and again while a sync is in flight.
@@ -19,15 +21,16 @@ Send category `20`, command `2`. The board replies with a stream of type-20 pack
 
 Status drives a four-stage state machine. Each stage is split across as many packets as it needs; every packet is `1` (in progress) except the last of a stage, which carries the stage's own code.
 
-**The type-0 report stream stops for the whole transfer.** The firmware sets
-`RESPONSE_REPORT_PACKET_DATALOG_STREAM` before the send loop and clears it only
-after, so `sendReportPkt()` returns early throughout. If your client treats the
-type-0 stream as a heartbeat, it will conclude the board died mid-sync.
+**The type-0 report stream stops while each stage streams.** The firmware sets
+`RESPONSE_REPORT_PACKET_DATALOG_STREAM` around every stage's send loop, so
+`sendReportPkt()` returns early for effectively the whole transfer. If your
+client treats the type-0 stream as a heartbeat, it will conclude the board died
+mid-sync.
 
 | Status | Meaning |
 |---|---|
 | 1 | in progress |
-| 2 | failure |
+| 2 | failure — defined in firmware, never sent by 7.x; handle it anyway |
 | 3 | no records stored |
 | 4 | file sizes complete |
 | 5 | lookup table complete |
@@ -50,6 +53,10 @@ Fixed 10-byte binary records, little-endian:
 | 0 | 4 | board-clock timestamp, **seconds** (`uint32`) — see below |
 | 4 | 2 | field — index into the lookup table (`uint16`) |
 | 6 | 4 | value (`float32`) |
+
+Payload chunks are up to 59 bytes, which is not a multiple of 10 — **records
+straddle packet boundaries**. Concatenate every payload for the stage first,
+then walk the buffer in 10-byte steps; never parse packet by packet.
 
 **The timestamp is not necessarily wall-clock time.** It comes from
 `gogoTime.getUnixTime()`, which is only real Unix time once the board's clock has
@@ -76,7 +83,7 @@ this.$refs.datalogChart.chartOptions.series = series
 
 Direct ref mutation, not props. Three similar names, easy to confuse: `DatalogChart` (import), `datalogChart` (ref), `datalog-chart` (component name).
 
-A `watch` on the store's `lastResponse` getter, gated by the `startRetrivedOfflineDatalog` flag, calls `unpackOfflineDatalogPackets` on each new response packet — that is what advances the state machine. (An earlier version ran this from a computed property, `computePacket`, interpolated into the template as `{{ computePacket }}`; that committed a Vuex mutation during render and has since been replaced by the watch.)
+A `watch` on the store's `lastResponse` getter, gated by the `syncInProgress` flag, calls `unpackOfflineDatalogPackets` on each new response packet — that is what advances the state machine. (An earlier version ran this from a computed property, `computePacket`, interpolated into the template as `{{ computePacket }}`; that committed a Vuex mutation during render and has since been replaced by the watch.)
 
 ## Board-side behaviour
 
