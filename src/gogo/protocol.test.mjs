@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildCommand, CATEGORY, CMD, MEMORY_CMD } from './protocol.js'
+import { buildCommand, CATEGORY, CMD, MEMORY_CMD, FRAME_SIZE, PACKET_TYPE, REG } from './protocol.js'
 
 test('buildCommand returns a 63-byte payload', () => {
   const payload = buildCommand(CATEGORY.CONTROL, CMD.BEEP)
@@ -259,4 +259,34 @@ test('parseResponse exposes the raw packet for commands whose layout differs', (
 
   const response = parseResponse(bytes)
   assert.deepEqual(Array.from(response.raw.slice(3, 9)), [0xde, 0xad, 0xbe, 0xef, 0x00, 0x01])
+})
+
+test('buildCommand accepts params right up to the frame boundary', () => {
+  //? 61 params is the most that fits after the category and command bytes
+  const payload = buildCommand(CATEGORY.CONTROL, CMD.BEEP, new Array(61).fill(1))
+  assert.equal(payload.length, FRAME_SIZE)
+  assert.equal(payload[FRAME_SIZE - 1], 1)
+
+  assert.throws(
+    () => buildCommand(CATEGORY.CONTROL, CMD.BEEP, new Array(62).fill(1)),
+    /too long/
+  )
+})
+
+test('parseResponse clamps a length byte that overruns the frame', () => {
+  const bytes = new Uint8Array(FRAME_SIZE)
+  bytes[0] = PACKET_TYPE.RESPONSE
+  //? a corrupt or hostile length must not read past the frame
+  bytes[1] = 255
+  bytes[2] = EVENT_CMD.GET_DATALOG
+
+  const response = parseResponse(bytes)
+  assert.ok(response.payload.length <= FRAME_SIZE - 4)
+})
+
+test('parseReport falls back to Unknown board for an unmapped type', () => {
+  const bytes = new Uint8Array(FRAME_SIZE)
+  bytes[REG.BOARD_TYPE] = 99
+
+  assert.equal(parseReport(bytes).board.typeName, 'Unknown board')
 })

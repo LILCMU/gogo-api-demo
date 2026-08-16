@@ -19,7 +19,7 @@
           :key="i"
           :label="'Sensor ' + (i + 1)"
           :value="value"
-          :tone="tones[i]"
+          :tone="sensorTones[i]"
         />
       </div>
 
@@ -40,14 +40,16 @@ import StatTile from "@/components/StatTile.vue";
 import DarkPanel from "@/components/DarkPanel.vue";
 import { boardLabel } from "@/utils/formatBoard";
 
+//? one tint per sensor port, in port order — constant, so not reactive state
+const SENSOR_TONES = ["green", "orange", "blue", "pink"];
+
 export default {
   name: "Live",
   components: { StatTile, DarkPanel },
-  data: function () {
-    return { tones: ["green", "orange", "blue", "pink"] };
-  },
   computed: {
     ...mapGetters(["report"]),
+
+    sensorTones: () => SENSOR_TONES,
   },
   methods: { boardLabel },
 };

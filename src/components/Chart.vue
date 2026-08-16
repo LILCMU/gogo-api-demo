@@ -8,11 +8,9 @@ import { Chart } from "highcharts-vue";
 import Highcharts from "highcharts";
 import Exporting from "highcharts/modules/exporting";
 import exportdata from "highcharts/modules/export-data";
-// import stockInit from "highcharts/modules/stock";
 
 Exporting(Highcharts);
 exportdata(Highcharts);
-// stockInit(Highcharts);
 
 export default {
   name: "datalog-chart",
@@ -54,7 +52,8 @@ export default {
       },
       xAxis: {
         type: "datetime",
-        tickInterval: 86400 * 10, // 1000 for 1 ms then 10 is 100ms
+        //? datetime axis, so this is milliseconds — 864000 ms is 14.4 minutes
+        tickInterval: 86400 * 10,
         labels: {
           rotation: 60,
         },

@@ -110,9 +110,12 @@ export class GogoTransport {
       //? event.data is a DataView with byteOffset and byteLength; the buffer may
       //? extend beyond the actual report data, so we use the explicit window.
       //? event.data excludes the report ID, so byte 0 is the packet type
+      //? slice() copies rather than aliasing the event's buffer — the frame is
+      //? held long-term in the store, so it must not depend on the browser
+      //? leaving that buffer alone
       this._emit('report', new Uint8Array(
         event.data.buffer, event.data.byteOffset, event.data.byteLength
-      ))
+      ).slice())
     }
 
     this._emit('connect', device)
