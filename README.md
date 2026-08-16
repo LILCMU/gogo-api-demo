@@ -31,6 +31,13 @@ Reading is unprompted: the board streams its device register from power-up. Writ
 
 ## Docs
 
+Illustrated datasheets — diagrams and a worked example packet for every topic:
+
+- [**Wire Protocol**](https://claude.ai/code/artifact/5adc8bd8-8799-4636-b508-db098818c737) — frame layout, command set, device register
+- [**Offline Datalog Transfer**](https://claude.ai/code/artifact/5dceaae4-cce4-4823-8a7d-8dfb3b6f1f23) — the staged sync, decoded packet by packet
+
+The same material in markdown, in this repo:
+
 - [Protocol reference](docs/protocol.md) — packet framing, command tables, device register map
 - [Offline datalog](docs/offline-datalog.md) — sync state machine and record format
 
@@ -60,6 +67,4 @@ Live demo: https://lilcmu.github.io/gogo-api-demo
 
 ## Status
 
-Current hardware is **GoGo Board 7.x**; parts of this demo still assume 6.x. The drift is documented — see [Changes since 6.x](docs/protocol.md#changes-since-6x).
-
-Offline datalog and the firmware-version read are both on the 7.x format.
+Tracks **GoGo Board 7.x** throughout, verified against a physical 7F running firmware 4.0.0. What changed from the 6.x protocol is documented — see [Changes since 6.x](docs/protocol.md#changes-since-6x).
