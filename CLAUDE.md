@@ -20,7 +20,7 @@ The goal is that another team can open the page matching what they want, read on
 file, and copy it. Everything below serves that.
 
 **Shipped.** The app tracks GoGo Board **7.x** and is split into a framework-free
-device service (`src/gogo/`, no Vue, 35 unit tests) behind five capability pages.
+device service (`src/gogo/`, no Vue, 44 unit tests) behind five capability pages.
 `docs/protocol.md` and `docs/offline-datalog.md` replaced the old Google Sheet and are
 verified against firmware source. The visual system uses GoGoCode's real palette.
 
@@ -58,10 +58,11 @@ is an exact multiple of 60, the case needing the trailing zero-length write.
 
 No view logic is covered by automated tests; `npm test` covers `src/gogo/` only.
 
-**Then the backlog.** `.claude/plans/demo-webapp-backlog.md` holds 47 items from three
-pre-merge reviews (code, UX, docs), ordered by value. The highest-value ones:
-converge the five views on one error-handling pattern, add an eslint config, and
-extract the duplicated `actionHint` / disconnected guard.
+**The backlog is worked through.** `.claude/plans/demo-webapp-backlog.md` records the
+findings of three pre-merge reviews (code, UX, docs); they were cleared in batches —
+one error-handling pattern across the five views, an eslint config, the extracted
+`actionHint` / disconnected guard. Keep it as the record of what was found and why,
+not as a to-do list.
 
 **Read `.claude/knowledges/demo-webapp-architecture.md` before non-trivial work here.**
 It carries the protocol facts that cost time to learn — the report-ID asymmetry, the
@@ -78,10 +79,11 @@ npm install        # Node 14 recommended (per README)
 npm run serve      # dev server with hot reload
 npm run build      # production build to dist/
 npm test           # node --test over src/gogo/**/*.test.mjs
+npm run lint       # eslint over src/, .js/.mjs/.vue
 ./deploy.sh        # builds, then FORCE-PUSHES dist/ to gh-pages of LILCMU/gogo-api-demo — a live deploy, not a local step
 ```
 
-There is no linter configured (no eslint plugin in devDependencies). "Verify" here means `npm test`, plus `npm run serve` and a browser for anything view-facing — or at minimum a build, which does catch syntax and import errors.
+"Verify" here means `npm test` and `npm run lint`, plus `npm run serve` and a browser for anything view-facing — or at minimum a build, which does catch syntax and import errors.
 
 On Node 17+ the webpack 4 toolchain fails with `ERR_OSSL_EVP_UNSUPPORTED`; prefix with `NODE_OPTIONS=--openssl-legacy-provider`.
 
@@ -99,7 +101,7 @@ Vue 2 SPA (Options API, Vue CLI 4, Vuex, vue-router) that talks to a GoGo Board 
 
 **Shared UI — `src/components/` and `src/styles/tokens.css`.** `ByteDump` (labelled hexdump, `bytes` plus optional `highlights`, shared by Packets and Logo), `StatTile`, `DarkPanel`, `AppHeader`, `Chart`. Every colour traces to a token; the only literal hex outside `tokens.css` sits where CSS variables cannot resolve (Highcharts' JS config, a third-party prop) and names the token it mirrors. **Brand green `#a5d442` and orange `#f3a73c` may never carry white text** — roughly 1.7:1 and 2.0:1 — which is why tiles use a tint with a saturated stripe and ink values. `--gogo-pink` is fills and borders only; `--gogo-pink-text` is the body-text variant.
 
-**Vuex adapter — `src/store/gogo.js`.** A thin layer over the device service: one `GogoTransport` instance, `bindTransport` wires its events to mutations (`SET_CONNECTED`, `SET_REPORT`, `SET_REPORT_RAW`, `SET_RESPONSE`, `SET_ERROR`, plus `CLEAR_RESPONSE`/`CLEAR_ERROR`), and the `send`/`connect`/`disconnect` actions call straight through to `transport`. Getters: `connected`, `boardStatus`, `report`, `reportRaw`, `lastResponse`, `error`. `boardStatus` (used throughout the views to disable controls) is `connected && !!report` — a report has to have arrived, not just a HID open. `reportRaw` keeps the unparsed frame so Packets can show what actually arrived on the wire.
+**Vuex adapter — `src/store/gogo.js`.** A thin layer over the device service: one `GogoTransport` instance, `bindTransport` wires its events to mutations (`SET_CONNECTED`, `SET_REPORT`, `SET_REPORT_RAW`, `SET_RESPONSE`, `SET_ERROR`, plus `CLEAR_RESPONSE`/`CLEAR_ERROR`), and the `send`/`connect`/`disconnect` actions call straight through to `transport`. Getters: `connected`, `isBoardReady`, `report`, `reportRaw`, `lastResponse`, `error`. `isBoardReady` (used throughout the views to disable controls) is `connected && !!report` — a report has to have arrived, not just a HID open. `reportRaw` keeps the unparsed frame so Packets can show what actually arrived on the wire.
 
 Actions take `context` first and the payload second — `connect(context, { prompt })`. Writing `connect({ prompt })` silently destructures the context object and the argument never arrives, with a passing build and no warning. The startup call in `src/store/index.js` passes `{ prompt: false }` deliberately: `requestDevice()` throws outside a user gesture, so the picker opens from the header button instead.
 
@@ -118,7 +120,7 @@ The compile payload sends `board_version: report.board.hardwareId` — the RAW b
 
 Gotchas there:
 
-- The sync state machine is driven by a `watch` on the `lastResponse` getter, gated by `startRetrivedOfflineDatalog`, which calls `unpackOfflineDatalogPackets`. It used to run from a computed property (`computePacket`) interpolated into the template as `{{ computePacket }}`, which committed a Vuex mutation during render — do not reintroduce a side-effecting computed here.
+- The sync state machine is driven by a `watch` on the `lastResponse` getter, gated by `syncInProgress`, which calls `unpackOfflineDatalogPackets`. It used to run from a computed property (`computePacket`) interpolated into the template as `{{ computePacket }}`, which committed a Vuex mutation during render — do not reintroduce a side-effecting computed here.
 - The chart only renders once `datalogRecords` is non-empty (`v-else` on `<datalog-chart ref="datalogChart">`), so the chart is fed by a `$nextTick`-guarded ref mutation, `this.$refs.datalogChart.chartOptions.series = …`, not via props. Skipping the guard throws the first time records arrive on an empty page.
 - `datalogRecords` holds the parsed series untouched; the date offset picker derives a shifted copy (`offsetSeries`) rather than mutating `field.data` in place, so picking a date twice does not compound the shift.
 

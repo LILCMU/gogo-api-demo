@@ -78,8 +78,10 @@ exists only on the online MQTT path. The 6.x record was 16 bytes with a channel.
 from a 1970 epoch. This is what the Datalog page's date offset picker exists to
 correct — it is a display correction, not a data fix.
 
-**The type-0 stream stops for the whole datalog transfer**, not one cycle. A client
-treating it as a heartbeat concludes the board died mid-sync.
+**The type-0 stream stops while each datalog stage streams**, not one cycle. The
+firmware raises the suppression flag around every stage's send loop, so reports are
+gone for effectively the whole transfer. A client treating it as a heartbeat
+concludes the board died mid-sync.
 
 **There is no LED on GoGo 7.** Command 10 is dispatched but its firmware handler body is
 commented out, and no NeoPixel command exists in the host-facing protocol. Command 201
