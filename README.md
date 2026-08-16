@@ -45,6 +45,7 @@ Reading is unprompted: the board streams its device register from power-up. Writ
 ```bash
 npm install
 npm run serve    # dev server, hot reload
+npm test         # unit tests for src/gogo/
 npm run build    # production build to dist/
 ./deploy.sh      # build + force-push dist/ to gh-pages
 ```

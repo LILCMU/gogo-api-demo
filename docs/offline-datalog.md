@@ -4,9 +4,10 @@ The board records sensor data to its own flash while disconnected. This page cov
 
 ## Using it
 
-1. **Sync Data** — pulls all records off the board; a progress bar tracks the transfer.
-2. The chart renders the records once the sync completes, one series per field.
-3. **Delete Data** — erases the board's records. Not undoable.
+- **Sync Data** — pulls all records off the board. A progress bar tracks the transfer (`percentage`, driven by bytes-received against the file-size totals from stage 1 below). Both buttons stay disabled until a board is connected, and again while a sync is in flight.
+- **Date offset picker** — a datetime field below the Sync/Delete buttons. Pick a value and it is added to every record's timestamp when the chart renders (see [the timestamp caveat](#stage-3--records-status-6) below); it never touches the synced data itself, so re-picking a new offset replaces the shift rather than compounding it. Leave it unset if the board's clock was already synced.
+- Once a sync completes, the chart renders the records, one series per field. Before any sync, the page shows "No records loaded. Press Sync Data to pull them off the board." instead of an empty chart.
+- **Delete Data** — opens a confirm dialog ("Delete all datalog records from the GoGo Board?" / "This cannot be undone.") with Cancel and Delete buttons; nothing is erased until Delete is pressed in the dialog. Delete is blocked (with an inline message) while a sync is still running.
 
 ## Sync protocol
 
@@ -75,7 +76,7 @@ this.$refs.datalogChart.chartOptions.series = series
 
 Direct ref mutation, not props. Three similar names, easy to confuse: `DatalogChart` (import), `datalogChart` (ref), `datalog-chart` (component name).
 
-`computePacket` is a computed property with side effects — it is what advances the state machine on each new response packet. It is load-bearing; refactoring it into a pure computed stops syncing.
+A `watch` on the store's `lastResponse` getter, gated by the `startRetrivedOfflineDatalog` flag, calls `unpackOfflineDatalogPackets` on each new response packet — that is what advances the state machine. (An earlier version ran this from a computed property, `computePacket`, interpolated into the template as `{{ computePacket }}`; that committed a Vuex mutation during render and has since been replaced by the watch.)
 
 ## Board-side behaviour
 
