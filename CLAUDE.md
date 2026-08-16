@@ -36,10 +36,18 @@ firmware 4.0.0** confirmed the read and write paths end to end:
 - **Closed loop confirmed**: setting servo 1 to 120° came back in the board's own
   report as `angles [90,90,90,90] → [120,90,90,90]`.
 
-Still unverified on hardware: the datalog three-stage record path (the test board had
-no records, so only the EMPTY branch ran), the relay control (shares the servo's
-parameter shape but was not driven), motors, and a Logo program whose bytecode length
-is an exact multiple of 60 — the case needing the trailing zero-length write.
+- The datalog three-stage sync is verified on real records: a board logging via
+  `offlinerecord` produced `lookupTableSize 18` / `recordsSize 1570`, which the parser
+  resolved into 157 records across two fields — 157 × 10 bytes exactly, confirming the
+  10-byte layout. Timestamps arrived one second apart, matching the firmware's
+  per-field rate limit. Those timestamps read as ~351 **seconds**, not a 2026 date,
+  because that board's clock was never synced — the documented reason the date-offset
+  picker exists, now seen in real data.
+
+Still unverified on hardware: the relay control (shares the servo's parameter shape
+but was not driven), motors, the datalog **delete** path, and a Logo program whose
+bytecode length is an exact multiple of 60 — the case needing the trailing
+zero-length write.
 
 No view logic is covered by automated tests; `npm test` covers `src/gogo/` only.
 
