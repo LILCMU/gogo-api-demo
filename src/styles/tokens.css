@@ -17,6 +17,8 @@
   --page-bg: #f7f8fa;
   --card-bg: #ffffff;
   --muted: #4f6b7d;
+  /*? disabled control fill — desaturated, never an opacity fade */
+  --inactive-control: #9fb4c0;
   --hairline: #e4e9ee;
 
   --dark-panel-label: #8fb3c4;

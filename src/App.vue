@@ -238,8 +238,18 @@ input[type="range"]::-moz-range-thumb {
   box-sizing: border-box;
 }
 
+/*? matches .btn[disabled] — desaturate the track rather than fading the
+    whole control, which is the approach this app moved away from */
 input[type="range"]:disabled {
   cursor: not-allowed;
-  opacity: 0.4;
+  background: var(--status-disconnected-bg);
+}
+
+input[type="range"]:disabled::-webkit-slider-thumb {
+  background: var(--inactive-control);
+}
+
+input[type="range"]:disabled::-moz-range-thumb {
+  background: var(--inactive-control);
 }
 </style>
