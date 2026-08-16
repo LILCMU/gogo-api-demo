@@ -44,10 +44,17 @@ firmware 4.0.0** confirmed the read and write paths end to end:
   because that board's clock was never synced — the documented reason the date-offset
   picker exists, now seen in real data.
 
-Still unverified on hardware: the relay control (shares the servo's parameter shape
-but was not driven), motors, the datalog **delete** path, and a Logo program whose
-bytecode length is an exact multiple of 60 — the case needing the trailing
-zero-length write.
+- Relay and motors are verified by report echo: relay 1 at 60 came back as
+  `relays.power [60,0,0,0]` with `status 0 → 1`; motor on/off and direction both
+  round-tripped; motor power tracked the duty scale below.
+- **Motor and relay duty use different scales**, found only by driving them. Both
+  commands take 0–100, but motor bytes 25–28 report **0–255 PWM** (40 reads back as
+  102) while relay bytes 29–32 report **percent** (40 reads back as 40). Documented in
+  `docs/protocol.md`. Treating the motor register as a percentage shows "102%".
+
+Still unverified on hardware: the datalog **delete** path (deliberately not run — the
+test board holds records that must be kept), and a Logo program whose bytecode length
+is an exact multiple of 60, the case needing the trailing zero-length write.
 
 No view logic is covered by automated tests; `npm test` covers `src/gogo/` only.
 

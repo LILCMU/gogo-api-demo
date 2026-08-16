@@ -162,8 +162,8 @@ The 63 bytes are a direct copy of the firmware's `gblDeviceRegister`. 16-bit val
 | 22 | Active motor ports |
 | 23 | Motor on/off status |
 | 24 | Motor direction |
-| 25–28 | Motor A–D duty |
-| 29–32 | Relay 1–4 duty (0–100) |
+| 25–28 | Motor A–D duty — **0–255 PWM**, not percent (see below) |
+| 29–32 | Relay 1–4 duty — **0–100 percent** (see below) |
 | 33 | IR value |
 | 34 | Active relay — *documented but never written by 7.x firmware* |
 | 35 | Relay on/off status |
@@ -186,6 +186,21 @@ Bytes not listed are unallocated.
 **Board type** (byte 17): 0 none, 1 gogo4, 2 pi topping (gogo5), 3 wireless gogo, 4 gogo6, 5 gogobright, 6 **gogo7**.
 
 **Hardware ID** (byte 18) packs the PCB identity into two nibbles — high = board version, low = revision letter (`A` = 0). GoGo Board 7M reports `0x7C`.
+
+**Motor and relay duty use different scales, despite adjacent registers and
+identical command parameters.** Both `6` (motor set power) and `19` (relay set power)
+take a 0–100 value, but they report back differently:
+
+- **Motor** bytes 25–28 hold the scaled PWM duty, `0–255`. The firmware constrains
+  `_motorPower` to 0–255 and writes it to the register unchanged, so a command of 40
+  reads back as `102`, 50 as `127`, and 100 as `255`. Convert with
+  `percent = round(register * 100 / 255)`.
+- **Relay** bytes 29–32 hold the percent you sent, `0–100`. `_relayPower` is clamped
+  to 0–100, so a command of 40 reads back as `40`.
+
+Confirmed on hardware: sending 100 / 50 / 10 to motor A produced registers
+`255 / 127 / 25`, while sending 40 to relay 1 produced `40`. Treating the motor
+register as a percentage will report a motor at "102%".
 
 **Accelerometer scaling.** Bytes 54–59 hold milli-g, already scaled by firmware — not raw IMU counts and not m/s². Convert per axis: `int16(value) / 1000 * 9.80665`. Confirmed on hardware: a board lying flat reports accel z = `1001` → `1001 / 1000 * 9.80665` ≈ `9.82 m/s²` (one axis at ~1 g).
 
