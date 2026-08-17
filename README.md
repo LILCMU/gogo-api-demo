@@ -1,47 +1,67 @@
 # GoGo API Demo
-This project shows essential communication between GoGo Board and PC
 
-The communication can be shows in following diagram
+Reference webapp for talking to a GoGo Board from the browser. It is the playground where transport and protocol work gets prototyped before it ships in the [GoGoCode](https://code.gogoboard.org) webapp — `src/gogo/` is written framework-free so it can be copied there directly.
 
-> **GoGoBoard** `<-- USB HID -->` **GoGo Plugin** `<-- websocket -->` **Web Application**
+Five pages:
 
-### When reading data packets from the GoGo
+- **Live** (`/live`) — the streaming device register, rendered as sensor tiles
+- **Control** (`/control`) — motors, servos, relays, beep
+- **Datalog** (`/datalog`) — pull records off the board's flash and chart them
+- **Logo** (`/logo`) — compile and download a Logo program, or push raw opcodes
+- **Packets** (`/packets`) — build and send a raw command packet, inspect the last response
 
-> **GoGo Board** `-- USB HID -->` **GoGo Plugin** `-- WS -->` **Web Application**
+## Copy what you need
 
-Note that data packets are automaticaly streamed upon power up. No need to make a request for them. 
+`src/gogo/` has no Vue import and no dependency on this app's store or components — it is meant to be lifted wholesale into another project:
 
-### When controling the GoGo (e.g. turning on a motor)
-> **Web Application** `-->` **GoGo Plugin** `-->` **GoGo Board**
+- `src/gogo/protocol.js` — packet framing, category/command/register constants, and the pure `build*`/`parse*` functions
+- `src/gogo/transport.js` — `GogoTransport`, a small WebHID class wrapping connect/disconnect/send and an `on`/`off` event bus
 
-### When compiling Logo Code and downloading the compiled binary code to the board.
+Everything else in this repo (Vuex store, views, components) is a thin adapter around those two files.
 
-The process is divided into two steps.
-1. Compile Logo Code. This is done by sending the text code to the compiler hosted on AWS. A compiled binary code is returned.
-2. Send the compiled binary code to the GoGo Board via the plugin 
+## How it talks to the board
 
-## Offline datalog feature
-A chart to showing datalog records from the GoGo
-- Usage and Development Notes can be found here: [Offline Datalog Notes](OfflineDatalogNote.md)
-
-## Live Demo
-Hosted with gh-page: [gogo-api-demo (feature/webhid)](https://lilcmu.github.io/gogo-api-demo)
-
-## Reference Docs
-- [GoGo protocol docs](https://docs.google.com/spreadsheets/d/1CAfjpUdyYPqjVIPBuzxWlWMIDCX9ud6ybqAj8qMgy4E/edit?usp=sharing)
-
-## Project setup
-### NodeJs version 14 is recommended
 ```
+Web Application  <-- WebHID -->  GoGo Board
+```
+
+The browser opens the board's raw HID interface directly. No helper app, no driver.
+
+Reading is unprompted: the board streams its device register from power-up. Writing is a 63-byte command packet per action. Downloading a Logo program is two steps — POST the source to the cloud compiler, then push the returned bytecode to the board in 60-byte chunks.
+
+## Docs
+
+Illustrated datasheets — diagrams and a worked example packet for every topic:
+
+- [**Wire Protocol**](https://claude.ai/code/artifact/5adc8bd8-8799-4636-b508-db098818c737) — frame layout, command set, device register
+- [**Offline Datalog Transfer**](https://claude.ai/code/artifact/5dceaae4-cce4-4823-8a7d-8dfb3b6f1f23) — the staged sync, decoded packet by packet
+
+The same material in markdown, in this repo:
+
+- [Protocol reference](docs/protocol.md) — packet framing, command tables, device register map
+- [Offline datalog](docs/offline-datalog.md) — sync state machine and record format
+
+## Requirements
+
+- **Chromium-based browser** — WebHID is not in Firefox or Safari
+- **Node 20 or newer** — developed and verified on Node 24 LTS
+- A GoGo Board over USB for anything device-facing
+
+## Setup
+
+```bash
 npm install
+npm run serve    # dev server, hot reload
+npm test         # unit tests for src/gogo/
+npm run lint     # eslint over src/
+npm run build    # production build to dist/
+./deploy.sh      # build + force-push dist/ to gh-pages
 ```
 
-### Compiles and hot-reloads for development
-```
-npm run serve
-```
+No `NODE_OPTIONS` workaround is needed. The toolchain is Vue CLI 5 on webpack 5; `babel-loader` is pinned past 8.2.2 via an `overrides` entry because that version hashes with md4, which OpenSSL 3 removed.
 
-### Compiles and minifies for production
-```
-npm run build
-```
+Live demo: https://lilcmu.github.io/gogo-api-demo
+
+## Status
+
+Tracks **GoGo Board 7.x** throughout, verified against a physical 7F running firmware 4.0.0. What changed from the 6.x protocol is documented — see [Changes since 6.x](docs/protocol.md#changes-since-6x).

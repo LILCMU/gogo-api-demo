@@ -8,11 +8,9 @@ import { Chart } from "highcharts-vue";
 import Highcharts from "highcharts";
 import Exporting from "highcharts/modules/exporting";
 import exportdata from "highcharts/modules/export-data";
-// import stockInit from "highcharts/modules/stock";
 
 Exporting(Highcharts);
 exportdata(Highcharts);
-// stockInit(Highcharts);
 
 export default {
   name: "datalog-chart",
@@ -22,7 +20,7 @@ export default {
   data: () => ({
     chartOptions: {
       chart: {
-        height: (9 / 16) * 75 + "%", //? 16:9 ratio @ 75%
+        height: (9 / 16) * 70 + "%", //? 16:9 ratio @ 75%
         zoomType: "x",
         panning: true,
         panKey: "shift",
@@ -32,28 +30,36 @@ export default {
           },
         },
       },
-      colors: ["#77a1e5", "#2c3e50"],
+      credits: { enabled: false },
+      colors: [
+        "#02a8f4", //? --gogo-blue
+        "#db3f8d", //? --gogo-pink
+        "#a5d442", //? --gogo-green
+        "#f3a73c", //? --gogo-orange
+        "#01354c", //? --gogo-ink
+        "#4f6b7d", //? --muted
+      ],
       title: {
         text: null,
         style: {
           "font-family": "Avenir, Helvetica, Arial, sans-serif",
           "-webkit-font-smoothing": "antialiased",
           "-moz-osx-font-smoothing": "grayscale",
-          color: "#2c3e50",
+          color: "#01354c", //? --gogo-ink
           "font-weight": "bold",
           "font-size": "100%",
         },
       },
       xAxis: {
         type: "datetime",
-        tickInterval: 86400 * 10, // 1000 for 1 ms then 10 is 100ms
+        //? datetime axis, so this is milliseconds — 864000 ms is 14.4 minutes
+        tickInterval: 86400 * 10,
         labels: {
           rotation: 60,
         },
       },
       yAxis: {
-        max: 1000,
-        tickAmount: 5
+        min: 0,
       },
       time: {
         useUTC: false,
@@ -63,4 +69,3 @@ export default {
   }),
 };
 </script>
-

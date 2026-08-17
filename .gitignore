@@ -21,3 +21,9 @@ pnpm-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+# Claude scratch
+.claude/tmp/
+
+# Brainstorm mockups
+.superpowers/
