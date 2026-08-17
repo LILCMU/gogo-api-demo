@@ -80,8 +80,9 @@ npm run serve      # dev server with hot reload
 npm run build      # production build to dist/
 npm test           # node --test over src/gogo/**/*.test.mjs
 npm run lint       # eslint over src/, .js/.mjs/.vue
-./deploy.sh        # builds, then FORCE-PUSHES dist/ to gh-pages of LILCMU/gogo-api-demo — a live deploy, not a local step
 ```
+
+**Deploys are CI-only.** `.github/workflows/deploy.yml` runs on every push to `master`: lint, test, build, then publish `dist/` to GitHub Pages via `actions/deploy-pages`. Pushing to `master` is therefore a live deploy. There is no local deploy script — the old `deploy.sh` was deleted, and nothing writes to the `gh-pages` branch any more (Pages `build_type` is `workflow`, not `legacy`).
 
 "Verify" here means `npm test` and `npm run lint`, plus `npm run serve` and a browser for anything view-facing — or at minimum a build, which does catch syntax and import errors.
 
