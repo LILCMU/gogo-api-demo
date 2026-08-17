@@ -75,7 +75,7 @@ what the code says, no AI-generated filler. Terse and correct beats thorough and
 ## Commands
 
 ```bash
-npm install        # Node 14 recommended (per README)
+npm install        # Node 20+; developed on Node 24 LTS
 npm run serve      # dev server with hot reload
 npm run build      # production build to dist/
 npm test           # node --test over src/gogo/**/*.test.mjs
@@ -85,13 +85,13 @@ npm run lint       # eslint over src/, .js/.mjs/.vue
 
 "Verify" here means `npm test` and `npm run lint`, plus `npm run serve` and a browser for anything view-facing — or at minimum a build, which does catch syntax and import errors.
 
-On Node 17+ the webpack 4 toolchain fails with `ERR_OSSL_EVP_UNSUPPORTED`; prefix with `NODE_OPTIONS=--openssl-legacy-provider`.
+No `NODE_OPTIONS` workaround is needed on modern Node. The `overrides` entry pinning `babel-loader` to `^8.4.1` is load-bearing: Vue CLI 5.0.9 pins `babel-loader@8.2.2`, whose `lib/cache.js` hashes with md4, which OpenSSL 3 removed — dropping the override reinstates `ERR_OSSL_EVP_UNSUPPORTED` at build time.
 
 WebHID requires Chromium (Chrome/Edge), a secure context, and a user gesture for `requestDevice()`. Nothing device-facing can be exercised without a physical GoGo Board.
 
 ## Architecture
 
-Vue 2 SPA (Options API, Vue CLI 4, Vuex, vue-router) that talks to a GoGo Board over **WebHID** directly from the browser, split into a framework-free device service (`src/gogo/`) and five capability pages (`src/views/`).
+Vue 2 SPA (Options API, Vue CLI 5, Vuex, vue-router) that talks to a GoGo Board over **WebHID** directly from the browser, split into a framework-free device service (`src/gogo/`) and five capability pages (`src/views/`).
 
 **`src/gogo/` — the device service.** No Vue import, no dependency on this app's store or components; it is meant to be copied into another project wholesale.
 
