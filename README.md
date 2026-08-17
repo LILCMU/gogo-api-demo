@@ -55,8 +55,13 @@ npm run serve    # dev server, hot reload
 npm test         # unit tests for src/gogo/
 npm run lint     # eslint over src/
 npm run build    # production build to dist/
-./deploy.sh      # build + force-push dist/ to gh-pages
 ```
+
+## Deploying
+
+Pushing to `master` deploys. `.github/workflows/deploy.yml` runs lint, tests and the production build, then publishes `dist/` to GitHub Pages — so a red test never reaches the live site. It can also be run by hand from the Actions tab.
+
+There is no deploy script to run locally, and nothing pushes to the `gh-pages` branch any more; Pages serves the workflow's artifact directly.
 
 No `NODE_OPTIONS` workaround is needed. The toolchain is Vue CLI 5 on webpack 5; `babel-loader` is pinned past 8.2.2 via an `overrides` entry because that version hashes with md4, which OpenSSL 3 removed.
 
