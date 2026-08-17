@@ -115,10 +115,14 @@ positions where CSS variables cannot resolve — Highcharts' JS config and a thi
 `npm test` runs Node's built-in test runner over `src/gogo/**/*.test.mjs`. No test
 dependency was added: Node detects ES module syntax in `.js` sources, so `.mjs` tests
 import them directly. Only `src/gogo/` is covered — **no view logic is under automated
-test**, and the WebHID paths have never run against physical hardware.
+test**. The WebHID paths are verified by hand against a physical 7F on firmware 4.0.0,
+not by any automated test — see the hardware section in CLAUDE.md for what was covered.
 
-Node 17+ needs `NODE_OPTIONS=--openssl-legacy-provider` for `npm run build` and
-`npm run serve`; the toolchain is Vue CLI 4 with webpack 4.
+The toolchain is Vue CLI 5 with webpack 5, and needs no `NODE_OPTIONS` workaround.
+The `overrides` entry pinning `babel-loader` to `^8.4.1` is what makes that true:
+CLI 5.0.9 pins `babel-loader@8.2.2`, which hashes with md4 in `lib/cache.js`. webpack 5
+fixed its own md4 use, so the OpenSSL 3 failure survives the CLI upgrade and reappears
+from inside a thread-loader worker — a stack trace that names webpack, not babel-loader.
 
 Do not add `"type": "module"` to `package.json` to silence the test runner's warning —
 it would switch `vue.config.js` and `babel.config.js` to ESM and break the build.

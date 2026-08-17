@@ -44,7 +44,7 @@ The same material in markdown, in this repo:
 ## Requirements
 
 - **Chromium-based browser** — WebHID is not in Firefox or Safari
-- **Node 14** — the toolchain is Vue CLI 4 and has not been updated
+- **Node 20 or newer** — developed and verified on Node 24 LTS
 - A GoGo Board over USB for anything device-facing
 
 ## Setup
@@ -53,15 +53,12 @@ The same material in markdown, in this repo:
 npm install
 npm run serve    # dev server, hot reload
 npm test         # unit tests for src/gogo/
+npm run lint     # eslint over src/
 npm run build    # production build to dist/
 ./deploy.sh      # build + force-push dist/ to gh-pages
 ```
 
-On Node 17 or newer, webpack 4 dies with `ERR_OSSL_EVP_UNSUPPORTED`. Either use Node 14 or prefix the command:
-
-```bash
-NODE_OPTIONS=--openssl-legacy-provider npm run build
-```
+No `NODE_OPTIONS` workaround is needed. The toolchain is Vue CLI 5 on webpack 5; `babel-loader` is pinned past 8.2.2 via an `overrides` entry because that version hashes with md4, which OpenSSL 3 removed.
 
 Live demo: https://lilcmu.github.io/gogo-api-demo
 
