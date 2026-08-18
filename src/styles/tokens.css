@@ -1,34 +1,62 @@
 :root {
   /* palette — gogo-code/src/sass/_variables.scss */
   --gogo-green: #a5d442;
+  --gogo-green-lit: #b7de63; /*? lighten($brand-primary, 10%) — the hover fill */
   --gogo-orange: #f3a73c;
   --gogo-blue: #02a8f4;
   --gogo-pink: #db3f8d;
   --gogo-ink: #01354c;
+  --gogo-slate: #34495e; /*? $body-color */
 
   --gogo-green-tint: #f1f9e0;
   --gogo-orange-tint: #fef3e2;
   --gogo-blue-tint: #e1f4fe;
   --gogo-pink-tint: #fbe7f1;
 
-  /* --gogo-pink fails 4.5:1 as body text (3.87:1 on --page-bg) — use this for text instead */
-  --gogo-pink-text: #c73980;
+  /*? $brand-danger — pink is a data colour here, not an error colour */
+  --danger: #e34a4a;
+  /*? --danger is 3.1:1 on the ink panels; this is the same red lightened to
+      clear 4.5:1 there, for error text inside .bytes and .bytemap */
+  --danger-on-ink: #f4a0a0;
 
-  --page-bg: #f7f8fa;
-  --card-bg: #ffffff;
-  --muted: #4f6b7d;
+  --page-bg: #ffffff; /*? $body-bg */
+  --card-bg: #ffffff; /*? $widget-bg */
+  --sunk-bg: #eff4f5; /*? $light-gray2 — disabled fills, inset wells */
+  --muted: #607d8d; /*? $cc-blue-gray */
+  --faint: #8ba3af;
   /*? disabled control fill — desaturated, never an opacity fade */
-  --inactive-control: #9fb4c0;
-  --hairline: #e4e9ee;
+  --inactive-control: #a9bcc6;
+  --hairline: #dfe7ea;
 
   --dark-panel-label: #8fb3c4;
   --dark-panel-value: #ffffff;
-  --status-disconnected-bg: #eef1f4;
+  --dark-panel-line: #164e69;
+  --status-disconnected-bg: rgba(1, 53, 76, 0.14);
 
-  --radius-card: 18px;
-  --radius-pill: 999px;
-  --stripe: 7px;
+  /*? GoGoCode's signature coloured glows — $greeny/$blue/$pink-box-shadow.
+      Shadows carry the hue of what casts them; there is no neutral black one */
+  --glow-green: 0 4px 9.6px 0.4px rgba(165, 212, 66, 0.5);
+  --glow-blue: 0 4px 9.6px 0.4px rgba(2, 168, 244, 0.5);
+  --glow-pink: 0 4px 9.6px 0.4px rgba(219, 63, 141, 0.5);
+  --widget-shadow: 0 4px 20px 0 #e0e0e0; /*? $widget-box-shadow */
+  --widget-shadow-lo: 0 2px 8px 0 #ebebeb;
 
-  --gap: 10px;
-  --pad: 14px;
+  --radius-card: 12px; /*? $cc-radius, 0.75rem */
+  --radius-inner: 8px;
+  --radius-pill: 30px; /*? $btn-border-radius, 1.875rem */
+  --stripe: 8px; /*? $info-widget-border, 0.5rem */
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 36px;
+  --space-7: 56px;
+
+  --gap: var(--space-3);
+  --pad: var(--space-4);
+
+  --font-sans: "Source Sans 3", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }

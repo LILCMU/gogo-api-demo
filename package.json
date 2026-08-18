@@ -9,10 +9,12 @@
     "lint": "eslint --ext .js,.mjs,.vue src"
   },
   "dependencies": {
+    "codemirror": "^5.65.21",
     "core-js": "^3.6.5",
     "highcharts": "^9.1.1",
     "highcharts-vue": "^1.4.0",
     "vue": "^2.6.11",
+    "vue-codemirror": "^4.0.6",
     "vue-resource": "^1.5.2",
     "vue-router": "^3.5.1",
     "vue-simple-progress": "^1.1.1",
