@@ -27,3 +27,9 @@ pnpm-debug.log*
 
 # Brainstorm mockups
 .superpowers/
+
+# playwright-mcp scratch output
+.playwright-mcp/
+
+# codegraph index — generated, machine-local (db, daemon socket, pid)
+.codegraph/

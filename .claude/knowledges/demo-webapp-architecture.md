@@ -96,19 +96,98 @@ the picker, and leaves the user unable to connect. Guard on
 
 ## Design
 
-Direction A2, using GoGoCode's real palette from its `_variables.scss` — green
-`#a5d442` (primary), orange `#f3a73c`, blue `#02a8f4`, pink `#db3f8d`, ink `#01354c`,
-plus tints and `--gogo-pink-text` for body copy.
+The visual system traces to GoGoCode's own `src/sass/_variables.scss`, not to
+choices invented here. Reading the sass is the way to settle any question about
+it:
 
-**Brand green and orange may never carry white text** — they measure about 1.7:1 and
-2.0:1 against a 4.5:1 minimum. That constraint is why tiles use a tint background with a
-saturated left stripe and ink values rather than a saturated fill. `--gogo-pink` at
-3.87:1 is likewise fills-and-borders only; `--gogo-pink-text` (`#c73980`) is the text
-variant.
+| Token | GoGoCode source |
+|---|---|
+| Blue header chrome `#02a8f4` | `$top-nav-bg` / `$sidebar-bg` |
+| White page ground | `$body-bg` |
+| Slate body text `#34495e` | `$body-color` |
+| Green glow shadows | `$greeny-box-shadow`, blue and pink variants |
+| 30px uppercase tracked pills | `$btn-border-radius` plus the `.btn` rule |
+| 12px card radius | `$cc-radius` |
+| Green left stripe, 8px | `$info-widget-border` |
+| Danger red `#e34a4a` | `$brand-danger` — pink is a data colour here, not an error one |
+| Source Sans 3 | `$font-family-sans-serif` |
 
-Every colour traces to a token. The only literal hex outside `tokens.css` is in
-positions where CSS variables cannot resolve — Highcharts' JS config and a third-party
-`bar-color` prop — and each carries a comment naming the token it mirrors.
+**Two deliberate divergences, both contrast.** GoGoCode's `.btn-primary` is
+white on green (1.7:1) and its nav is white on blue (2.6:1). Both fail AA. This
+app uses ink on green (8.4:1) and ink on blue (4.8:1) instead. Do not "fix"
+these back to match GoGoCode.
+
+**Brand green and orange may never carry white text** — about 1.7:1 and 2.0:1
+against a 4.5:1 minimum. That is why tiles use a tint background with a
+saturated left stripe and ink values rather than a saturated fill.
+
+Every colour traces to a token. The only literal hex outside `tokens.css` sits
+where CSS variables cannot resolve — Highcharts' JS config and a third-party
+`bar-color` prop — and each names the token it mirrors. `--danger-on-ink` is
+the lightened red for error text on the ink panels, where `--danger` is only
+3.1:1.
+
+Four colour roles are reused across frame kinds in byte dumps (`--category`,
+`--command`, `--sensors`/`--payload`/`--status`, `--board`/`--length`). A type-0
+report has no command byte and a write frame has no sensors, so no single dump
+shows two meanings on one hue — but every dump carries its own legend saying
+which meaning applies there.
+
+## The Logo editor
+
+The editor is `vue-codemirror@4` / CodeMirror 5, configured as GoGoCode
+configures its own (`base16-dark`, line numbers, active line, close brackets),
+so what is prototyped here matches what a learner sees there.
+
+**GoGoCode's editor highlights nothing, and it is a one-character bug.** It
+passes `mode: 'text/python'`, which is not a registered CodeMirror MIME — only
+`text/x-python` is — so CodeMirror silently falls back to the null mode. Verify
+with `cm.getMode().name`, which returns `'null'`, not `'python'`. The failure is
+silent, which is why it survived.
+
+**Python is the wrong language for Logo regardless.** Logo comments start with
+`;` and Python's with `#`, so every Logo comment renders as code and every `#`
+renders as a comment. `src/components/logoMode.js` is a real Logo mode instead,
+generated from the compiler's own `reserved` table in
+`gogo-logo-compiler/tinkerlogo.py` and mirroring its lexer: `;.*` comments,
+`".*?"` strings, `\d+\.\d+` floats, `[a-zA-Z_][a-zA-Z_0-9]*` identifiers. Its
+257 reserved words split into 26 structure words returning `keyword` and the
+rest — the board calls — returning `builtin`. Regenerate from that table if the
+language gains words. `base16-dark` has no `cm-builtin` rule, so the app
+supplies one.
+
+## Showing what goes on the wire
+
+Control, Logo and Datalog each render the real frames they put on the wire,
+built with the same `buildCommand` / `buildLogoWriteSequence` the send paths
+use — so the display cannot drift from what is sent. `src/utils/wireFrame.js`
+holds `trimFrame` (cut to the last meaningful 16-byte row) and the shared
+`LEGEND_LABELS`.
+
+This is what makes the invisible rules visible: Logo's 60-byte NVS-commit rule
+shows as an actual trailing `01 03 00` frame, and a datalog sync's stage-ending
+frames read as plain ASCII once highlighted (`14 08 02 04` then `18\n1570\n`).
+
+Control renders its frame **inline under the control that sent it**, with only
+a thin pinned status line. An earlier version put the whole panel at the page
+bottom, where anyone clicking a motor at the top never saw it; a full pinned
+panel fixed visibility but cost 27% of a phone viewport. Note that
+`position: sticky; bottom: 0` cannot work on a last child — there is no scroll
+room below it.
+
+## The in-app reference
+
+`src/reference/protocol.js` and `datalog.js` hold the reference content as
+structured data, rendered by `src/views/Reference.vue` through purpose-built
+block types — byte maps, frame diagrams, callouts, tables, steps. It is not a
+markdown renderer.
+
+`docs/protocol.md` and `docs/offline-datalog.md` stay **authoritative**; the
+modules are the same facts shaped for the renderer, and the two can drift.
+Section ids are a contract — `GuideLink` deep-links into them from the tool
+pages, so renaming one silently breaks a link. `grep 'to="/reference'` to check.
+vue-router needs an explicit `scrollBehavior` honouring `to.hash`, or the guide
+links navigate without scrolling.
 
 ## Working in this repo
 
@@ -161,3 +240,13 @@ warning.
 **Tests that use a zero-valued constant prove nothing.** Asserting `payload[0] === 0`
 where the category under test is `CATEGORY.CONTROL` (value 0) passes identically
 against an implementation that never writes the byte. Use a nonzero value.
+
+**Two layout bugs that only a browser found.** `body` kept its default 8px
+margin, which left a white gutter around the blue header — invisible while the
+header was white on a grey page. And `.split__main` on Packets floored at the
+byte dump's min-content width, so the page scrolled sideways at 390px instead
+of the dump scrolling inside itself; `min-width: 0` is what lets a flex item
+shrink past its content.
+
+Neither was visible in the source, in lint, or in the build. Drive the built
+app at a narrow viewport before believing a layout is done.

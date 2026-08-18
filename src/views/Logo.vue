@@ -1,6 +1,12 @@
 <template>
   <section class="page">
-    <h1 class="page-title">Logo</h1>
+    <div class="page-head">
+      <h1 class="page-title">Logo</h1>
+      <p class="page-lede">
+        Compile Logo source in the cloud and write the bytecode to the board in 60-byte chunks.
+        Or skip the compiler and send opcodes yourself.
+      </p>
+    </div>
 
     <!--? two alternative ways to put a program on the board, never two steps of one flow -->
     <div class="tabs" role="tablist">
@@ -11,7 +17,7 @@
         role="tab"
         @click="mode = 'program'"
       >
-        Logo program
+        Logo source
       </button>
       <button
         class="tabs__tab"
@@ -24,7 +30,9 @@
       </button>
     </div>
 
-    <p v-if="!isBoardReady" class="page__empty page__empty--compact">Connect a GoGo Board to use these controls.</p>
+    <p v-if="!isBoardReady" class="page__empty page__empty--compact">
+      Connect a GoGo Board to download. Compiling works without one.
+    </p>
 
     <template v-if="mode === 'program'">
       <p class="tabs__hint">Write Logo source, compile it in the cloud, and send the result to the board.</p>
@@ -39,27 +47,52 @@
         >{{ example.label }}</button>
       </div>
 
-      <h2 class="section-label">Logo Program</h2>
-      <textarea
-        class="textarea"
-        v-model="logoProgram"
-        placeholder="Enter the logo program"
-      ></textarea>
+      <div class="section-row">
+        <h2 class="section-label">Program</h2>
+        <guide-link to="/reference/protocol#logo-download">How a program reaches the board</guide-link>
+      </div>
+      <span class="field-label">Logo source</span>
+      <code-editor v-model="logoProgram" placeholder="Enter the logo program" />
       <button
         class="btn btn--primary"
         @click="downloadLogoProgram()"
         :disabled="!isBoardReady"
         :title="actionHint"
       >
-        Send to board
+        Compile and download
       </button>
 
       <template v-if="compiledOpcodes">
         <div class="section-row">
-          <h2 class="section-label">{{ compiledOpcodesHeading }}</h2>
+          <h2 class="section-label">Bytecode <span class="section-label__note">{{ bytecodeNote }}</span></h2>
           <button class="btn btn--small" @click="copyOpcodes()">Copy opcodes</button>
         </div>
         <byte-dump :bytes="compiledOpcodes" />
+
+        <!--? the bytecode is not what goes on the wire — these are the frames
+             that do, in send order, so the chunking rule is visible not just
+             described -->
+        <div class="section-row">
+          <h2 class="section-label">Packets on the wire <span class="section-label__note">{{ wireNote }}</span></h2>
+          <guide-link to="/reference/protocol#logo-download">Why the last chunk must be short</guide-link>
+        </div>
+        <div class="wire">
+          <div class="wire__packet" v-for="packet in wirePackets" :key="packet.key">
+            <p class="wire__title">
+              <span class="wire__step">{{ packet.step }}</span>{{ packet.title }}
+              <span class="wire__note">{{ packet.note }}</span>
+            </p>
+            <byte-dump :bytes="packet.bytes" :highlights="packet.highlights" />
+            <p class="bytes-legend">
+              <span class="bytes-legend__item" v-for="key in packet.legend" :key="key">
+                <span class="bytes-legend__swatch" :class="'bytes-legend__swatch--' + key"></span>{{ LEGEND_LABELS[key] }}
+              </span>
+            </p>
+          </div>
+        </div>
+        <p class="wire__tail" v-if="wireTrimmed">
+          Trailing zero bytes are cut from each dump. Every frame is {{ FRAME_SIZE }} bytes on the wire.
+        </p>
       </template>
 
       <template v-if="compileError">
@@ -71,12 +104,12 @@
     <template v-else>
       <p class="tabs__hint">Paste a pre-compiled byte array and send it straight to the board, skipping the compiler.</p>
 
-      <h2 class="section-label">Logo Opcodes</h2>
-      <textarea
-        class="textarea textarea--mono"
-        v-model="logoOpcodes"
-        placeholder="Enter the logo opcodes"
-      ></textarea>
+      <div class="section-row">
+        <h2 class="section-label">Program</h2>
+        <guide-link to="/reference/protocol#logo-download">The 60-byte chunking rule</guide-link>
+      </div>
+      <span class="field-label">Raw opcodes</span>
+      <code-editor v-model="logoOpcodes" mode="application/json" placeholder="[1, 3, 3, 5]" />
       <button
         class="btn btn--primary"
         @click="sendPastedOpcodes()"
@@ -100,11 +133,17 @@ import {
   CMD,
   MEMORY_CMD,
   MAX_LOGO_BYTECODE_LENGTH,
+  FRAME_SIZE,
+  LOGO_CHUNK_SIZE,
+  buildCommand,
   buildLogoWriteSequence,
 } from "@/gogo/protocol";
 import { compilerUrl } from "@/config";
 import ByteDump from "@/components/ByteDump.vue";
 import boardAction from "@/mixins/boardAction";
+import GuideLink from "@/components/GuideLink.vue";
+import { trimFrame, LEGEND_LABELS } from "@/utils/wireFrame";
+import CodeEditor from "@/components/CodeEditor.vue";
 
 const EXAMPLES = [
   {
@@ -119,7 +158,7 @@ const EXAMPLES = [
 
 export default {
   name: "Logo",
-  components: { ByteDump },
+  components: { ByteDump, GuideLink, CodeEditor },
   mixins: [boardAction],
   data: function () {
     return {
@@ -135,10 +174,83 @@ export default {
   computed: {
     ...mapGetters(["report"]),
 
-    compiledOpcodesHeading: function () {
-      return this.sentToBoard
-        ? "Compiled opcodes · sent to the board"
-        : "Compiled opcodes";
+    FRAME_SIZE: () => FRAME_SIZE,
+
+    LEGEND_LABELS: () => LEGEND_LABELS,
+
+    bytecodeNote: function () {
+      const chunks = buildLogoWriteSequence(this.compiledOpcodes).length;
+      return (
+        this.compiledOpcodes.length + " bytes, " +
+        chunks + " chunk" + (chunks === 1 ? "" : "s") + " of " + LOGO_CHUNK_SIZE +
+        (this.sentToBoard ? " · sent" : "")
+      );
+    },
+
+    wireNote: function () {
+      return this.wirePackets.length + " frames, in send order";
+    },
+
+    //* the exact frames downloadOpcodeToBoard puts on the wire: one pointer
+    //* reset, then one write per chunk. Built with the same buildCommand the
+    //* send path uses, so this cannot drift from what is actually sent
+    wirePackets: function () {
+      const packets = [
+        {
+          key: "pointer",
+          step: 1,
+          title: "Set Logo memory pointer",
+          note: "category 1, command 1, address 0",
+          //? bytes 2-3 are the address, not a length — this command has none
+          highlights: {
+            0: "bytes__cell--category",
+            1: "bytes__cell--command",
+            2: "bytes__cell--payload",
+            3: "bytes__cell--payload",
+          },
+          legend: ["category", "command", "payload"],
+          bytes: trimFrame(buildCommand(CATEGORY.MEMORY, MEMORY_CMD.SET_LOGO_POINTER, [0, 0])),
+        },
+      ];
+
+      const writes = buildLogoWriteSequence(this.compiledOpcodes);
+      writes.forEach((params, i) => {
+        const length = params[0];
+
+        //? byte 2 is the chunk length and bytes 3+ are the bytecode itself —
+        //? the length is what the firmware's NVS-commit rule turns on, so it
+        //? gets its own colour rather than disappearing into the payload
+        const highlights = {
+          0: "bytes__cell--category",
+          1: "bytes__cell--command",
+          2: "bytes__cell--length",
+        };
+        for (let b = 0; b < length; b += 1) {
+          highlights[3 + b] = "bytes__cell--payload";
+        }
+
+        packets.push({
+          key: "write" + i,
+          step: i + 2,
+          title: length === 0 ? "Write bytes · zero-length commit" : "Write bytes",
+          note:
+            "category 1, command 3 · " +
+            (length === 0
+              ? "empty, forces the NVS commit"
+              : length + " byte" + (length === 1 ? "" : "s")),
+          highlights: highlights,
+          legend: length === 0
+            ? ["category", "command", "length"]
+            : ["category", "command", "length", "payload"],
+          bytes: trimFrame(buildCommand(CATEGORY.MEMORY, MEMORY_CMD.WRITE_BYTES, params)),
+        });
+      });
+
+      return packets;
+    },
+
+    wireTrimmed: function () {
+      return this.wirePackets.some((packet) => packet.bytes.length < FRAME_SIZE);
     },
 
     firmwareVersion: function () {
@@ -181,7 +293,7 @@ export default {
       }
     },
 
-    //* click handler for the Raw opcodes tab — parses the textarea, then hands
+    //* click handler for the Raw opcodes tab — parses the editor content, then hands
     //* off to sendOpcodes, which is what the compile path calls directly
     sendPastedOpcodes: async function () {
       if (!this.logoOpcodes) {
@@ -276,7 +388,7 @@ export default {
               this.compiledOpcodes = null;
               this.compileError = (body && body.message) || null;
               this.reportAction(
-                this.compileError ? "Compile error - see details below." : "Compiler returned an unexpected response.",
+                this.compileError ? "Compile error - nothing was sent to the board." : "Compiler returned an unexpected response.",
                 true
               );
               return;
@@ -309,24 +421,14 @@ export default {
 </script>
 
 <style scoped>
-.textarea {
+.field-label {
   display: block;
-  box-sizing: border-box;
-  width: 100%;
-  min-height: 120px;
-  margin: 0 0 10px;
-  padding: var(--pad);
-  font-family: inherit;
-  font-size: 14px;
-  color: var(--gogo-ink);
-  background: var(--card-bg);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-card);
-  resize: vertical;
-}
-
-.textarea--mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  margin-bottom: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
 .section-row {
@@ -339,40 +441,44 @@ export default {
     whitespace; this just picks up the same error colour as
     .action-message.is-error */
 .bytes--error {
-  color: var(--gogo-pink-text);
+  color: var(--danger-on-ink);
 }
 
 .tabs {
-  display: flex;
-  gap: 4px;
+  display: inline-flex;
+  gap: 3px;
   padding: 4px;
-  margin-bottom: 6px;
-  background: var(--card-bg);
-  border: 1px solid var(--hairline);
+  margin-bottom: var(--space-2);
+  background: var(--sunk-bg);
   border-radius: var(--radius-pill);
 }
 
 .tabs__tab {
   font-family: inherit;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--muted);
   background: transparent;
   border: 0;
   border-radius: var(--radius-pill);
-  padding: 9px 20px;
+  min-height: 34px;
+  padding: 0 20px;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .tabs__tab:hover:not(.is-active) {
-  background: var(--gogo-green-tint);
+  background: var(--card-bg);
+  color: var(--gogo-ink);
 }
 
 /*? active state carries weight and fill, not colour alone */
 .tabs__tab.is-active {
   color: var(--gogo-ink);
   background: var(--gogo-green);
+  box-shadow: var(--glow-green);
 }
 
 .tabs__hint {

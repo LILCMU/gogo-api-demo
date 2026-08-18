@@ -1,8 +1,26 @@
 <template>
-  <section class="page">
-    <h1 class="page-title">Datalog</h1>
+  <section class="page page--wide">
+    <div class="page-head">
+      <h1 class="page-title">Datalog</h1>
+      <p class="page-lede">
+        Pull records the board wrote while it was unplugged. The sync runs in three stages, and
+        each one is a separate packet exchange.
+      </p>
+    </div>
 
-    <h2 class="section-label">Sync</h2>
+    <board-onboarding
+      v-if="!isBoardReady"
+      title="Connect a board to read its offline records"
+      last-step="Press Read records"
+      last-step-note="Records are written by a Logo program running offlinerecord while the board is away."
+    >
+      Nothing is read from the board until you ask for it.
+    </board-onboarding>
+
+    <div class="section-row">
+      <h2 class="section-label">Sync</h2>
+      <guide-link to="/reference/datalog#stages">How the three-stage sync works</guide-link>
+    </div>
 
     <div class="datalog-actions">
       <button
@@ -11,7 +29,7 @@
         :disabled="!isBoardReady || syncInProgress"
         :title="actionHint"
       >
-        Sync Data
+        Read records
       </button>
       <button
         class="btn btn--danger"
@@ -19,7 +37,7 @@
         :disabled="!isBoardReady || syncInProgress"
         :title="actionHint"
       >
-        Delete Data
+        Delete all
       </button>
       <button
         v-if="syncInProgress"
@@ -30,6 +48,8 @@
       </button>
     </div>
 
+    <!--? label, control and help stay in one block — the help text is this
+         input's aria-describedby target, so it cannot float off on its own -->
     <div class="datapicker">
       <label for="datalog-date-offset" class="datapicker__label">Date offset</label>
       <date-picker
@@ -49,18 +69,68 @@
       </p>
     </div>
 
-    <div class="progress-bar" v-if="syncInProgress">
-      <progress-bar size="medium" :bar-color="progressBarColor" :val="percentage" />
-    </div>
+    <template v-if="syncInProgress">
+      <ol class="stages">
+        <li
+          v-for="(stage, i) in STAGES"
+          :key="stage"
+          class="stages__item"
+          :class="{ 'is-done': syncStage > i, 'is-now': syncStage === i }"
+        >
+          <span class="stages__tick"></span>{{ stage }}
+        </li>
+      </ol>
+
+      <div class="progress-bar">
+        <progress-bar size="medium" :bar-color="progressBarColor" :val="percentage" />
+      </div>
+    </template>
 
     <p class="action-message" :class="{ 'is-error': actionFailed }" aria-live="polite">{{ actionMessage }}</p>
 
-    <p v-if="!datalogRecords.length" class="page__empty">
-      No records loaded. Press Sync Data to pull them off the board.
+    <div class="section-row">
+      <h2 class="section-label">Records</h2>
+      <guide-link to="/reference/datalog#record-format">The 10-byte record layout</guide-link>
+    </div>
+
+    <p v-if="!datalogRecords.length" class="page__empty page__empty--compact">
+      No records loaded. Press Read records to pull them off the board.
     </p>
     <div v-else class="chart-container">
       <datalog-chart ref="datalogChart" />
     </div>
+
+    <!--? the transfer is the interesting part of this page, and it is invisible
+         once the chart draws — this is the same wire view the Packets page
+         gives, kept for the sync that just ran -->
+    <template v-if="syncPackets.length">
+      <div class="section-row">
+        <h2 class="section-label">Sync packets <span class="section-label__note">{{ syncPacketsNote }}</span></h2>
+        <guide-link to="/reference/datalog#stages">What each status means</guide-link>
+      </div>
+
+      <p class="wire__lede">The request this page sent, then the frames the board sent back.</p>
+
+      <div class="wire">
+        <div class="wire__packet" v-for="packet in wirePackets" :key="packet.key">
+          <p class="wire__title">
+            <span class="wire__step" :class="{ 'wire__step--end': packet.end }">{{ packet.step }}</span>{{ packet.title }}
+            <span class="wire__note">{{ packet.note }}</span>
+          </p>
+          <byte-dump :bytes="packet.bytes" :highlights="packet.highlights" />
+          <p class="bytes-legend">
+            <span class="bytes-legend__item" v-for="key in packet.legend" :key="key">
+              <span class="bytes-legend__swatch" :class="'bytes-legend__swatch--' + key"></span>{{ LEGEND_LABELS[key] }}
+            </span>
+          </p>
+        </div>
+      </div>
+
+      <p class="wire__tail" v-if="hiddenSyncPackets">
+        {{ hiddenSyncPackets }} in-progress frame{{ hiddenSyncPackets === 1 ? "" : "s" }} not shown &middot;
+        <button class="btn btn--small" @click="showAllSyncPackets = true">Show all</button>
+      </p>
+    </template>
 
     <div class="confirm-overlay" v-if="confirmingDelete">
       <div class="confirm-dialog">
@@ -79,20 +149,49 @@
 import { mapActions, mapGetters } from "vuex";
 import {
   CATEGORY, EVENT_CMD, DATALOG_STATUS,
+  buildCommand,
   parseFileSizes, parseLookupTable, parseDatalogRecords,
 } from '@/gogo/protocol'
 import DatalogChart from "@/components/Chart.vue";
+import ByteDump from "@/components/ByteDump.vue";
+import { trimFrame, LEGEND_LABELS } from "@/utils/wireFrame";
 import ProgressBar from "vue-simple-progress";
 import DatePicker from "vue2-datepicker";
 import "vue2-datepicker/index.css";
 import boardAction from "@/mixins/boardAction";
+import BoardOnboarding from "@/components/BoardOnboarding.vue";
+import GuideLink from "@/components/GuideLink.vue";
+
+const STAGES = ["File sizes", "Lookup table", "Records"];
+
+const STATUS_NAMES = {
+  [DATALOG_STATUS.IN_PROGRESS]: "in progress",
+  [DATALOG_STATUS.FAILURE]: "failure",
+  [DATALOG_STATUS.EMPTY]: "no records",
+  [DATALOG_STATUS.FILE_SIZE]: "file sizes done",
+  [DATALOG_STATUS.LOOKUP_TABLE]: "lookup table done",
+  [DATALOG_STATUS.RECORDS]: "records done",
+};
+
+//? a stage-ending frame is worth seeing; the in-progress ones in between are
+//? all the same shape, so only the boundaries are shown until asked
+const STAGE_END = [
+  DATALOG_STATUS.FILE_SIZE,
+  DATALOG_STATUS.LOOKUP_TABLE,
+  DATALOG_STATUS.RECORDS,
+  DATALOG_STATUS.FAILURE,
+  DATALOG_STATUS.EMPTY,
+];
 
 export default {
   name: "Datalog",
   components: {
     DatalogChart,
+    ByteDump,
     ProgressBar,
     DatePicker,
+    BoardOnboarding,
+    GuideLink,
   },
   mixins: [boardAction],
   data: function () {
@@ -105,12 +204,67 @@ export default {
       lookupTableFileSize: 0,
       datalogRecordsFileSize: 0,
       percentage: 0,
+      //? 0 file sizes, 1 lookup table, 2 records — index into STAGES
+      syncStage: 0,
+      //? every type-20 frame of the last sync, kept for the wire view below
+      syncPackets: [],
+      showAllSyncPackets: false,
       dateTimeOffset: null,
       progressBarColor: "#a5d442", //? --gogo-green
     };
   },
   computed: {
     ...mapGetters(["lastResponse"]),
+
+    STAGES: () => STAGES,
+
+    LEGEND_LABELS: () => LEGEND_LABELS,
+
+    //* the request frame plus every response frame, in arrival order — built
+    //* with the same buildCommand the sync sends, so it cannot drift
+    wirePackets: function () {
+      const packets = [
+        {
+          key: "request",
+          step: 1,
+          end: false,
+          title: "Read offline datalog",
+          note: "category 20, command 2 · sent by this page",
+          highlights: { 0: "bytes__cell--category", 1: "bytes__cell--command" },
+          legend: ["category", "command"],
+          bytes: trimFrame(buildCommand(CATEGORY.EVENT_REQUEST, EVENT_CMD.GET_DATALOG)),
+        },
+      ];
+
+      this.shownSyncPackets.forEach((packet, i) => {
+        packets.push({
+          key: "resp" + packet.n,
+          step: i + 2,
+          end: packet.end,
+          title: "Board response · " + packet.statusName,
+          note: "type 20 · status " + packet.status + " · " + packet.length + " payload bytes",
+          highlights: packet.highlights,
+          legend: ["type", "length", "command", "status", "payload"],
+          bytes: packet.bytes,
+        });
+      });
+
+      return packets;
+    },
+
+    shownSyncPackets: function () {
+      return this.showAllSyncPackets
+        ? this.syncPackets
+        : this.syncPackets.filter((packet) => packet.end);
+    },
+
+    hiddenSyncPackets: function () {
+      return this.syncPackets.length - this.shownSyncPackets.length;
+    },
+
+    syncPacketsNote: function () {
+      return this.syncPackets.length + " frames received";
+    },
   },
   watch: {
     lastResponse: function (packet) {
@@ -168,6 +322,29 @@ export default {
     unpackOfflineDatalogPackets: function (packet) {
       if (!packet || packet.command !== EVENT_CMD.GET_DATALOG) return
 
+      //? byte 1 is the payload length, which the old highlight map skipped —
+      //? bytes 0, 2 and 3 are packet type, command and the status that drives
+      //? the state machine, and everything from 4 is the payload itself
+      const highlights = {
+        0: 'bytes__cell--type',
+        1: 'bytes__cell--length',
+        2: 'bytes__cell--command',
+        3: 'bytes__cell--status',
+      }
+      for (let b = 0; b < packet.length; b += 1) {
+        highlights[4 + b] = 'bytes__cell--payload'
+      }
+
+      this.syncPackets.push({
+        n: this.syncPackets.length + 1,
+        status: packet.status,
+        statusName: STATUS_NAMES[packet.status] || "status " + packet.status,
+        length: packet.length,
+        end: STAGE_END.indexOf(packet.status) !== -1,
+        highlights: highlights,
+        bytes: trimFrame(packet.raw),
+      })
+
       this.dataChunk.push.apply(this.dataChunk, Array.from(packet.payload))
 
       const total = this.datalogRecordsFileSize + this.lookupTableFileSize
@@ -190,6 +367,7 @@ export default {
         this.lookupTableFileSize = sizes.lookupTableSize
         this.datalogRecordsFileSize = sizes.recordsSize
         this.dataChunk = []
+        this.syncStage = 1
         this.reportAction('Reading file sizes...')
         return
       }
@@ -199,6 +377,7 @@ export default {
           Uint8Array.from(this.dataChunk), this.lookupTableFileSize
         )
         this.dataChunk = []
+        this.syncStage = 2
         this.reportAction('Reading field names...')
         return
       }
@@ -214,6 +393,7 @@ export default {
             this.$refs.datalogChart.chartOptions.series = this.datalogRecords
           }
         })
+        this.syncStage = 3
         this.reportAction('Loaded ' + records.length + ' records.')
         this.finishSync()
         return
@@ -248,6 +428,9 @@ export default {
         this.lookupTableFileSize = 0;
         this.datalogRecordsFileSize = 0;
         this.percentage = 0;
+        this.syncStage = 0;
+        this.syncPackets = [];
+        this.showAllSyncPackets = false;
 
         this.syncInProgress = true;
         this.actionFailed = false;
@@ -286,41 +469,72 @@ export default {
 <style scoped>
 .datalog-actions {
   display: flex;
-  justify-content: center;
   gap: var(--gap);
-  margin-bottom: 1.5em;
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
 }
 
 .datapicker {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  margin: 0.5em;
+  align-items: flex-start;
+  gap: 5px;
+  margin-bottom: var(--space-5);
 }
 
 .datapicker__label {
+  font-size: 11px;
   font-weight: 700;
-  font-size: 13px;
-  margin-bottom: 4px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
 .datapicker__help {
-  max-width: 480px;
-  margin: 6px 0 0;
-  font-size: 12px;
+  max-width: 62ch;
+  margin: 2px 0 0;
+  font-size: 12.5px;
   color: var(--muted);
-  text-align: center;
 }
 
 .progress-bar {
-  width: 50%;
-  margin: 1em auto;
+  margin: var(--space-3) 0 var(--space-5);
 }
+
+/*? the transfer is three separate packet exchanges — showing which one is
+    running turns a stalled bar into a diagnosable state */
+.stages {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.stages__item { display: inline-flex; align-items: center; gap: 7px; }
+.stages__item.is-done { color: var(--gogo-ink); }
+.stages__item.is-now { color: var(--gogo-blue); }
+
+.stages__tick { width: 8px; height: 8px; border-radius: 50%; background: var(--inactive-control); }
+.stages__item.is-done .stages__tick { background: var(--gogo-green); }
+.stages__item.is-now .stages__tick { background: var(--gogo-blue); box-shadow: 0 0 0 4px rgba(2, 168, 244, 0.18); }
 
 .chart-container {
   width: 100%;
-  margin: 1em auto;
+  padding: var(--pad) 20px 20px;
+  background: var(--card-bg);
+  border-radius: var(--radius-card);
+  box-shadow: var(--widget-shadow);
 }
+
+.wire__lede { margin: 0 0 var(--space-3); font-size: 13.5px; color: var(--muted); max-width: 62ch; }
 
 .confirm-overlay {
   position: fixed;
@@ -334,8 +548,10 @@ export default {
 
 .confirm-dialog {
   background: var(--card-bg);
+  border-left: var(--stripe) solid var(--danger);
   border-radius: var(--radius-card);
-  padding: 24px 28px;
+  box-shadow: var(--widget-shadow);
+  padding: var(--space-5) 28px;
   max-width: 360px;
   width: calc(100% - 48px);
 }
@@ -351,15 +567,5 @@ export default {
   justify-content: flex-end;
   gap: 8px;
   margin-top: 20px;
-}
-
-.btn--danger {
-  color: var(--gogo-pink-text);
-  background: var(--gogo-pink-tint);
-  border-color: var(--gogo-pink);
-}
-
-.btn--danger:hover:not([disabled]) {
-  background: var(--gogo-pink-tint);
 }
 </style>

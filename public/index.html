@@ -1,11 +1,22 @@
 <!DOCTYPE html>
-<html lang="">
+<html lang="en">
 
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <link rel="icon" href="<%= BASE_URL %>favicon.ico">
+  <meta name="description"
+    content="Reference webapp for talking to a GoGo Board from the browser over WebHID: live sensors, motor and servo control, offline datalog, Logo download, and a raw packet builder.">
+  <link rel="icon" href="<%= BASE_URL %>favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="<%= BASE_URL %>favicon-32.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="<%= BASE_URL %>favicon-512.png">
+  <link rel="apple-touch-icon" href="<%= BASE_URL %>favicon-180.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Source Sans 3 is GoGoCode's brand face (sass/_variables.scss) -->
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap">
   <title>
     <%= htmlWebpackPlugin.options.title %>
   </title>

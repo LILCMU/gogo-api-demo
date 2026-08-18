@@ -20,7 +20,7 @@ The goal is that another team can open the page matching what they want, read on
 file, and copy it. Everything below serves that.
 
 **Shipped.** The app tracks GoGo Board **7.x** and is split into a framework-free
-device service (`src/gogo/`, no Vue, 44 unit tests) behind five capability pages.
+device service (`src/gogo/`, no Vue, 44 unit tests) behind six pages.
 `docs/protocol.md` and `docs/offline-datalog.md` replaced the old Google Sheet and are
 verified against firmware source. The visual system uses GoGoCode's real palette.
 
@@ -52,15 +52,22 @@ firmware 4.0.0** confirmed the read and write paths end to end:
   102) while relay bytes 29–32 report **percent** (40 reads back as 40). Documented in
   `docs/protocol.md`. Treating the motor register as a percentage shows "102%".
 
+- The 2.1 UI pass was re-verified end to end on the same board: servo echo 90→120,
+  relay 40 reporting back `40` percent, two datalog syncs (`lookupTableSize 18` /
+  `recordsSize 1570` → 157 records over 29 frames), and a Logo compile-and-download
+  round trip whose write frame read `01 03 10` plus exactly 16 bytecode bytes.
+
 Still unverified on hardware: the datalog **delete** path (deliberately not run — the
-test board holds records that must be kept), and a Logo program whose bytecode length
-is an exact multiple of 60, the case needing the trailing zero-length write.
+test board holds records that must be kept), and *downloading* a program whose length
+is an exact multiple of 60. The frames for that case are constructed correctly — the
+Logo page renders the trailing `01 03 00` commit frame at length 60 — but no such
+program has been written to a board.
 
 No view logic is covered by automated tests; `npm test` covers `src/gogo/` only.
 
 **The backlog is worked through.** `.claude/plans/demo-webapp-backlog.md` records the
 findings of three pre-merge reviews (code, UX, docs); they were cleared in batches —
-one error-handling pattern across the five views, an eslint config, the extracted
+one error-handling pattern across the views, an eslint config, the extracted
 `actionHint` / disconnected guard. Keep it as the record of what was found and why,
 not as a to-do list.
 
@@ -90,9 +97,11 @@ No `NODE_OPTIONS` workaround is needed on modern Node. The `overrides` entry pin
 
 WebHID requires Chromium (Chrome/Edge), a secure context, and a user gesture for `requestDevice()`. Nothing device-facing can be exercised without a physical GoGo Board.
 
+`vue-codemirror@4` / `codemirror@5` back the Logo editor — the same pair GoGoCode uses. The Logo mode is ours (`src/components/logoMode.js`), generated from the compiler's `reserved` table; GoGoCode's `mode: 'text/python'` is not a registered MIME and silently highlights nothing.
+
 ## Architecture
 
-Vue 2 SPA (Options API, Vue CLI 5, Vuex, vue-router) that talks to a GoGo Board over **WebHID** directly from the browser, split into a framework-free device service (`src/gogo/`) and five capability pages (`src/views/`).
+Vue 2 SPA (Options API, Vue CLI 5, Vuex, vue-router) that talks to a GoGo Board over **WebHID** directly from the browser, split into a framework-free device service (`src/gogo/`) and six pages (`src/views/`).
 
 **`src/gogo/` — the device service.** No Vue import, no dependency on this app's store or components; it is meant to be copied into another project wholesale.
 
@@ -100,7 +109,9 @@ Vue 2 SPA (Options API, Vue CLI 5, Vuex, vue-router) that talks to a GoGo Board 
 - `transport.js` — `GogoTransport`, a WebHID class: `connect({ prompt })`, `disconnect()`, `send(payload)`, `connected` getter, and an `on`/`off` event bus emitting `connect`, `disconnect`, `report`, `error`. `connect` must select by device identity, never by `devices.length` — `getDevices()` returns every device the origin has been granted, so a length check treats any unrelated one as "already paired" and never opens the picker.
 - `protocol.test.mjs`, `transport.test.mjs` — `node --test`, run via `npm test`. The transport tests fake `navigator.hid`, which is the only way to cover device code without a board.
 
-**Shared UI — `src/components/` and `src/styles/tokens.css`.** `ByteDump` (labelled hexdump, `bytes` plus optional `highlights`, shared by Packets and Logo), `StatTile`, `DarkPanel`, `AppHeader`, `Chart`. Every colour traces to a token; the only literal hex outside `tokens.css` sits where CSS variables cannot resolve (Highcharts' JS config, a third-party prop) and names the token it mirrors. **Brand green `#a5d442` and orange `#f3a73c` may never carry white text** — roughly 1.7:1 and 2.0:1 — which is why tiles use a tint with a saturated stripe and ink values. `--gogo-pink` is fills and borders only; `--gogo-pink-text` is the body-text variant.
+**Shared UI — `src/components/` and `src/styles/tokens.css`.** `ByteDump` (labelled hexdump, `bytes` plus optional `highlights`), `ByteMap` (a frame drawn as a coloured byte strip), `StatTile`, `DarkPanel`, `AppHeader`, `Chart`, `BoardOnboarding` (the instructive disconnected state), `GuideLink` (deep-links a section to the reference), `CodeEditor` (+ `logoMode.js`). Every colour traces to a token; the only literal hex outside `tokens.css` sits where CSS variables cannot resolve (Highcharts' JS config, a third-party prop) and names the token it mirrors.
+
+Tokens mirror GoGoCode's `_variables.scss` — blue chrome (`$top-nav-bg`), white ground, green glow shadows (`$greeny-box-shadow`), 30px pills, 12px cards (`$cc-radius`), Source Sans 3. **Brand green `#a5d442` and orange `#f3a73c` may never carry white text** — roughly 1.7:1 and 2.0:1 — which is why tiles use a tint with a saturated stripe and ink values. This app deliberately diverges from GoGoCode on two contrast failures: ink on green, and ink on blue in the header. Errors use `--danger`, or `--danger-on-ink` on the dark panels. See `.claude/knowledges/demo-webapp-architecture.md`.
 
 **Vuex adapter — `src/store/gogo.js`.** A thin layer over the device service: one `GogoTransport` instance, `bindTransport` wires its events to mutations (`SET_CONNECTED`, `SET_REPORT`, `SET_REPORT_RAW`, `SET_RESPONSE`, `SET_ERROR`, plus `CLEAR_RESPONSE`/`CLEAR_ERROR`), and the `send`/`connect`/`disconnect` actions call straight through to `transport`. Getters: `connected`, `isBoardReady`, `report`, `reportRaw`, `lastResponse`, `error`. `isBoardReady` (used throughout the views to disable controls) is `connected && !!report` — a report has to have arrived, not just a HID open. `reportRaw` keeps the unparsed frame so Packets can show what actually arrived on the wire.
 
@@ -109,7 +120,11 @@ Actions take `context` first and the payload second — `connect(context, { prom
 - Outbound: `buildCommand(category, command, params)` returns the 63-byte frame with the report-ID byte already dropped (category at 0, command at 1); `transport.send` strips nothing — WebHID's `sendReport(0, payload)` supplies the report ID itself.
 - Inbound: every `report` event is tried against `parseReport` (type-0 device register) first, then `parseResponse` (type-20 command response) — whichever matches commits.
 
-**Pages — `src/views/`.** `Live.vue` (streaming sensor tiles), `Control.vue` (motors/servos/relays/beep), `Datalog.vue` (offline datalog sync + chart), `Logo.vue` (compile/download Logo programs and raw opcodes), `Packets.vue` (raw packet builder/sender). Routes are registered in `src/router/index.js`.
+**Pages — `src/views/`.** `Live.vue` (streaming sensor tiles), `Control.vue` (motors/servos/relays/beep), `Datalog.vue` (offline datalog sync + chart), `Logo.vue` (compile/download Logo programs and raw opcodes), `Packets.vue` (raw packet builder/sender), `Reference.vue` (the wire protocol and datalog format, rendered from `src/reference/*.js`). Routes are in `src/router/index.js`, which needs its `scrollBehavior` to honour `to.hash` or the guide links navigate without scrolling.
+
+**Control, Logo and Datalog show the frames they put on the wire**, built with the same `buildCommand`/`buildLogoWriteSequence` the send paths use so the view cannot drift from what is sent. `src/utils/wireFrame.js` holds `trimFrame` and the shared legend labels.
+
+**`src/reference/` is not authoritative** — `docs/protocol.md` and `docs/offline-datalog.md` are. The modules are the same facts shaped for the block renderer, and the two can drift. Section ids are a contract: `GuideLink` deep-links into them, so `grep 'to="/reference'` after renaming one.
 
 **Logo download flow** (`Logo.vue`): POST source to the cloud compiler (`compilerUrl` from `src/config.js`, `emulateJSON`) → set memory pointer (cat 1, cmd 1) → write each chunk from `buildLogoWriteSequence(bytecode)` (cat 1, cmd 3) awaited in sequence with a 10 ms `setTimeout` between packets → beep (cat 0, cmd 11). The page's two tabs are alternatives, not steps: "Raw opcodes" skips the compiler and feeds `downloadOpcodeToBoard` a JSON byte array directly.
 
