@@ -30,3 +30,6 @@ pnpm-debug.log*
 
 # playwright-mcp scratch output
 .playwright-mcp/
+
+# codegraph index — generated, machine-local (db, daemon socket, pid)
+.codegraph/
