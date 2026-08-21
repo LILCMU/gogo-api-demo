@@ -35,6 +35,12 @@ say they have "no grammar rule at all". They do: `p_statement_if_nested` and its
 forms of the documented `if` / `ifelse` and stay out of the reference on that ground alone.
 Do not "fix" them back in as a halt case.
 
+The original error had a mechanical cause worth remembering. The script that walked the PLY
+grammar kept a production only when its first right-hand symbol matched `[A-Z][A-Z0-9_]*`.
+That pattern requires a leading capital, so `_IF`, `_THEN` and `_ELSE` never matched and
+their productions were dropped silently, which read as "these tokens have no grammar rule".
+Any regex over this grammar has to allow a leading underscore.
+
 `for` and `foreach` matter most. They are the obvious way to write a counted loop, and they
 halt this board. Use `repeat`.
 
