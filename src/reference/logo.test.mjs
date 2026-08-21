@@ -11,7 +11,7 @@ const EXPECTED_SECTION_IDS = [
 
 //? the block types Reference.vue's v-else-if chain actually renders; a block
 //? of any other type would silently render nothing
-const RENDERED_BLOCK_TYPES = ['prose', 'note', 'table', 'frame', 'bytemap', 'steps']
+const RENDERED_BLOCK_TYPES = ['prose', 'note', 'table', 'frame', 'bytemap', 'steps', 'codeblock']
 
 //? commands the 7.x VM does not implement (module header explains why they
 //? are excluded). Kept here as a literal array so this list is the

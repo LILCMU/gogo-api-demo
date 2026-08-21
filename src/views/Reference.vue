@@ -8,6 +8,7 @@
     <div class="reference__tabs">
       <router-link class="reference__tab" to="/reference/protocol">Wire protocol</router-link>
       <router-link class="reference__tab" to="/reference/datalog">Offline datalog</router-link>
+      <router-link class="reference__tab" to="/reference/logo">Logo language</router-link>
     </div>
 
     <div class="reference__body">
@@ -91,12 +92,18 @@
                 </div>
               </li>
             </ol>
+
+            <div v-else-if="block.type === 'codeblock'" :key="i">
+              <pre class="bytes">{{ block.lines.join('\n') }}</pre>
+              <p v-if="block.caption" class="ref-codeblock__caption">{{ block.caption }}</p>
+            </div>
           </template>
         </section>
 
         <p class="reference__source">
           Verified against GoGo Board 7.x firmware. The markdown originals live in
-          <code>docs/protocol.md</code> and <code>docs/offline-datalog.md</code>.
+          <code>docs/protocol.md</code>, <code>docs/offline-datalog.md</code> and
+          <code>docs/logo-language.md</code>.
         </p>
       </div>
     </div>
@@ -107,14 +114,15 @@
 import ByteMap from "@/components/ByteMap.vue";
 import protocol from "@/reference/protocol";
 import datalog from "@/reference/datalog";
+import logo from "@/reference/logo";
 
-const DOCS = { protocol: protocol, datalog: datalog };
+const DOCS = { protocol: protocol, datalog: datalog, logo: logo };
 
 export default {
   name: "Reference",
   components: { ByteMap },
   props: {
-    //? constrained to protocol|datalog by the route regex, so no fallback needed
+    //? constrained to protocol|datalog|logo by the route regex, so no fallback needed
     doc: { type: String, required: true },
   },
   computed: {
@@ -294,6 +302,10 @@ export default {
 
 .ref-step__t { font-size: 14.5px; font-weight: 700; color: var(--gogo-ink); }
 .ref-step__d { max-width: 62ch; font-size: 13.5px; line-height: 1.6; color: var(--muted); }
+
+/* --- code blocks --------------------------------------------- */
+
+.ref-codeblock__caption { margin: var(--space-2) 0 0; font-size: 13px; color: var(--muted); }
 
 .reference__source { margin: 0; font-size: 13px; color: var(--faint); }
 
