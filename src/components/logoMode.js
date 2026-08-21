@@ -5,10 +5,11 @@ import CodeMirror from 'codemirror'
 //? start with `;` and Python's start with `#`, so every comment renders as code
 //? and every `#` renders as a comment.
 //?
-//? Keywords below are the compiler's own reserved table
-//? (~/Developer/gogo-logo-compiler/tinkerlogo.py, `reserved`), split into the
-//? words that shape a program and the several hundred that call into the board.
-//? Regenerate from that table if the language gains words.
+//? Keywords below are the compiler's own vocabulary
+//? (~/Developer/gogo-logo-compiler/tinkerlogo.py: the `reserved` table, plus the
+//? `t_*` lexer rules that claim words ahead of it, such as `xor` and `talkto`),
+//? split into the words that shape a program and the several hundred that call
+//? into the board. Regenerate from those if the language gains words.
 //?
 //? Words the compiler accepts but GoGo Board 7 firmware does not implement are
 //? left out on purpose. The 7.x VM halts on an unhandled opcode with no error,
@@ -18,11 +19,17 @@ import CodeMirror from 'codemirror'
 //? `vernier_slot*`, and the firmware-4 words (`for`, `foreach`, `repcount`,
 //? `broadcast*value`). Derivation lives in
 //? .claude/specs/logo-language-reference-design.md.
+//?
+//? The bare `ison` / `isoff` / `isthisway` / `isthatway` reserved words are left
+//? out for the same reason from the other end: the VM implements opcodes 64-67,
+//? but the compiler only reaches them through the port-query forms below
+//? (`aon?`, `athatway?`, ...). Bare, they compile to `NUM8 0` with the opcode
+//? dropped, so they are a constant false, not a read.
 
 const STRUCTURE = new Set([
   'to', 'end', 'repeat', 'forever', 'if', 'ifelse', 'while', 'waituntil', 'when', 'whenoff',
   'ifstatechange', 'dobackground', 'dobackgroundoff', 'break', 'stop', 'output', 'set',
-  'and', 'or', 'not',
+  'and', 'or', 'not', 'xor',
 ])
 
 const BUILTIN = new Set([
@@ -34,30 +41,30 @@ const BUILTIN = new Set([
   'floor', 'fromcharcode', 'geta', 'getpos', 'getpower', 'gmessage', 'gototrack',
   'handgesture', 'highbyte', 'hours', 'i2c_read_register', 'i2c_write_register', 'i2cread',
   'i2creadandstop', 'i2crequest', 'i2cstart', 'i2cstop', 'i2cwrite', 'input1', 'input2',
-  'input3', 'input4', 'input5', 'input6', 'input7', 'input8', 'ir', 'isoff', 'ison',
-  'isthatway', 'isthisway', 'ledoff', 'ledon', 'list_create', 'list_find', 'list_get',
-  'list_insert', 'list_len', 'list_pop_at', 'list_pop_first', 'list_pop_last', 'list_push',
-  'list_random', 'list_remove', 'list_rev', 'list_set', 'lowbyte', 'lt', 'map', 'max', 'min',
-  'minutes', 'month', 'mqttmessage', 'mqttpublish', 'mqttsubscribe', 'nexttrack', 'note',
-  'notetempo', 'off', 'offlinerecord', 'on', 'onfor', 'play', 'pow', 'presskey', 'prevtrack',
-  'publiccloudrecord', 'publishmessage', 'random', 'rd', 'readacceleration',
-  'readboardsensor', 'readfilteredinput', 'readfilteredvariable', 'readloudness',
-  'readsensor', 'readswitch', 'relayison', 'relaysetpower', 'releasekey', 'reportgrading',
-  'resetinputminmax', 'resett', 'resetvariableminmax', 'round', 'rt', 'rtc_init', 'seconds',
-  'send', 'sendgmessage', 'sendiftttevent', 'sendkey', 'sendkeydelay', 'sendlineimage',
-  'sendlinemessage', 'sendlinesticker', 'sensor1', 'sensor2', 'sensor3', 'sensor4',
-  'sensor5', 'sensor6', 'sensor7', 'sensor8', 'serial', 'seta', 'setbroadcastchannel',
-  'setbroadcastpassword', 'setcloudrecordlocal', 'setcloudrecorduid', 'seth', 'setiftttkey',
-  'setinputfilter', 'setinputthreshold', 'setinputweight', 'setlinetoken',
-  'setmessagebroker', 'setmqttbroker', 'setpos', 'setpower', 'setservopower', 'settickrate',
-  'setvariablefilter', 'setvariablethreshold', 'setvariableweight', 'show', 'showimage',
-  'sin', 'sqrt', 'stopall', 'subscribemessage', 'substring', 'switch1', 'switch2', 'switch3',
-  'switch4', 'switch5', 'switch6', 'switch7', 'switch8', 'tan', 'tasmotamessage',
-  'tasmotamessagedevice', 'tasmotanewmessagedevice', 'tasmotasendcommand',
-  'tasmotasetchannel', 'tasmotawhenreceive', 'textat', 'textcolor', 'textcontains',
-  'textindexof', 'textisempty', 'textlength', 'textpos', 'textsplit', 'textstyle', 'thatway',
-  'thisway', 'tickcount', 'timer', 'tonumber', 'totext', 'vernier_sensor_unit',
-  'vernier_sensor_value', 'wait', 'whenreceivebroadcast', 'whenreceivegmessage', 'year',
+  'input3', 'input4', 'input5', 'input6', 'input7', 'input8', 'ir', 'ledoff', 'ledon',
+  'list_create', 'list_find', 'list_get', 'list_insert', 'list_len', 'list_pop_at',
+  'list_pop_first', 'list_pop_last', 'list_push', 'list_random', 'list_remove', 'list_rev',
+  'list_set', 'lowbyte', 'lt', 'map', 'max', 'message', 'min', 'minutes', 'month',
+  'mqttmessage', 'mqttpublish', 'mqttsubscribe', 'nexttrack', 'note', 'notetempo', 'off',
+  'offlinerecord', 'on', 'onfor', 'play', 'pow', 'presskey', 'prevtrack', 'publiccloudrecord',
+  'publishmessage', 'random', 'rd', 'readacceleration', 'readboardsensor', 'readfilteredinput',
+  'readfilteredvariable', 'readloudness', 'readsensor', 'readswitch', 'relayison',
+  'relaysetpower', 'releasekey', 'reportgrading', 'resetinputminmax', 'resett',
+  'resetvariableminmax', 'round', 'rt', 'rtc_init', 'seconds', 'send', 'sendgmessage',
+  'sendiftttevent', 'sendkey', 'sendkeydelay', 'sendlineimage', 'sendlinemessage',
+  'sendlinesticker', 'sensor1', 'sensor2', 'sensor3', 'sensor4', 'sensor5', 'sensor6',
+  'sensor7', 'sensor8', 'serial', 'seta', 'setbroadcastchannel', 'setbroadcastpassword',
+  'setcloudrecordlocal', 'setcloudrecorduid', 'seth', 'setiftttkey', 'setinputfilter',
+  'setinputthreshold', 'setinputweight', 'setlinetoken', 'setmessagebroker', 'setmqttbroker',
+  'setpos', 'setpower', 'setservopower', 'settickrate', 'setvariablefilter',
+  'setvariablethreshold', 'setvariableweight', 'show', 'showimage', 'sin', 'sqrt', 'stopall',
+  'subscribemessage', 'substring', 'switch1', 'switch2', 'switch3', 'switch4', 'switch5',
+  'switch6', 'switch7', 'switch8', 'talkto', 'tan', 'tasmotamessage', 'tasmotamessagedevice',
+  'tasmotanewmessagedevice', 'tasmotasendcommand', 'tasmotasetchannel', 'tasmotawhenreceive',
+  'textat', 'textcolor', 'textcontains', 'textindexof', 'textisempty', 'textlength', 'textpos',
+  'textsplit', 'textstyle', 'thatway', 'thisway', 'tickcount', 'timer', 'tonumber', 'totext',
+  'vernier_sensor_unit', 'vernier_sensor_value', 'wait', 'whenreceivebroadcast',
+  'whenreceivegmessage', 'year',
 ])
 
 //? Port addressing is lexed before identifiers, exactly as the compiler does it.

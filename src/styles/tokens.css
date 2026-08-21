@@ -33,6 +33,12 @@
   --dark-panel-line: #164e69;
   --status-disconnected-bg: rgba(1, 53, 76, 0.14);
 
+  /*? Logo editor syntax hues the brand palette has no answer for. Port prefixes
+      (`a,`) and :parameters are the two token kinds that must not read as either
+      a builtin or a plain variable, and both sit on the dark editor ground */
+  --editor-port: #4fd6d2;
+  --editor-param: #d6b4fc;
+
   /*? GoGoCode's signature coloured glows — $greeny/$blue/$pink-box-shadow.
       Shadows carry the hue of what casts them; there is no neutral black one */
   --glow-green: 0 4px 9.6px 0.4px rgba(165, 212, 66, 0.5);

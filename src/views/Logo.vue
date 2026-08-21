@@ -215,7 +215,7 @@ const EXAMPLES = [
   {
     label: "Broadcast",
     program:
-      'to start\n  setbroadcastchannel 1\n  whenreceivebroadcast "blink" [ ledon wait 300 ledoff ]\n  forever [\n    broadcast "blink"\n    wait 1000\n  ]\nend',
+      '; broadcast goes through the cloud broker, so this needs WiFi to do anything\nto start\n  setbroadcastchannel 1\n  whenreceivebroadcast "blink" [ ledon wait 300 ledoff ]\n  forever [\n    broadcast "blink"\n    wait 1000\n  ]\nend',
   },
   {
     label: "Log to datalog",

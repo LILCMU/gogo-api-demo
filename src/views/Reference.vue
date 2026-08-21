@@ -92,11 +92,6 @@
                 </div>
               </li>
             </ol>
-
-            <div v-else-if="block.type === 'codeblock'" :key="i">
-              <pre class="bytes">{{ block.lines.join('\n') }}</pre>
-              <p v-if="block.caption" class="ref-codeblock__caption">{{ block.caption }}</p>
-            </div>
           </template>
         </section>
 
@@ -302,10 +297,6 @@ export default {
 
 .ref-step__t { font-size: 14.5px; font-weight: 700; color: var(--gogo-ink); }
 .ref-step__d { max-width: 62ch; font-size: 13.5px; line-height: 1.6; color: var(--muted); }
-
-/* --- code blocks --------------------------------------------- */
-
-.ref-codeblock__caption { margin: var(--space-2) 0 0; font-size: 13px; color: var(--muted); }
 
 .reference__source { margin: 0; font-size: 13px; color: var(--faint); }
 

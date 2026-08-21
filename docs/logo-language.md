@@ -81,7 +81,7 @@ Every loop and test takes its body as a bracketed block. There is no block-less 
 | `break` | statement | leaves the innermost loop |
 | `stop` | statement | ends the current procedure |
 | `output n\|s` | statement | ends the current procedure and returns a value |
-| `wait n` | statement | pauses the program |
+| `wait n` | statement | pauses the program for n milliseconds |
 
 ## Values and operators
 
@@ -144,7 +144,7 @@ Each of these needs its port prefix. The signature below shows one concrete pref
 |---|---|---|
 | `a, on` | statement | runs the selected motors |
 | `a, off` | statement | stops the selected motors |
-| `a, onfor n` | statement | runs the selected motors, then stops them after the given time |
+| `a, onfor n` | statement | runs the selected motors, then stops them after n milliseconds |
 | `a, thisway` | statement | sets direction. cw is the same command |
 | `a, thatway` | statement | the opposite direction. ccw is the same command |
 | `a, rd` | statement | reverses the current direction |
