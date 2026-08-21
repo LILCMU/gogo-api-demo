@@ -120,7 +120,7 @@ Actions take `context` first and the payload second — `connect(context, { prom
 - Outbound: `buildCommand(category, command, params)` returns the 63-byte frame with the report-ID byte already dropped (category at 0, command at 1); `transport.send` strips nothing — WebHID's `sendReport(0, payload)` supplies the report ID itself.
 - Inbound: every `report` event is tried against `parseReport` (type-0 device register) first, then `parseResponse` (type-20 command response) — whichever matches commits.
 
-**Pages — `src/views/`.** `Live.vue` (streaming sensor tiles), `Control.vue` (motors/servos/relays/beep), `Datalog.vue` (offline datalog sync + chart), `Logo.vue` (compile/download Logo programs and raw opcodes), `Packets.vue` (raw packet builder/sender), `Reference.vue` (the wire protocol and datalog format, rendered from `src/reference/*.js`). Routes are in `src/router/index.js`, which needs its `scrollBehavior` to honour `to.hash` or the guide links navigate without scrolling.
+**Pages — `src/views/`.** `Live.vue` (streaming sensor tiles), `Control.vue` (motors/servos/relays/beep), `Datalog.vue` (offline datalog sync + chart), `Logo.vue` (compile/download Logo programs and raw opcodes), `Packets.vue` (raw packet builder/sender), `Reference.vue` (the wire protocol, datalog format and Logo language, rendered from `src/reference/*.js`). Routes are in `src/router/index.js`, which needs its `scrollBehavior` to honour `to.hash` or the guide links navigate without scrolling.
 
 **Control, Logo and Datalog show the frames they put on the wire**, built with the same `buildCommand`/`buildLogoWriteSequence` the send paths use so the view cannot drift from what is sent. `src/utils/wireFrame.js` holds `trimFrame` and the shared legend labels.
 

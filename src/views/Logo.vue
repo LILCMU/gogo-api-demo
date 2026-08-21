@@ -37,7 +37,10 @@
     <template v-if="mode === 'program'">
       <p class="tabs__hint">Write Logo source, compile it in the cloud, and send the result to the board.</p>
 
-      <h2 class="section-label">Examples</h2>
+      <div class="section-row">
+        <h2 class="section-label">Examples</h2>
+        <guide-link to="/reference/logo#control">Loops, tests and other control flow</guide-link>
+      </div>
       <div class="control-row">
         <button
           v-for="example in examples"
@@ -51,6 +54,40 @@
         <h2 class="section-label">Program</h2>
         <guide-link to="/reference/protocol#logo-download">How a program reaches the board</guide-link>
       </div>
+
+      <!--? on-ramp for someone about to write line one — collapsed so it
+           does not compete with the editor once they already know the syntax -->
+      <details class="syntax-panel">
+        <summary class="syntax-panel__summary">Syntax at a glance</summary>
+        <dl class="syntax-panel__list">
+          <div class="syntax-panel__item">
+            <dt><code>to start ... end</code></dt>
+            <dd>A program is a list of procedures; the file's first one runs.</dd>
+          </div>
+          <div class="syntax-panel__item">
+            <dt><code>a, on</code></dt>
+            <dd>Selects a port with a prefix ending in a comma, not an argument.</dd>
+          </div>
+          <div class="syntax-panel__item">
+            <dt><code>[ ... ]</code></dt>
+            <dd>A bracketed body for loops, tests and watchers.</dd>
+          </div>
+          <div class="syntax-panel__item">
+            <dt><code>set counter 0</code></dt>
+            <dd>The only assignment the language has; a bare name reads it back.</dd>
+          </div>
+          <div class="syntax-panel__item">
+            <dt><code>; a comment</code></dt>
+            <dd>Ignored by the compiler, runs to the end of the line.</dd>
+          </div>
+          <div class="syntax-panel__item">
+            <dt><code>wait 500</code></dt>
+            <dd>Pauses the program before the next statement runs.</dd>
+          </div>
+        </dl>
+        <guide-link to="/reference/logo#shape">The full syntax reference</guide-link>
+      </details>
+
       <span class="field-label">Logo source</span>
       <code-editor v-model="logoProgram" placeholder="Enter the logo program" />
       <button
@@ -485,5 +522,52 @@ export default {
   margin: 0;
   font-size: 13px;
   color: var(--muted);
+}
+
+.syntax-panel {
+  margin: var(--space-3) 0 var(--space-5);
+  background: var(--sunk-bg);
+  border-radius: var(--radius-card);
+}
+
+.syntax-panel__summary {
+  cursor: pointer;
+  padding: var(--space-3) var(--pad);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gogo-ink);
+}
+
+.syntax-panel__summary::marker { color: var(--gogo-blue); }
+
+.syntax-panel__list {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0 var(--pad) var(--pad);
+}
+
+.syntax-panel__list dt {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--gogo-ink);
+}
+
+.syntax-panel__list dt code {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--card-bg);
+}
+
+.syntax-panel__list dd {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.syntax-panel > .guide-link {
+  margin: 0 var(--pad) var(--pad);
 }
 </style>
