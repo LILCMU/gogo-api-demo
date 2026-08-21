@@ -60,27 +60,27 @@
       <details class="syntax-panel">
         <summary class="syntax-panel__summary">Syntax at a glance</summary>
         <dl class="syntax-panel__list">
-          <div class="syntax-panel__item">
+          <div>
             <dt><code>to start ... end</code></dt>
             <dd>A program is a list of procedures; the file's first one runs.</dd>
           </div>
-          <div class="syntax-panel__item">
+          <div>
             <dt><code>a, on</code></dt>
             <dd>Selects a port with a prefix ending in a comma, not an argument.</dd>
           </div>
-          <div class="syntax-panel__item">
+          <div>
             <dt><code>[ ... ]</code></dt>
             <dd>A bracketed body for loops, tests and watchers.</dd>
           </div>
-          <div class="syntax-panel__item">
+          <div>
             <dt><code>set counter 0</code></dt>
             <dd>The only assignment the language has; a bare name reads it back.</dd>
           </div>
-          <div class="syntax-panel__item">
+          <div>
             <dt><code>; a comment</code></dt>
             <dd>Ignored by the compiler, runs to the end of the line.</dd>
           </div>
-          <div class="syntax-panel__item">
+          <div>
             <dt><code>wait 500</code></dt>
             <dd>Pauses the program before the next statement runs.</dd>
           </div>
@@ -184,12 +184,43 @@ import CodeEditor from "@/components/CodeEditor.vue";
 
 const EXAMPLES = [
   {
-    label: "Beep every second",
-    program: "to start\n  forever [\n    beep\n    wait 1000\n  ]\nend",
+    label: "Blink",
+    program: "to start\n  forever [\n    ledon\n    wait 500\n    ledoff\n    wait 500\n  ]\nend",
   },
   {
-    label: "Beep three times",
-    program: "to start\n  repeat 3 [\n    beep\n    wait 100\n  ]\n  show 99\nend",
+    label: "Motor and direction",
+    program:
+      "to start\n  ab, setpower 60    ; power 0 to 100\n  ab, thisway\n  ab, onfor 1000\n  ab, thatway\n  ab, onfor 1000\nend",
+  },
+  {
+    label: "Servo sweep",
+    program:
+      "to start\n  set angle 0\n  repeat 7 [\n    servo1, seth angle\n    set angle angle + 30\n    wait 200\n  ]\nend",
+  },
+  {
+    label: "Sensor threshold",
+    program:
+      "to start\n  forever [\n    if readsensor 1 > 500 [\n      beep\n      wait 300\n    ]\n  ]\nend",
+  },
+  {
+    label: "Counter and procedure",
+    program:
+      "to start\n  set count 0\n  repeat 3 [\n    set count count + 1\n    beeps count\n  ]\nend\n\nto beeps :times\n  repeat times [ beep wait 200 ]\nend",
+  },
+  {
+    label: "Display and sound",
+    program:
+      'to start\n  cls\n  textpos 0 0\n  show "Hello"\n  note 60 200\n  wait 300\n  note 64 200\nend',
+  },
+  {
+    label: "Broadcast",
+    program:
+      'to start\n  setbroadcastchannel 1\n  whenreceivebroadcast "blink" [ ledon wait 300 ledoff ]\n  forever [\n    broadcast "blink"\n    wait 1000\n  ]\nend',
+  },
+  {
+    label: "Log to datalog",
+    program:
+      'to start\n  forever [\n    offlinerecord readsensor 1 "light"\n    wait 1000\n  ]\nend',
   },
 ];
 
