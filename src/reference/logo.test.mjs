@@ -13,13 +13,16 @@ const EXPECTED_SECTION_IDS = [
 //? of any other type would silently render nothing
 const RENDERED_BLOCK_TYPES = ['prose', 'note', 'table', 'frame', 'bytemap', 'steps']
 
-//? commands the 7.x VM does not usefully run (module header explains why they
-//? are excluded). Two failure modes are covered, and both silently do nothing:
-//? every word up to `_else` has no `case` at all, so it falls through to the
-//? terminal `default:` and halts the program; `ledon` and `ledoff` have a `case`
-//? with an empty body, so they dispatch and return with no effect. Kept here as
-//? a literal array so this list is the regression guard, not a cross-reference
-//? to prose.
+//? words this reference deliberately does not document. Three buckets, in array
+//? order. Everything up to `repcount` has no `case` in the 3.2.6 VM at all, so it
+//? falls through to the terminal `default:` and halts the program with no error.
+//? `_if` / `_then` / `_else` are the exception: they parse (the nested-if rules in
+//? tinkerlogo.py) and the VM does handle the opcodes they emit, so they neither
+//? halt nor no-op. They stay out because they are the internal underscore forms of
+//? the documented `if` / `ifelse` — a surface decision, not a firmware defect.
+//? `ledon` / `ledoff` have a `case` with an empty body, so they dispatch and return
+//? with no effect. Kept here as a literal array so this list is the regression
+//? guard, not a cross-reference to prose.
 const EXCLUDED_WORDS = [
   'startultrasonic', 'getultrasonic', 'usecamera', 'closecamera', 'startfindface',
   'stopfindface', 'facefound?', 'takesnapshot', 'cameraison', 'isfindingface',
