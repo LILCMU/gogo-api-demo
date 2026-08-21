@@ -57,7 +57,7 @@ export default {
             ['; text', 'comment, runs to end of line'],
             ['"text"', 'string literal'],
             ['[ ... ]', 'block, passed to repeat, if, while and the event watchers'],
-            ['set NAME n', 'assignment. The only one the language has'],
+            ['set NAME n|s', 'assignment. The only one the language has'],
           ],
         },
         {
@@ -129,9 +129,9 @@ export default {
         {
           type: 'prose',
           runs: [
-            'Query forms end in ',
+            'Every port also has read-back forms that name the port in the word itself: the tests ending in ',
             { code: '?' },
-            ' and read a port back. They are reporters, so they sit inside an expression.',
+            ' and the plain value readers. All of them are reporters, so they sit inside an expression.',
           ],
         },
         {
@@ -452,7 +452,7 @@ export default {
             ['list_insert n n n|s', 'statement', ''],
             ['list_remove n n', 'statement', ''],
             ['list_len n', 'reporter', ''],
-            ['list_find n n', 'reporter', ''],
+            ['list_find n n|s', 'reporter', ''],
             ['list_rev n', 'statement', 'reverses in place. Also usable as a reporter'],
             ['list_random n', 'reporter', ''],
             ['list_pop_at n n', 'reporter', ''],
@@ -492,14 +492,6 @@ export default {
       id: 'network',
       title: 'Broadcast, MQTT, cloud',
       blocks: [
-        {
-          type: 'prose',
-          runs: [
-            'Broadcast talks board to board. MQTT and the cloud commands need Wi-Fi, so ',
-            { code: 'connectwifi' },
-            ' has to succeed first.',
-          ],
-        },
         {
           type: 'table',
           head: ['Signature', 'Kind', 'Notes'],
