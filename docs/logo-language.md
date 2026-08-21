@@ -74,6 +74,9 @@ Every loop and test takes its body as a bracketed block. There is no block-less 
 | `while n [ ... ]` | statement | runs the block while the test is non-zero |
 | `if n [ ... ]` | statement | runs the block once when the test is non-zero |
 | `ifelse n [ ... ] [ ... ]` | statement | first block when true, second when false |
+| `_if n [ ... ]` | statement | starts an else-if chain; must be the first clause |
+| `_then n [ ... ]` | statement | else-if clause, zero or more, each with its own condition |
+| `_else [ ... ]` | statement | optional fallback when every condition above was false |
 | `waituntil [ n ]` | statement | blocks until the test inside the brackets is non-zero |
 | `when n [ ... ]` | statement | watcher: runs the block whenever the test becomes true |
 | `whenoff` | statement | stops the when watcher |
@@ -84,6 +87,8 @@ Every loop and test takes its body as a bracketed block. There is no block-less 
 | `stop` | statement | ends the current procedure |
 | `output n\|s` | statement | ends the current procedure and returns a value |
 | `wait n` | statement | pauses the program for n milliseconds |
+
+**`_then` means "else if", not "then".** `_then` carries its own condition, so the chain reads as "else if", not "then". A chain always starts with `_if`, takes zero or more `_then` clauses each with its own test, and an optional `_else` at the end. GoGoCode's block editor is what normally emits it.
 
 ## Values and operators
 

@@ -10,11 +10,11 @@ facts shaped for the in-app renderer at `/reference/logo`, and the two can drift
 ## Two ways a command does nothing
 
 There are two failure modes, and they need different detection. Both are guarded by
-`EXCLUDED_WORDS` in `src/reference/logo.test.mjs`, which now holds 42 words.
+`EXCLUDED_WORDS` in `src/reference/logo.test.mjs`, which now holds 39 words.
 
 ### No handler: the program halts
 
-**40 words compile but do not run on GoGo Board 7.** An opcode with no handler falls through
+**37 words compile but do not run on GoGo Board 7.** An opcode with no handler falls through
 `firstEvalOpcode` to `secondEvalOpcode` to `thirdEvalOpcode`, whose terminal `default:`
 clears `LOGO_PROCEDURE_VM_RUNNING` and calls `logoProceduresHalt()`. No error, no beep,
 nothing on serial. The program compiles, downloads, and stops dead at that line.
@@ -22,24 +22,7 @@ nothing on serial. The program compiles, downloads, and stops dead at that line.
 Excluded: the Raspberry Pi companion set (opcodes 200-239: camera, RFID, SMS, mail, sound,
 key-value, `say`, `showlogplot`, `newrecordfile`), ultrasonic (119-120), `turnsteppingmotor`
 (251), `vernier_slot` / `vernier_slot_unit` (249). Plus five that need firmware 4, which has
-no stable release: `for`, `foreach`, `repcount`, `broadcastvalue`, `broadcastwithvalue`. Plus
-three left undocumented for a different reason: `_if`, `_then`, `_else`.
-
-Those three are **not** a firmware defect, and an earlier version of this file was wrong to
-say they have "no grammar rule at all". They do: `p_statement_if_nested` and its siblings
-(`tinkerlogo.py:2478-2499`). `_if 1 > 0 [ beep ]` compiles to
-`_STARTIF, 0, 11, ..., _IF, _ENDIF`, and the 3.2.6 VM handles every one of those opcodes
-(`case COND_STARTIF` / `COND_NEWIF` / `COND_THEN` / `COND_ELSE` / `COND_ENDIF`,
-`gogo-logovm.cpp:2378-2405`; note `COND_NEWIF` is opcode 124 and shares a body with
-`COND_THEN`, so a grep for `case COND_IF` alone misses it). They are the internal underscore
-forms of the documented `if` / `ifelse` and stay out of the reference on that ground alone.
-Do not "fix" them back in as a halt case.
-
-The original error had a mechanical cause worth remembering. The script that walked the PLY
-grammar kept a production only when its first right-hand symbol matched `[A-Z][A-Z0-9_]*`.
-That pattern requires a leading capital, so `_IF`, `_THEN` and `_ELSE` never matched and
-their productions were dropped silently, which read as "these tokens have no grammar rule".
-Any regex over this grammar has to allow a leading underscore.
+no stable release: `for`, `foreach`, `repcount`, `broadcastvalue`, `broadcastwithvalue`.
 
 `for` and `foreach` matter most. They are the obvious way to write a counted loop, and they
 halt this board. Use `repeat`.
@@ -71,6 +54,36 @@ just the reference scan.
 one, and a developer porting older code will come looking for it. Its Notes cell says it does
 nothing and why. The rule the reference actually enforces is that nothing may be silent, not
 that nothing may be a no-op.
+
+## `_if` / `_then` / `_else`: documented, not excluded
+
+These three were excluded in an earlier pass on the belief they had no grammar rule. That was
+wrong, and the decision is reversed: they are now documented in the "Control flow" section of
+both reference files as an else-if chain. `_if` starts it, zero or more `_then` clauses each
+carry their own condition (so `_then` reads as "else if", not "then"), and an optional `_else`
+is the fallback. The chain must start with `_if`; `_then` alone is a compile error ("I don't
+understand '_then'").
+
+Grammar: `p_statement_if_nested` and its siblings (`tinkerlogo.py:2472-2508`). Compiled and
+verified at `firmware_version 3.2.6`: `_if 1 > 2 [ beep ]` alone (15 bytes), with `_else`
+added (20 bytes), with one `_then` and an `_else` (34 bytes), with two `_then` clauses (40
+bytes). The compiler emits `_STARTIF, <len-hi>, <len-lo>, ..., _IF, ..., _ENDIF`, and the
+3.2.6 VM handles every one of those opcodes (`gogo-logovm.cpp:2378-2410`): `COND_STARTIF`
+(123) reads the block length and pushes the post-`COND_ENDIF` address, `COND_NEWIF` (124) and
+`COND_THEN` (125) share a body that pops the branch pointer and condition and jumps if true,
+`COND_ELSE` (126) jumps to the else pointer, `COND_ENDIF` (127) is reached only when every
+condition was false.
+
+**Naming trap**: `COND_IF` is opcode 10, plain `if`'s opcode. `_if` compiles to `COND_NEWIF`
+(124), a different opcode with a similar name. Grepping `case COND_IF` finds the wrong
+handler and makes the `_if` family look unhandled, which is how they were miscategorized the
+first time.
+
+The original "no grammar rule" error had a mechanical cause worth remembering. The script that
+walked the PLY grammar kept a production only when its first right-hand symbol matched
+`[A-Z][A-Z0-9_]*`. That pattern requires a leading capital, so `_IF`, `_THEN` and `_ELSE`
+never matched and their productions were dropped silently, which read as "these tokens have no
+grammar rule". Any regex over this grammar has to allow a leading underscore.
 
 ## Syntax a developer cannot guess
 

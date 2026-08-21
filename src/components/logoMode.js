@@ -28,9 +28,15 @@ import CodeMirror from 'codemirror'
 //? but the compiler only reaches them through the port-query forms below
 //? (`aon?`, `athatway?`, ...). Bare, they compile to `NUM8 0` with the opcode
 //? dropped, so they are a constant false, not a read.
+//?
+//? `_if` / `_then` / `_else` are in STRUCTURE despite the leading underscore.
+//? They are a fully implemented else-if chain, not one of the words excluded
+//? above; see .claude/knowledges/logo-language.md. The word regex
+//? (`[a-zA-Z_][a-zA-Z_0-9]*`) already allows a leading underscore.
 
 const STRUCTURE = new Set([
-  'to', 'end', 'repeat', 'forever', 'if', 'ifelse', 'while', 'waituntil', 'when', 'whenoff',
+  'to', 'end', 'repeat', 'forever', 'if', 'ifelse', '_if', '_then', '_else',
+  'while', 'waituntil', 'when', 'whenoff',
   'ifstatechange', 'dobackground', 'dobackgroundoff', 'break', 'stop', 'output', 'set',
   'and', 'or', 'not', 'xor',
 ])

@@ -13,13 +13,9 @@ const EXPECTED_SECTION_IDS = [
 //? of any other type would silently render nothing
 const RENDERED_BLOCK_TYPES = ['prose', 'note', 'table', 'frame', 'bytemap', 'steps']
 
-//? words this reference deliberately does not document. Three buckets, in array
+//? words this reference deliberately does not document. Two buckets, in array
 //? order. Everything up to `repcount` has no `case` in the 3.2.6 VM at all, so it
 //? falls through to the terminal `default:` and halts the program with no error.
-//? `_if` / `_then` / `_else` are the exception: they parse (the nested-if rules in
-//? tinkerlogo.py) and the VM does handle the opcodes they emit, so they neither
-//? halt nor no-op. They stay out because they are the internal underscore forms of
-//? the documented `if` / `ifelse` — a surface decision, not a firmware defect.
 //? `ledon` / `ledoff` have a `case` with an empty body, so they dispatch and return
 //? with no effect. Kept here as a literal array so this list is the regression
 //? guard, not a cross-reference to prose.
@@ -31,7 +27,6 @@ const EXCLUDED_WORDS = [
   'writerfid', 'rfidtagfound?', 'rfidreaderfound?', 'say', 'key', 'intkey',
   'clearkeys', 'turnsteppingmotor', 'vernier_slot', 'vernier_slot_unit',
   'broadcastvalue', 'broadcastwithvalue', 'for', 'foreach', 'repcount',
-  '_if', '_then', '_else',
   'ledon', 'ledoff',
 ]
 
