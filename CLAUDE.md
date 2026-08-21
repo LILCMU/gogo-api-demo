@@ -63,7 +63,7 @@ is an exact multiple of 60. The frames for that case are constructed correctly �
 Logo page renders the trailing `01 03 00` commit frame at length 60 — but no such
 program has been written to a board.
 
-No view logic is covered by automated tests; `npm test` covers `src/gogo/` only.
+No view logic is covered by automated tests; `npm test` covers `src/gogo/` plus structural tests under `src/reference/`.
 
 **The backlog is worked through.** `.claude/plans/demo-webapp-backlog.md` records the
 findings of three pre-merge reviews (code, UX, docs); they were cleared in batches —
