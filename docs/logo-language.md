@@ -4,6 +4,8 @@ The language the board itself runs: program shape, port addressing, and every co
 
 Derived from the compiler's `reserved` table and PLY grammar in `gogo-logo-compiler/tinkerlogo.py` at `LOGO_VERSION 3.0`, then verified against `gogoboard-7.x/gogo-firmware` at tag `version-3.2.6`. `src/reference/logo.js` holds the same facts shaped for the in-app block renderer; the two can drift, and this file is the source of truth.
 
+A word the 3.2.6 VM does not implement is left out: it falls through to a terminal `default:` that halts the program with no error. A word whose `case` label exists with an empty body is left out for the same reason from the other side, since it dispatches and does nothing: that is `ledon` and `ledoff`. `rtc_init` is the one empty case kept here, because it never promised a visible action; its Notes cell says so.
+
 The **Kind** column says where a word may appear. A reporter yields a value and can sit inside an expression; a statement cannot.
 
 ## Program shape
@@ -27,14 +29,14 @@ Parameters are declared with a colon and read without one. `to blink :times` dec
 
 ## Addressing ports
 
-A port is chosen by a prefix ending in a comma, never by an argument. `a, on` turns motor A on; `on 1` is not valid syntax. Motor letters combine, so `abc, on` drives three motors in one statement.
+A port is chosen by a prefix ending in a comma, never by an argument. `output1, on` turns motor 1 on; `on 1` is not valid syntax. Port numbers combine, so `output123, on` drives three motors in one statement. The board prints these numbers next to the output ports, so they are the form you can read off the hardware. The letter form `a,` to `d,` is the older equivalent spelling and combines the same way; older programs use it.
 
 | Prefix | Selects |
 |---|---|
-| `a,  b,  c,  d,` | one motor |
-| `abc,` | several motors at once, any combination of a to d |
-| `output1,  ...  output4,` | the same motors by number |
-| `output12,` | several motors by number |
+| `output1,  ...  output4,` | one motor |
+| `output12,` | several motors at once, any combination of output1 to output4 |
+| `a,  b,  c,  d,` | the same motors in the older letter spelling |
+| `abc,` | several motors by letter |
 | `servo1,  ...  servo4,` | one servo |
 | `relay1,  ...  relay4,` | one relay |
 
@@ -42,11 +44,11 @@ Every port also has read-back forms that name the port in the word itself: the t
 
 | Signature | Kind | Notes |
 |---|---|---|
-| `aon?` | reporter | motor A is running. Same shape on b, c, d and output1 to output4 |
-| `aoff?` | reporter | motor A is stopped |
-| `athisway?` | reporter | motor A is turning thisway |
-| `athatway?` | reporter | motor A is turning thatway |
-| `apower` | reporter | motor A power setting |
+| `output1on?` | reporter | motor 1 is running. Same shape on output2 to output4, and in the letter spelling as aon? |
+| `output1off?` | reporter | motor 1 is stopped |
+| `output1thisway?` | reporter | motor 1 is turning thisway |
+| `output1thatway?` | reporter | motor 1 is turning thatway |
+| `output1power` | reporter | motor 1 power setting. This one takes a single port only, unlike the tests above |
 | `relay1on?` | reporter | relay 1 is on. Same on relay2 to relay4 |
 | `servo1angle` | reporter | servo 1 angle. Same on servo2 to servo4 |
 
@@ -142,13 +144,13 @@ Each of these needs its port prefix. The signature below shows one concrete pref
 
 | Signature | Kind | Notes |
 |---|---|---|
-| `a, on` | statement | runs the selected motors |
-| `a, off` | statement | stops the selected motors |
-| `a, onfor n` | statement | runs the selected motors, then stops them after n milliseconds |
-| `a, thisway` | statement | sets direction. cw is the same command |
-| `a, thatway` | statement | the opposite direction. ccw is the same command |
-| `a, rd` | statement | reverses the current direction |
-| `a, setpower n` | statement | power 0-100. The board reports it back as 0-255 PWM |
+| `output1, on` | statement | runs the selected motors |
+| `output1, off` | statement | stops the selected motors |
+| `output1, onfor n` | statement | runs the selected motors, then stops them after n milliseconds |
+| `output1, thisway` | statement | sets direction. cw is the same command |
+| `output1, thatway` | statement | the opposite direction. ccw is the same command |
+| `output1, rd` | statement | reverses the current direction |
+| `output1, setpower n` | statement | power 0-100. The board reports it back as 0-255 PWM |
 | `stopall` | statement | stops every motor. Takes no prefix |
 | `servo1, seth n` | statement | angle 0-180 |
 | `servo1, seta n` | statement | angle 0-180 |
@@ -216,8 +218,6 @@ Port reads come in two spellings: a numbered word, and a reader taking the port 
 | `beep` | statement | the board buzzer |
 | `note n n` | statement | |
 | `notetempo n` | statement | |
-| `ledon` | statement | |
-| `ledoff` | statement | |
 | `play` | statement | |
 | `nexttrack` | statement | |
 | `prevtrack` | statement | |
@@ -269,7 +269,7 @@ Port reads come in two spellings: a numbered word, and a reader taking the port 
 | `hours` | reporter | |
 | `minutes` | reporter | |
 | `seconds` | reporter | |
-| `rtc_init` | statement | starts the real-time clock |
+| `rtc_init` | statement | does nothing on GoGo Board 7. The clock syncs over NTP, so there is no clock to start. Kept because older programs call it |
 
 ## Broadcast, MQTT, cloud
 

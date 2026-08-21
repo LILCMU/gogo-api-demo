@@ -19,6 +19,10 @@ import CodeMirror from 'codemirror'
 //? `vernier_slot*`, and the firmware-4 words (`for`, `foreach`, `repcount`,
 //? `broadcast*value`). Derivation lives in .claude/knowledges/logo-language.md.
 //?
+//? `ledon` and `ledoff` are out for the same reason from the other side: their
+//? `case` labels exist in the 3.2.6 VM with an empty body, so they dispatch and
+//? do nothing. Colouring them as builtins would advertise a working command.
+//?
 //? The bare `ison` / `isoff` / `isthisway` / `isthatway` reserved words are left
 //? out for the same reason from the other end: the VM implements opcodes 64-67,
 //? but the compiler only reaches them through the port-query forms below
@@ -40,7 +44,7 @@ const BUILTIN = new Set([
   'floor', 'fromcharcode', 'geta', 'getpos', 'getpower', 'gmessage', 'gototrack',
   'handgesture', 'highbyte', 'hours', 'i2c_read_register', 'i2c_write_register', 'i2cread',
   'i2creadandstop', 'i2crequest', 'i2cstart', 'i2cstop', 'i2cwrite', 'input1', 'input2',
-  'input3', 'input4', 'input5', 'input6', 'input7', 'input8', 'ir', 'ledoff', 'ledon',
+  'input3', 'input4', 'input5', 'input6', 'input7', 'input8', 'ir',
   'list_create', 'list_find', 'list_get', 'list_insert', 'list_len', 'list_pop_at',
   'list_pop_first', 'list_pop_last', 'list_push', 'list_random', 'list_remove', 'list_rev',
   'list_set', 'lowbyte', 'lt', 'map', 'max', 'message', 'min', 'minutes', 'month',

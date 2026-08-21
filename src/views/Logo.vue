@@ -41,7 +41,7 @@
         <h2 class="section-label">Examples</h2>
         <guide-link to="/reference/logo#control">Loops, tests and other control flow</guide-link>
       </div>
-      <div class="control-row">
+      <div class="control-row control-row--examples">
         <button
           v-for="example in examples"
           :key="example.label"
@@ -185,12 +185,13 @@ import CodeEditor from "@/components/CodeEditor.vue";
 const EXAMPLES = [
   {
     label: "Blink",
-    program: "to start\n  forever [\n    ledon\n    wait 500\n    ledoff\n    wait 500\n  ]\nend",
+    program:
+      "to start\n  forever [\n    bgcolor 0      ; hue 0 to 255, 0 is red\n    wait 500\n    bgcolor 160    ; 160 is blue\n    wait 500\n  ]\nend",
   },
   {
     label: "Motor and direction",
     program:
-      "to start\n  ab, setpower 60    ; power 0 to 100\n  ab, thisway\n  ab, onfor 1000\n  ab, thatway\n  ab, onfor 1000\nend",
+      "to start\n  output12, setpower 60    ; power 0 to 100\n  output12, thisway\n  output12, onfor 1000\n  output12, thatway\n  output12, onfor 1000\nend",
   },
   {
     label: "Servo sweep",
@@ -215,7 +216,7 @@ const EXAMPLES = [
   {
     label: "Broadcast",
     program:
-      '; broadcast goes through the cloud broker, so this needs WiFi to do anything\nto start\n  setbroadcastchannel 1\n  whenreceivebroadcast "blink" [ ledon wait 300 ledoff ]\n  forever [\n    broadcast "blink"\n    wait 1000\n  ]\nend',
+      '; broadcast goes through the cloud broker, so this needs WiFi to do anything\nto start\n  setbroadcastchannel 1\n  whenreceivebroadcast "blink" [ bgcolor 96 wait 300 bgcolor 0 ]\n  forever [\n    broadcast "blink"\n    wait 1000\n  ]\nend',
   },
   {
     label: "Log to datalog",
@@ -489,6 +490,11 @@ export default {
 </script>
 
 <style scoped>
+/*? eight chips overrun the row well before .control-row's own 640px wrap
+    kicks in, and every example has to stay clickable, so this row wraps at
+    any width rather than scrolling sideways */
+.control-row--examples { flex-wrap: wrap; }
+
 .field-label {
   display: block;
   margin-bottom: 5px;

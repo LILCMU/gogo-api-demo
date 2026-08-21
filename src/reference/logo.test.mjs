@@ -13,9 +13,13 @@ const EXPECTED_SECTION_IDS = [
 //? of any other type would silently render nothing
 const RENDERED_BLOCK_TYPES = ['prose', 'note', 'table', 'frame', 'bytemap', 'steps']
 
-//? commands the 7.x VM does not implement (module header explains why they
-//? are excluded). Kept here as a literal array so this list is the
-//? regression guard, not a cross-reference to prose.
+//? commands the 7.x VM does not usefully run (module header explains why they
+//? are excluded). Two failure modes are covered, and both silently do nothing:
+//? every word up to `_else` has no `case` at all, so it falls through to the
+//? terminal `default:` and halts the program; `ledon` and `ledoff` have a `case`
+//? with an empty body, so they dispatch and return with no effect. Kept here as
+//? a literal array so this list is the regression guard, not a cross-reference
+//? to prose.
 const EXCLUDED_WORDS = [
   'startultrasonic', 'getultrasonic', 'usecamera', 'closecamera', 'startfindface',
   'stopfindface', 'facefound?', 'takesnapshot', 'cameraison', 'isfindingface',
@@ -25,6 +29,7 @@ const EXCLUDED_WORDS = [
   'clearkeys', 'turnsteppingmotor', 'vernier_slot', 'vernier_slot_unit',
   'broadcastvalue', 'broadcastwithvalue', 'for', 'foreach', 'repcount',
   '_if', '_then', '_else',
+  'ledon', 'ledoff',
 ]
 
 //? every {code: '...'} run (prose/note) and every mono-flagged table cell —

@@ -4,7 +4,10 @@
 //? (~/Developer/gogo-logo-compiler/tinkerlogo.py), then filtered against
 //? gogo-firmware `version-3.2.6`. A command the 7.x VM does not implement falls
 //? through to a terminal `default:` that halts the program with no error, so
-//? only what that firmware handles is listed here.
+//? only what that firmware handles is listed here. A `case` label with an empty
+//? body is the same defect from the other side: `ledon` / `ledoff` dispatch and
+//? do nothing, so they are left out too. `rtc_init` is the one empty case that
+//? stays, because it never promised a visible action; its Notes cell says so.
 //?
 //? Section ids are a contract: GuideLink `to="/reference/logo#..."` points at
 //? them. Renaming one silently breaks a deep link.
@@ -105,12 +108,16 @@ export default {
           type: 'prose',
           runs: [
             'A port is chosen by a prefix ending in a comma, never by an argument. ',
-            { code: 'a, on' },
-            ' turns motor A on; ',
+            { code: 'output1, on' },
+            ' turns motor 1 on; ',
             { code: 'on 1' },
-            ' is not valid syntax. Motor letters combine, so ',
-            { code: 'abc, on' },
-            ' drives three motors in one statement.',
+            ' is not valid syntax. Port numbers combine, so ',
+            { code: 'output123, on' },
+            ' drives three motors in one statement. The board prints these numbers next to the output ports, so they are the form you can read off the hardware. The letter form ',
+            { code: 'a,' },
+            ' to ',
+            { code: 'd,' },
+            ' is the older equivalent spelling and combines the same way; older programs use it.',
           ],
         },
         {
@@ -118,10 +125,10 @@ export default {
           head: ['Prefix', 'Selects'],
           mono: [0],
           rows: [
-            ['a,  b,  c,  d,', 'one motor'],
-            ['abc,', 'several motors at once, any combination of a to d'],
-            ['output1,  ...  output4,', 'the same motors by number'],
-            ['output12,', 'several motors by number'],
+            ['output1,  ...  output4,', 'one motor'],
+            ['output12,', 'several motors at once, any combination of output1 to output4'],
+            ['a,  b,  c,  d,', 'the same motors in the older letter spelling'],
+            ['abc,', 'several motors by letter'],
             ['servo1,  ...  servo4,', 'one servo'],
             ['relay1,  ...  relay4,', 'one relay'],
           ],
@@ -139,11 +146,11 @@ export default {
           head: ['Signature', 'Kind', 'Notes'],
           mono: [0],
           rows: [
-            ['aon?', 'reporter', 'motor A is running. Same shape on b, c, d and output1 to output4'],
-            ['aoff?', 'reporter', 'motor A is stopped'],
-            ['athisway?', 'reporter', 'motor A is turning thisway'],
-            ['athatway?', 'reporter', 'motor A is turning thatway'],
-            ['apower', 'reporter', 'motor A power setting'],
+            ['output1on?', 'reporter', 'motor 1 is running. Same shape on output2 to output4, and in the letter spelling as aon?'],
+            ['output1off?', 'reporter', 'motor 1 is stopped'],
+            ['output1thisway?', 'reporter', 'motor 1 is turning thisway'],
+            ['output1thatway?', 'reporter', 'motor 1 is turning thatway'],
+            ['output1power', 'reporter', 'motor 1 power setting. This one takes a single port only, unlike the tests above'],
             ['relay1on?', 'reporter', 'relay 1 is on. Same on relay2 to relay4'],
             ['servo1angle', 'reporter', 'servo 1 angle. Same on servo2 to servo4'],
           ],
@@ -310,13 +317,13 @@ export default {
           head: ['Signature', 'Kind', 'Notes'],
           mono: [0],
           rows: [
-            ['a, on', 'statement', 'runs the selected motors'],
-            ['a, off', 'statement', 'stops the selected motors'],
-            ['a, onfor n', 'statement', 'runs the selected motors, then stops them after n milliseconds'],
-            ['a, thisway', 'statement', 'sets direction. cw is the same command'],
-            ['a, thatway', 'statement', 'the opposite direction. ccw is the same command'],
-            ['a, rd', 'statement', 'reverses the current direction'],
-            ['a, setpower n', 'statement', 'power 0-100. The board reports it back as 0-255 PWM'],
+            ['output1, on', 'statement', 'runs the selected motors'],
+            ['output1, off', 'statement', 'stops the selected motors'],
+            ['output1, onfor n', 'statement', 'runs the selected motors, then stops them after n milliseconds'],
+            ['output1, thisway', 'statement', 'sets direction. cw is the same command'],
+            ['output1, thatway', 'statement', 'the opposite direction. ccw is the same command'],
+            ['output1, rd', 'statement', 'reverses the current direction'],
+            ['output1, setpower n', 'statement', 'power 0-100. The board reports it back as 0-255 PWM'],
             ['stopall', 'statement', 'stops every motor. Takes no prefix'],
             ['servo1, seth n', 'statement', 'angle 0-180'],
             ['servo1, seta n', 'statement', 'angle 0-180'],
@@ -406,8 +413,6 @@ export default {
             ['beep', 'statement', 'the board buzzer'],
             ['note n n', 'statement', ''],
             ['notetempo n', 'statement', ''],
-            ['ledon', 'statement', ''],
-            ['ledoff', 'statement', ''],
             ['play', 'statement', ''],
             ['nexttrack', 'statement', ''],
             ['prevtrack', 'statement', ''],
@@ -482,7 +487,7 @@ export default {
             ['hours', 'reporter', ''],
             ['minutes', 'reporter', ''],
             ['seconds', 'reporter', ''],
-            ['rtc_init', 'statement', 'starts the real-time clock'],
+            ['rtc_init', 'statement', 'does nothing on GoGo Board 7. The clock syncs over NTP, so there is no clock to start. Kept because older programs call it'],
           ],
         },
       ],
