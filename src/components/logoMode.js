@@ -17,8 +17,7 @@ import CodeMirror from 'codemirror'
 //? silently stops the program. The excluded set is the old Raspberry Pi
 //? companion commands (opcodes 200-239), ultrasonic, `turnsteppingmotor`,
 //? `vernier_slot*`, and the firmware-4 words (`for`, `foreach`, `repcount`,
-//? `broadcast*value`). Derivation lives in
-//? .claude/specs/logo-language-reference-design.md.
+//? `broadcast*value`). Derivation lives in .claude/knowledges/logo-language.md.
 //?
 //? The bare `ison` / `isoff` / `isthisway` / `isthatway` reserved words are left
 //? out for the same reason from the other end: the VM implements opcodes 64-67,
