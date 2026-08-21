@@ -124,7 +124,7 @@ Actions take `context` first and the payload second — `connect(context, { prom
 
 **Control, Logo and Datalog show the frames they put on the wire**, built with the same `buildCommand`/`buildLogoWriteSequence` the send paths use so the view cannot drift from what is sent. `src/utils/wireFrame.js` holds `trimFrame` and the shared legend labels.
 
-**`src/reference/` is not authoritative** — `docs/protocol.md` and `docs/offline-datalog.md` are. The modules are the same facts shaped for the block renderer, and the two can drift. Section ids are a contract: `GuideLink` deep-links into them, so `grep 'to="/reference'` after renaming one.
+**`src/reference/` is not authoritative** — `docs/protocol.md`, `docs/offline-datalog.md` and `docs/logo-language.md` are. The modules (`protocol.js`, `datalog.js`, `logo.js`) are the same facts shaped for the block renderer, and the two can drift. Section ids are a contract: `GuideLink` deep-links into them, so `grep 'to="/reference'` after renaming one.
 
 **Logo download flow** (`Logo.vue`): POST source to the cloud compiler (`compilerUrl` from `src/config.js`, `emulateJSON`) → set memory pointer (cat 1, cmd 1) → write each chunk from `buildLogoWriteSequence(bytecode)` (cat 1, cmd 3) awaited in sequence with a 10 ms `setTimeout` between packets → beep (cat 0, cmd 11). The page's two tabs are alternatives, not steps: "Raw opcodes" skips the compiler and feeds `downloadOpcodeToBoard` a JSON byte array directly.
 
