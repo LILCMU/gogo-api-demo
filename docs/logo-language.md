@@ -127,8 +127,8 @@ Precedence, weakest binding at level 1 and tightest at level 10.
 | `min n n` | reporter | |
 | `max n n` | reporter | |
 | `random n` | reporter | |
-| `constrain n n n` | reporter | |
-| `map n n n n n` | reporter | |
+| `constrain n n n` | reporter | value low high, clamps in float math, no guard when low is above high |
+| `map n n n n n` | reporter | value fromLow fromHigh toLow toHigh, integer math, extrapolates past the range instead of clamping. Returns -1 when fromLow equals fromHigh |
 | `highbyte n` | reporter | |
 | `lowbyte n` | reporter | |
 
@@ -175,12 +175,12 @@ Port reads come in two spellings: a numbered word, and a reader taking the port 
 | `inputN` | reporter | N is 1 to 4. Compiles to readsensor N |
 | `readswitch n` | reporter | port 1-4 |
 | `switchN` | reporter | N is 1 to 4. Compiles to readswitch N |
-| `readfilteredinput n` | reporter | port 1-4 |
+| `readfilteredinput n` | reporter | port 1-4, the port's last filtered sample |
 | `filteredinputN` | reporter | N is 1 to 4 |
-| `readfilteredvariable n` | reporter | |
+| `readfilteredvariable n` | reporter | variable name, returns the filter's last output, 0 if no filter is set |
 | `readboardsensor n` | reporter | the sensors built into the board |
 | `readacceleration n` | reporter | one accelerometer axis |
-| `readloudness` | reporter | |
+| `readloudness` | reporter | on-board microphone level, the same value the type-0 report carries |
 | `ir` | reporter | last code received from an infrared remote |
 | `newir?` | reporter | true while an unread ir code is waiting |
 | `serial` | reporter | |
@@ -192,17 +192,17 @@ Port reads come in two spellings: a numbered word, and a reader taking the port 
 | `newboardgesture?` | reporter | |
 | `timer` | reporter | counts up in milliseconds |
 | `resett` | statement | zeroes the timer |
-| `tickcount` | reporter | |
-| `cleartick` | statement | zeroes the tick count |
-| `settickrate n` | statement | |
-| `setinputfilter n n` | statement | |
-| `setinputthreshold n n` | statement | |
-| `setinputweight n n` | statement | |
-| `setvariablefilter n n` | statement | |
-| `setvariablethreshold n n` | statement | |
-| `setvariableweight n n` | statement | |
-| `resetinputminmax n` | statement | |
-| `resetvariableminmax n` | statement | |
+| `tickcount` | reporter | ticks elapsed since the last settickrate or cleartick, counted only while the program runs |
+| `cleartick` | statement | zeroes the tick count and the partial tick, keeps the period |
+| `settickrate n` | statement | tick period in milliseconds, not a rate, so larger is slower. Default 10, and it also zeroes the count |
+| `setinputfilter n n` | statement | port 1-4 then type: 0 average, 1 rate, 2 max, 3 min, 4 amplify. One filter per port, later calls are ignored |
+| `setinputthreshold n n` | statement | port 1-4 then raw threshold clamped to the sensor range. Rate filter only, and setting it disables the automatic baseline |
+| `setinputweight n n` | statement | port 1-4 then smoothing weight for the average and amplify filters, out = (prev*w + in)/(w+1), 0 is no smoothing |
+| `setvariablefilter n n` | statement | variable name then type: 0 average, 1 rate, 2 max, 3 min, 4 amplify. One filter per variable, later calls are ignored |
+| `setvariablethreshold n n` | statement | variable name then rate threshold, unclamped, and setting it disables the automatic baseline |
+| `setvariableweight n n` | statement | variable name then smoothing weight for the average and amplify filters, out = (prev*w + in)/(w+1), 0 is no smoothing |
+| `resetinputminmax n` | statement | port 1-4, reseeds the min or max filter from the port's current reading |
+| `resetvariableminmax n` | statement | variable name, reseeds the min or max filter from the variable's current value |
 
 ## Display and sound
 
@@ -210,17 +210,19 @@ Port reads come in two spellings: a numbered word, and a reader taking the port 
 |---|---|---|
 | `show n\|s` | statement | writes a number or text to the display |
 | `cls` | statement | clears the display |
-| `textpos n n` | statement | |
-| `textcolor n` | statement | |
-| `bgcolor n` | statement | |
-| `textstyle n` | statement | |
-| `showimage s` | statement | |
-| `assetadd n n n n n\|s` | statement | |
-| `assetwrite n n\|s` | statement | |
-| `assetread n` | reporter | |
+| `textpos n n` | statement | x then y in pixels, not column and row. Both wrap above 255 |
+| `textcolor n` | statement | CHSV hue 0-255 at full saturation, the same scale as bgcolor |
+| `bgcolor n` | statement | CHSV hue 0-255 at full saturation, fills the screen at once |
+| `textstyle n` | statement | font, 0 small 1 large 2 bold. Other values are ignored |
+| `showimage s` | statement | downloads and draws a URL, blocks until the image lands, only paints on the main page |
+| `assetadd n n n n n\|s` | statement | grid x, grid y, length, alignment 0 left 1 right 2 center, then the value |
+| `assetwrite n n\|s` | statement | asset id then value. Ids are assigned by assetadd order starting at 0, an unknown id is ignored |
+| `assetread n` | reporter | returns the stored value for an asset id, empty string if that id was never added |
 | `beep` | statement | the board buzzer |
-| `note n n` | statement | |
-| `notetempo n` | statement | |
+| `note n n` | statement | pitch then beats. Pitch is 1-based chromatic from C with 12 per octave, 0 is silence |
+| `notetempo n` | statement | beats per minute, default 120, sets how long one beat of note lasts |
+
+**Display assets live in RAM only.** `assetadd` places a fixed field on a grid of 8x16 pixel character cells, not on pixels, and takes the next free id counting from 0. The table is never written to flash, so a reset clears it.
 
 ## Lists, text, time
 
@@ -273,51 +275,53 @@ Port reads come in two spellings: a numbered word, and a reader taking the port 
 
 | Signature | Kind | Notes |
 |---|---|---|
-| `connectwifi s s` | statement | |
-| `setbroadcastchannel n` | statement | |
-| `setbroadcastpassword s` | statement | |
-| `broadcast s` | statement | |
+| `connectwifi s s` | statement | ssid then password, beeps success, failure, or blocked by remote access |
+| `setbroadcastchannel n` | statement | channel number, the string form does not compile |
+| `setbroadcastpassword s` | statement | payload sent with every broadcast, receivers must match it |
+| `broadcast s` | statement | no WiFi guard, so a broadcast sent offline is silently lost |
 | `whenreceivebroadcast s [ ... ]` | statement | runs the block when a matching broadcast arrives |
-| `setmqttbroker s` | statement | also spelled setmessagebroker |
-| `mqttpublish s n\|s` | statement | also spelled publishmessage |
-| `mqttsubscribe s [ ... ]` | statement | also spelled subscribemessage |
-| `mqttmessage` | reporter | |
-| `message` | reporter | |
-| `sendgmessage s n\|s` | statement | |
-| `whenreceivegmessage s [ ... ]` | statement | |
-| `gmessage s` | reporter | |
-| `offlinerecord n s` | statement | writes one record to the board offline datalog |
-| `cloudrecord n s` | statement | |
-| `publiccloudrecord n s s` | statement | |
-| `setcloudrecorduid s` | statement | |
-| `reportgrading n n` | statement | |
-| `setiftttkey s` | statement | |
-| `sendiftttevent s n\|s` | statement | |
-| `setlinetoken s s` | statement | |
-| `sendlinemessage n\|s` | statement | |
+| `setmqttbroker s` | statement | broker host without a scheme, the firmware prepends mqtt:// and reconnects. Also spelled setmessagebroker |
+| `mqttpublish s n\|s` | statement | topic then payload, published with no WiFi guard so it is silently lost when offline. Also spelled publishmessage |
+| `mqttsubscribe s [ ... ]` | statement | topic, runs the block on each new payload. Also spelled subscribemessage |
+| `mqttmessage` | reporter | last payload from mqttsubscribe as a string, empty until one arrives |
+| `message` | reporter | exact alias of mqttmessage. Any identifier starting with message is split by the lexer |
+| `sendgmessage s n\|s` | statement | key then value, sent to the host over USB rather than the network |
+| `whenreceivegmessage s [ ... ]` | statement | runs the block when the host sends that key over USB |
+| `gmessage s` | reporter | value the host last sent for that key, the number 0 if the key is unknown |
+| `offlinerecord n s` | statement | value then field. Writes one record to the board offline datalog, rate limited to one record per field per second |
+| `cloudrecord n s` | statement | value then field, does nothing until setcloudrecorduid is set, one record per field per second |
+| `publiccloudrecord n s s` | statement | value, field, then channel, one record per field per second |
+| `setcloudrecorduid s` | statement | cloud account id, required before cloudrecord publishes anything |
+| `reportgrading n n` | statement | rule index then status, writes one bit of the grading register |
+| `setiftttkey s` | statement | webhook key, required before sendiftttevent does anything |
+| `sendiftttevent s n\|s` | statement | event name then message, silently returns without WiFi or a key |
+| `setlinetoken s s` | statement | token then chat id |
+| `sendlinemessage n\|s` | statement | silently returns without WiFi or a token |
 | `sendlineimage s n\|s` | statement | url then message. A numeric message hits an overload that swaps the two, so pass the message as a string |
-| `sendlinesticker n n n` | statement | |
+| `sendlinesticker n n n` | statement | package id, sticker id, then message |
 
 ## I2C, Vernier, Tasmota, keyboard
 
+**An I2C transfer is a sequence, not one call.** `i2cstart`, then `i2cwrite` with the address, then one `i2cwrite` per data byte, then `i2crequest n` and n calls to `i2cread` if you are reading, then `i2cstop`. Addresses are 7-bit throughout, so an address quoted in 8-bit form has to be halved.
+
 | Signature | Kind | Notes |
 |---|---|---|
-| `i2cstart` | statement | |
-| `i2cstop` | statement | |
-| `i2cwrite n` | statement | |
-| `i2crequest n` | statement | |
-| `i2cread` | reporter | |
-| `i2creadandstop` | reporter | |
-| `i2c_read_register n n` | reporter | |
-| `i2c_write_register n n n` | statement | |
-| `vernier_sensor_value n` | reporter | |
-| `vernier_sensor_unit n` | reporter | |
-| `tasmotasetchannel n` | statement | |
-| `tasmotasendcommand s n\|s n\|s` | statement | |
-| `tasmotamessage s` | reporter | |
-| `tasmotamessagedevice s s` | reporter | |
-| `tasmotanewmessagedevice s` | reporter | |
-| `tasmotawhenreceive s [ ... ]` | statement | |
+| `i2cstart` | statement | arms the sequence, the next i2cwrite supplies the 7-bit address |
+| `i2cstop` | statement | ends the transfer, does nothing unless a byte was written or read |
+| `i2cwrite n` | statement | first call after i2cstart is the 7-bit address, later calls are data bytes |
+| `i2crequest n` | statement | number of bytes to request from the current address, not an address |
+| `i2cread` | reporter | returns one buffered byte, 0 if no i2crequest is outstanding |
+| `i2creadandstop` | reporter | i2cread followed by i2cstop |
+| `i2c_read_register n n` | reporter | 7-bit address then register, reads one byte and blocks forever if the device never answers |
+| `i2c_write_register n n n` | statement | 7-bit address, register, value |
+| `vernier_sensor_value n` | reporter | 0-based field index on the attached Vernier interface, an out-of-range field reads as 0 |
+| `vernier_sensor_unit n` | reporter | 0-based field index, returns the unit string, returns the number 0 when the field does not exist |
+| `tasmotasetchannel n` | statement | channel number, the string form does not compile |
+| `tasmotasendcommand s n\|s n\|s` | statement | device, command, then payload. An empty device name or the core device goes over serial, not MQTT |
+| `tasmotamessage s` | reporter | last value for that key from the subscribed device |
+| `tasmotamessagedevice s s` | reporter | device then key |
+| `tasmotanewmessagedevice s` | reporter | true when that device has sent something new |
+| `tasmotawhenreceive s [ ... ]` | statement | subscribes to a device and runs the block on each new message |
 | `sendkey s` | statement | the board has its own keyboard HID interface |
 | `presskey s` | statement | |
 | `releasekey s` | statement | |
