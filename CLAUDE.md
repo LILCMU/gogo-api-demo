@@ -20,7 +20,7 @@ The goal is that another team can open the page matching what they want, read on
 file, and copy it. Everything below serves that.
 
 **Shipped.** The app tracks GoGo Board **7.x** and is split into a framework-free
-device service (`src/gogo/`, no Vue, 44 unit tests) behind six pages.
+device service (`src/gogo/`, no Vue, 48 unit tests) behind six pages.
 `docs/protocol.md` and `docs/offline-datalog.md` replaced the old Google Sheet and are
 verified against firmware source. The visual system uses GoGoCode's real palette.
 
@@ -85,7 +85,7 @@ what the code says, no AI-generated filler. Terse and correct beats thorough and
 npm install        # Node 20+; developed on Node 24 LTS
 npm run serve      # dev server with hot reload
 npm run build      # production build to dist/
-npm test           # node --test over src/gogo/**/*.test.mjs
+npm test           # node --test over src/**/*.test.mjs
 npm run lint       # eslint over src/, .js/.mjs/.vue
 ```
 

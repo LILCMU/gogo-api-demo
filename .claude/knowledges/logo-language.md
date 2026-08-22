@@ -37,6 +37,23 @@ reference across `src/`, `include/` and `lib/`. Unreferenced means unhandled. At
 229 declared, 48 unreferenced. Eleven declarations are commented out (`SENSOR4`-`SENSOR8`,
 `SWITCH3`-`SWITCH8`); counting those inflates the result by eleven words no keyword reaches.
 
+### A commented-out case: the program halts
+
+`setpos` and `getpos` compile to opcodes 101 and 102, but `gogo-logovm.cpp:1279-1308` wraps
+both cases in a single `/* */` block. With no live label they reach the terminal `default:`
+and halt. This is the same outcome as having no case, but it is invisible to a scan that
+greps for the opcode name, because the name is still there inside the comment. **Strip
+comments before building the case list.**
+
+### Hardware the board does not have
+
+The voice and track family (`play`, `nexttrack`, `prevtrack`, `gototrack`, `erasetracks`) is
+not opcodes at all: `tinkerlogo.py:2394-2414` expands each into
+`i2c_write_register 184 <reg> <val>` plus a wait. 184 is an 8-bit I2C address whose 7-bit
+form is 92, and the firmware passes it straight to `TwoWire::beginTransmission`, which wants
+7-bit. GoGo Board 7 has no such module anyway. A command can be unreachable without any
+opcode being missing.
+
 ### An empty stub: the program continues and nothing happens
 
 `ledon` and `ledoff` reach `case ULED_ON:` / `case ULED_OFF:` in `gogo-logovm.cpp:1150`,
@@ -102,6 +119,24 @@ grammar rule". Any regex over this grammar has to allow a leading underscore.
   double-quoted. `pow` is an infix operator, a word synonym for `**`.
 - Precedence, weakest to tightest: `or`/`xor`, `and`, `not`, `|`/`^`/`&`, `<<`/`>>`,
   comparisons, `+ -`, `* / %`, unary minus, `**`/`pow`. `=` is comparison; there is no `==`.
+
+## Ports: there are four, and nothing checks
+
+`SENSOR_COUNT` is 4. `readSensorReg(port)` indexes `gblDeviceRegister[REG_INPUT_A1 + port*2]`
+and `readFilteredSensorReg(port)` indexes a four-element array. **Neither bounds-checks.**
+With `REG_INPUT_A1 = 1` and `REG_INPUT_JOYSTICK = 9`, asking for ports 5 to 8 walks off the
+sensor block into the joystick and servo registers and returns plausible numbers:
+
+| Asked for | Actually reads |
+|---|---|
+| `sensor5` | joystick |
+| `sensor6` | joystick tail, servo angles |
+| `sensor7` | servo angles |
+| `sensor8` | servo angle 4, servo mode |
+
+The compiler accepts `sensor1` through `sensor8`, so the aliases exist and look symmetric.
+They are not. Ports are 1 to 4 for `readsensor`, `readswitch`, `readfilteredinput` and every
+`sensorN` / `switchN` / `inputN` / `filteredinputN` alias.
 
 ## Traps found the hard way
 
