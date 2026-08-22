@@ -13,11 +13,15 @@ const EXPECTED_SECTION_IDS = [
 //? of any other type would silently render nothing
 const RENDERED_BLOCK_TYPES = ['prose', 'note', 'table', 'frame', 'bytemap', 'steps']
 
-//? words this reference deliberately does not document. Two buckets, in array
+//? words this reference deliberately does not document. Five buckets, in array
 //? order. Everything up to `repcount` has no `case` in the 3.2.6 VM at all, so it
 //? falls through to the terminal `default:` and halts the program with no error.
-//? `ledon` / `ledoff` have a `case` with an empty body, so they dispatch and return
-//? with no effect. Kept here as a literal array so this list is the regression
+//? `ledon` / `ledoff` / `setcloudrecordlocal` reach a `case` that does nothing with
+//? them. `setpos` / `getpos` have cases too, but inside a `/* */` block, so they
+//? halt like the first bucket. The voice and track family compiles to an I2C write
+//? to a module GoGo Board 7 does not carry, at an address the wire library cannot
+//? use. The port aliases above 4 read past the board's four input ports into
+//? unrelated registers. Kept here as a literal array so this list is the regression
 //? guard, not a cross-reference to prose.
 const EXCLUDED_WORDS = [
   'startultrasonic', 'getultrasonic', 'usecamera', 'closecamera', 'startfindface',
@@ -27,7 +31,13 @@ const EXCLUDED_WORDS = [
   'writerfid', 'rfidtagfound?', 'rfidreaderfound?', 'say', 'key', 'intkey',
   'clearkeys', 'turnsteppingmotor', 'vernier_slot', 'vernier_slot_unit',
   'broadcastvalue', 'broadcastwithvalue', 'for', 'foreach', 'repcount',
-  'ledon', 'ledoff',
+  'ledon', 'ledoff', 'setcloudrecordlocal',
+  'setpos', 'getpos',
+  'play', 'nexttrack', 'prevtrack', 'gototrack', 'erasetracks',
+  'sensor5', 'sensor6', 'sensor7', 'sensor8',
+  'switch5', 'switch6', 'switch7', 'switch8',
+  'input5', 'input6', 'input7', 'input8',
+  'filteredinput5', 'filteredinput6', 'filteredinput7', 'filteredinput8',
 ]
 
 //? every {code: '...'} run (prose/note) and every mono-flagged table cell —

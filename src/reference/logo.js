@@ -8,6 +8,8 @@
 //? body is the same defect from the other side: `ledon` / `ledoff` dispatch and
 //? do nothing, so they are left out too. `rtc_init` is the one empty case that
 //? stays, because it never promised a visible action; its Notes cell says so.
+//? Commands aimed at hardware GoGo Board 7 does not carry, such as the voice and
+//? track family, are out on the same principle.
 //?
 //? Section ids are a contract: GuideLink `to="/reference/logo#..."` points at
 //? them. Renaming one silently breaks a deep link.
@@ -347,8 +349,8 @@ export default {
             ['servo1, seta n', 'statement', 'angle 0-180'],
             ['servo1, lt n', 'statement', 'angle 0-180, one direction'],
             ['servo1, rt n', 'statement', 'angle 0-180, the other direction'],
-            ['servo1, setservopower n', 'statement', ''],
             ['relay1, relaysetpower n', 'statement', 'power 0-100, reported back as percent. A non-zero power switches the relay on'],
+            ['relay1, setservopower n', 'statement', 'deprecated alias of relaysetpower. It sets relay power despite the name, so it takes a relay prefix'],
           ],
         },
       ],
@@ -369,13 +371,13 @@ export default {
           head: ['Signature', 'Kind', 'Notes'],
           mono: [0],
           rows: [
-            ['readsensor n', 'reporter', 'port 1-8'],
-            ['sensorN', 'reporter', 'N = 1-8. Compiles to readsensor N'],
-            ['inputN', 'reporter', 'N = 1-8. Compiles to readsensor N'],
-            ['readswitch n', 'reporter', 'port 1-8'],
-            ['switchN', 'reporter', 'N = 1-8. Compiles to readswitch N'],
-            ['readfilteredinput n', 'reporter', 'port 1-8'],
-            ['filteredinputN', 'reporter', 'N = 1-8'],
+            ['readsensor n', 'reporter', 'port 1-4'],
+            ['sensorN', 'reporter', 'N is 1 to 4. Compiles to readsensor N'],
+            ['inputN', 'reporter', 'N is 1 to 4. Compiles to readsensor N'],
+            ['readswitch n', 'reporter', 'port 1-4'],
+            ['switchN', 'reporter', 'N is 1 to 4. Compiles to readswitch N'],
+            ['readfilteredinput n', 'reporter', 'port 1-4'],
+            ['filteredinputN', 'reporter', 'N is 1 to 4'],
             ['readfilteredvariable n', 'reporter', ''],
             ['readboardsensor n', 'reporter', 'the sensors built into the board'],
             ['readacceleration n', 'reporter', 'one accelerometer axis'],
@@ -422,8 +424,6 @@ export default {
             ['textcolor n', 'statement', ''],
             ['bgcolor n', 'statement', ''],
             ['textstyle n', 'statement', ''],
-            ['setpos n', 'statement', ''],
-            ['getpos', 'reporter', ''],
             ['showimage s', 'statement', ''],
             ['assetadd n n n n n|s', 'statement', ''],
             ['assetwrite n n|s', 'statement', ''],
@@ -431,11 +431,6 @@ export default {
             ['beep', 'statement', 'the board buzzer'],
             ['note n n', 'statement', ''],
             ['notetempo n', 'statement', ''],
-            ['play', 'statement', ''],
-            ['nexttrack', 'statement', ''],
-            ['prevtrack', 'statement', ''],
-            ['gototrack n', 'statement', ''],
-            ['erasetracks', 'statement', ''],
           ],
         },
       ],
@@ -521,7 +516,7 @@ export default {
           mono: [0],
           rows: [
             ['connectwifi s s', 'statement', ''],
-            ['setbroadcastchannel n|s', 'statement', ''],
+            ['setbroadcastchannel n', 'statement', ''],
             ['setbroadcastpassword s', 'statement', ''],
             ['broadcast s', 'statement', ''],
             ['whenreceivebroadcast s [ ... ]', 'statement', 'runs the block when a matching broadcast arrives'],
@@ -537,13 +532,12 @@ export default {
             ['cloudrecord n s', 'statement', ''],
             ['publiccloudrecord n s s', 'statement', ''],
             ['setcloudrecorduid s', 'statement', ''],
-            ['setcloudrecordlocal n', 'statement', ''],
             ['reportgrading n n', 'statement', ''],
             ['setiftttkey s', 'statement', ''],
             ['sendiftttevent s n|s', 'statement', ''],
             ['setlinetoken s s', 'statement', ''],
             ['sendlinemessage n|s', 'statement', ''],
-            ['sendlineimage s n|s', 'statement', ''],
+            ['sendlineimage s n|s', 'statement', 'url then message. A numeric message hits an overload that swaps the two, so pass the message as a string'],
             ['sendlinesticker n n n', 'statement', ''],
           ],
         },
@@ -579,7 +573,7 @@ export default {
             ['presskey s', 'statement', ''],
             ['releasekey s', 'statement', ''],
             ['sendkeydelay n', 'statement', ''],
-            ['getpower n', 'reporter', ''],
+            ['getpower n', 'reporter', 'the port must be a literal. An expression is scanned as text, so getpower 1 + 1 silently reads motor 1'],
           ],
         },
       ],

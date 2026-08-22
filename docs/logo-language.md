@@ -4,7 +4,7 @@ The language the board itself runs: program shape, port addressing, and every co
 
 Derived from the compiler's `reserved` table and PLY grammar in `gogo-logo-compiler/tinkerlogo.py` at `LOGO_VERSION 3.0`, then verified against `gogoboard-7.x/gogo-firmware` at tag `version-3.2.6`. `src/reference/logo.js` holds the same facts shaped for the in-app block renderer; the two can drift, and this file is the source of truth.
 
-A word the 3.2.6 VM does not implement is left out: it falls through to a terminal `default:` that halts the program with no error. A word whose `case` label exists with an empty body is left out for the same reason from the other side, since it dispatches and does nothing: that is `ledon` and `ledoff`. `rtc_init` is the one empty case kept here, because it never promised a visible action; its Notes cell says so.
+A word the 3.2.6 VM does not implement is left out: it falls through to a terminal `default:` that halts the program with no error. A word whose `case` label exists with an empty body is left out for the same reason from the other side, since it dispatches and does nothing: that is `ledon` and `ledoff`. `rtc_init` is the one empty case kept here, because it never promised a visible action; its Notes cell says so. Commands aimed at hardware GoGo Board 7 does not carry, such as the voice and track family, are out on the same principle.
 
 The **Kind** column says where a word may appear. A reporter yields a value and can sit inside an expression; a statement cannot.
 
@@ -161,8 +161,8 @@ Each of these needs its port prefix. The signature below shows one concrete pref
 | `servo1, seta n` | statement | angle 0-180 |
 | `servo1, lt n` | statement | angle 0-180, one direction |
 | `servo1, rt n` | statement | angle 0-180, the other direction |
-| `servo1, setservopower n` | statement | |
 | `relay1, relaysetpower n` | statement | power 0-100, reported back as percent. A non-zero power switches the relay on |
+| `relay1, setservopower n` | statement | deprecated alias of relaysetpower. It sets relay power despite the name, so it takes a relay prefix |
 
 ## Sensing
 
@@ -170,13 +170,13 @@ Port reads come in two spellings: a numbered word, and a reader taking the port 
 
 | Signature | Kind | Notes |
 |---|---|---|
-| `readsensor n` | reporter | port 1-8 |
-| `sensorN` | reporter | N = 1-8. Compiles to readsensor N |
-| `inputN` | reporter | N = 1-8. Compiles to readsensor N |
-| `readswitch n` | reporter | port 1-8 |
-| `switchN` | reporter | N = 1-8. Compiles to readswitch N |
-| `readfilteredinput n` | reporter | port 1-8 |
-| `filteredinputN` | reporter | N = 1-8 |
+| `readsensor n` | reporter | port 1-4 |
+| `sensorN` | reporter | N is 1 to 4. Compiles to readsensor N |
+| `inputN` | reporter | N is 1 to 4. Compiles to readsensor N |
+| `readswitch n` | reporter | port 1-4 |
+| `switchN` | reporter | N is 1 to 4. Compiles to readswitch N |
+| `readfilteredinput n` | reporter | port 1-4 |
+| `filteredinputN` | reporter | N is 1 to 4 |
 | `readfilteredvariable n` | reporter | |
 | `readboardsensor n` | reporter | the sensors built into the board |
 | `readacceleration n` | reporter | one accelerometer axis |
@@ -214,8 +214,6 @@ Port reads come in two spellings: a numbered word, and a reader taking the port 
 | `textcolor n` | statement | |
 | `bgcolor n` | statement | |
 | `textstyle n` | statement | |
-| `setpos n` | statement | |
-| `getpos` | reporter | |
 | `showimage s` | statement | |
 | `assetadd n n n n n\|s` | statement | |
 | `assetwrite n n\|s` | statement | |
@@ -223,11 +221,6 @@ Port reads come in two spellings: a numbered word, and a reader taking the port 
 | `beep` | statement | the board buzzer |
 | `note n n` | statement | |
 | `notetempo n` | statement | |
-| `play` | statement | |
-| `nexttrack` | statement | |
-| `prevtrack` | statement | |
-| `gototrack n` | statement | |
-| `erasetracks` | statement | |
 
 ## Lists, text, time
 
@@ -281,7 +274,7 @@ Port reads come in two spellings: a numbered word, and a reader taking the port 
 | Signature | Kind | Notes |
 |---|---|---|
 | `connectwifi s s` | statement | |
-| `setbroadcastchannel n\|s` | statement | |
+| `setbroadcastchannel n` | statement | |
 | `setbroadcastpassword s` | statement | |
 | `broadcast s` | statement | |
 | `whenreceivebroadcast s [ ... ]` | statement | runs the block when a matching broadcast arrives |
@@ -297,13 +290,12 @@ Port reads come in two spellings: a numbered word, and a reader taking the port 
 | `cloudrecord n s` | statement | |
 | `publiccloudrecord n s s` | statement | |
 | `setcloudrecorduid s` | statement | |
-| `setcloudrecordlocal n` | statement | |
 | `reportgrading n n` | statement | |
 | `setiftttkey s` | statement | |
 | `sendiftttevent s n\|s` | statement | |
 | `setlinetoken s s` | statement | |
 | `sendlinemessage n\|s` | statement | |
-| `sendlineimage s n\|s` | statement | |
+| `sendlineimage s n\|s` | statement | url then message. A numeric message hits an overload that swaps the two, so pass the message as a string |
 | `sendlinesticker n n n` | statement | |
 
 ## I2C, Vernier, Tasmota, keyboard
@@ -330,4 +322,4 @@ Port reads come in two spellings: a numbered word, and a reader taking the port 
 | `presskey s` | statement | |
 | `releasekey s` | statement | |
 | `sendkeydelay n` | statement | |
-| `getpower n` | reporter | |
+| `getpower n` | reporter | the port must be a literal. An expression is scanned as text, so getpower 1 + 1 silently reads motor 1 |
