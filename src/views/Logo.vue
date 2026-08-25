@@ -95,7 +95,7 @@
            splitting apart when the row wraps at narrow widths -->
       <div class="control-row control-row--actions">
         <button
-          class="btn btn--primary"
+          class="btn btn--info"
           @click="downloadLogoProgram()"
           :disabled="!isBoardReady"
           :title="actionHint"
@@ -171,7 +171,7 @@
       <span class="field-label">Raw opcodes</span>
       <code-editor v-model="logoOpcodes" mode="application/json" placeholder="[1, 3, 3, 5]" />
       <button
-        class="btn btn--primary"
+        class="btn btn--info"
         @click="sendPastedOpcodes()"
         :disabled="!isBoardReady"
         :title="actionHint"

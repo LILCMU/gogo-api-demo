@@ -11,6 +11,7 @@
   --gogo-green-tint: #f1f9e0;
   --gogo-orange-tint: #fef3e2;
   --gogo-blue-tint: #e1f4fe;
+  --gogo-blue-lit: #2cbbfd; /*? lighten($cc-blue, 10%) — the hover fill, mirrors --gogo-green-lit */
   --gogo-pink-tint: #fbe7f1;
 
   /*? $brand-danger — pink is a data colour here, not an error colour */
