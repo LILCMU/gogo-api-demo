@@ -90,14 +90,37 @@
 
       <span class="field-label">Logo source</span>
       <code-editor v-model="logoProgram" placeholder="Enter the logo program" />
-      <button
-        class="btn btn--primary"
-        @click="downloadLogoProgram()"
-        :disabled="!isBoardReady"
-        :title="actionHint"
-      >
-        Compile and download
-      </button>
+      <!--? Compile stays left; Stop/Run are grouped so the pair moves and
+           right-aligns together (via the group's auto margin) rather than
+           splitting apart when the row wraps at narrow widths -->
+      <div class="control-row control-row--actions">
+        <button
+          class="btn btn--primary"
+          @click="downloadLogoProgram()"
+          :disabled="!isBoardReady"
+          :title="actionHint"
+        >
+          Compile and download
+        </button>
+        <div class="control-row__actions-right">
+          <button
+            class="btn btn--danger"
+            @click="stopProgram()"
+            :disabled="!isBoardReady"
+            :title="actionHint"
+          >
+            Stop
+          </button>
+          <button
+            class="btn btn--primary"
+            @click="runProgram()"
+            :disabled="!isBoardReady"
+            :title="actionHint"
+          >
+            Run program
+          </button>
+        </div>
+      </div>
 
       <template v-if="compiledOpcodes">
         <div class="section-row">
@@ -422,6 +445,28 @@ export default {
       }
     },
 
+    //* Run and Stop act on whatever is already stored on the board, not on
+    //* the editor content or this session's download state
+    runProgram: async function () {
+      if (!this.requireBoard()) return;
+      try {
+        await this.send({ category: CATEGORY.CONTROL, command: CMD.LOGO_CONTROL, params: [1] });
+        this.reportAction("Program running.", false);
+      } catch (error) {
+        this.reportAction(error.message, true);
+      }
+    },
+
+    stopProgram: async function () {
+      if (!this.requireBoard()) return;
+      try {
+        await this.send({ category: CATEGORY.CONTROL, command: CMD.LOGO_CONTROL, params: [0] });
+        this.reportAction("Program stopped.", false);
+      } catch (error) {
+        this.reportAction(error.message, true);
+      }
+    },
+
     downloadLogoProgram: function () {
       if (!this.requireBoard()) return;
       if (!this.logoProgram) {
@@ -494,6 +539,17 @@ export default {
     kicks in, and every example has to stay clickable, so this row wraps at
     any width rather than scrolling sideways */
 .control-row--examples { flex-wrap: wrap; }
+
+/*? the group's auto margin absorbs the row's free space, pushing Stop and
+    Run program to the right edge as one unit so they stay adjacent even
+    when the row wraps; wrap keeps Compile and download from forcing
+    horizontal scroll at narrow widths */
+.control-row--actions { flex-wrap: wrap; }
+.control-row__actions-right {
+  display: flex;
+  gap: var(--gap);
+  margin-left: auto;
+}
 
 .field-label {
   display: block;
