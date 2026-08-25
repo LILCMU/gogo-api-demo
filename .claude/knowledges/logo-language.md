@@ -7,6 +7,25 @@ and `~/Developer/gogoboard-7.x/gogo-firmware` at tag `version-3.2.6`.
 `docs/logo-language.md` is the authoritative reference; `src/reference/logo.js` is the same
 facts shaped for the in-app renderer at `/reference/logo`, and the two can drift.
 
+## Three places to look, not two
+
+The firmware repo has a stable tag, a set of `-dev` tags, and `develop`. **Checking tags
+alone will tell you a fixed bug is still open.**
+
+`atan` is the case that proved it. The compiler emits single-argument `atan` (sub-op 33 with
+one operand). Firmware `version-3.2.6` and all four `4.0.0-dev` tags read 33 as `atan2` and
+pop two, so `atan n` returns a number built from whatever sat beneath it on the stack. That
+looked like an unfixed compiler/firmware mismatch. It is not: `develop` carries
+`3ac98529 feat(logovm): GC-380 replace two-arg atan2 with single-arg atan`, which renames the
+sub-op, extends the `isUnary` range to include it, and swaps `atan2f` for `atanf` in both
+copies of the compute switch. The fix landed after the dev tags were cut and ships with 4.0.
+
+The same holds for `OP_CLOUD_MESSAGE` 192 and `VERNIER_SENSOR_SLOT` 249: absent from every
+tag, present on `develop`. So a command can be in three states, not two. Working on stable;
+broken on stable and fixed on `develop`, which means it arrives with the next release; or
+absent everywhere, which means nobody has built it. Only the first belongs in the reference
+without a version note.
+
 ## Two ways a command does nothing
 
 There are two failure modes, and they need different detection. Both are guarded by

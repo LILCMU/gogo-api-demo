@@ -294,7 +294,7 @@ export default {
             ['tan n', 'reporter', ''],
             ['asin n', 'reporter', ''],
             ['acos n', 'reporter', ''],
-            ['atan n', 'reporter', ''],
+            ['atan n', 'reporter', 'single-argument arctangent, in radians. Wrong on firmware 3.2.6, which still reads sub-op 33 as two-argument atan2 and pops an extra operand. Correct from firmware 4.0'],
             ['min n n', 'reporter', ''],
             ['max n n', 'reporter', ''],
             ['random n', 'reporter', ''],
