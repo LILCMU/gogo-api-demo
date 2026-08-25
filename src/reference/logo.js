@@ -429,7 +429,7 @@ export default {
             ['assetwrite n n|s', 'statement', 'asset id then value. Ids are assigned by assetadd order starting at 0, an unknown id is ignored'],
             ['assetread n', 'reporter', 'returns the stored value for an asset id, empty string if that id was never added'],
             ['beep', 'statement', 'the board buzzer'],
-            ['note n n', 'statement', 'pitch then beats. Pitch is 1-based chromatic from C with 12 per octave, 0 is silence'],
+            ['note n n', 'statement', 'pitch then beats, not milliseconds. One beat is 500 ms at the default tempo, so note 60 200 sounds for 100 seconds. Pitch is 1-based chromatic from C with 12 per octave, 0 is silence'],
             ['notetempo n', 'statement', 'beats per minute, default 120, sets how long one beat of note lasts'],
           ],
         },

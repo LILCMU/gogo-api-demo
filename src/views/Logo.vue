@@ -234,7 +234,7 @@ const EXAMPLES = [
   {
     label: "Display and sound",
     program:
-      'to start\n  cls\n  textpos 0 0\n  show "Hello"\n  note 60 200\n  wait 300\n  note 64 200\nend',
+      'to start\n  cls\n  textpos 0 0\n  show "Hello"\n  ; note takes beats, not milliseconds\n  note 60 1\n  note 64 1\n  note 67 2\nend',
   },
   {
     label: "Broadcast",
