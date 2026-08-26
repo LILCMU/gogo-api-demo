@@ -1,5 +1,62 @@
 # Changelog
 
+## 2.2.0
+
+The Logo language, documented. Nothing in `src/gogo/` changed, so a project that
+copied the device service is unaffected.
+
+### Added
+
+- **Logo language reference** (`/reference/logo`, `docs/logo-language.md`). Every
+  command GoGo Board 7 actually runs, with its call form, whether it is a
+  statement or a reporter, and what it returns. `docs/logo-language.md` is
+  authoritative; `src/reference/logo.js` is the same material shaped for the
+  renderer, and a structural test keeps the two in step.
+- **A signature key** beside the contents, since the notation (`n`, `s`, `n|s`,
+  `[ ... ]`, `NAME`, `output1,`) appears on every table and nothing defined it.
+- **Building a screen with assets**, its own section: the 20x8 character grid,
+  the alignment values, a worked program, and the two things that bite. Asset
+  ids are handed out by creation order and nothing tells you what they are.
+- **Syntax at a glance** on the Logo page, plus deep links into the reference,
+  and eight example programs in place of the previous two.
+- **Run and Stop** beside Compile and download, sending cat 0 cmd 13. They act
+  on whatever is already stored on the board.
+- **String operator semantics.** `+` joins, `-` removes, and the left operand
+  decides which. `"n = " + 5` gives `"n = 5.00"`; the ordering comparisons on
+  strings compare length, not alphabet.
+- **A firmware 4 section.** Commands that compile today and stop the board, kept
+  visible rather than hidden, so the difference between "does not exist" and
+  "not yet" is legible.
+
+### Fixed
+
+- **The editor advertised commands the board cannot run.** `logoMode.js`
+  highlighted the compiler's whole reserved table. Around seventy of those words
+  compile and then fail silently on firmware 3.2.6, in seven distinct ways: no
+  handler at all, a case commented out, an empty stub, a handler that pushes a
+  constant, one that pops its operands and discards them, a command addressing
+  hardware this board does not carry, and port aliases that read past the end of
+  the array. All are out of the editor and the reference, with the evidence in
+  `.claude/knowledges/logo-language.md`.
+- **Port addressing was invisible.** `output1,`, `aon?`, `apower` and `:param`
+  rendered as anonymous variables, which is the syntax that carries the most
+  meaning per character in this language.
+- **Sensor ports are 1 to 4, not 1 to 8.** The board has four and nothing bounds
+  checks, so `sensor5` and friends returned the joystick and servo registers as
+  plausible readings.
+- The example chip row overflowed below about 700px.
+- Compile and download shared its green with Run; the download actions now take
+  the blue.
+
+### Notes
+
+Nothing here has been exercised on a physical board. Firmware claims come from
+reading `gogo-firmware` at `version-3.2.6`, `develop` and
+`feature/broadcast-with-value`. The eight examples compile through the live
+compiler endpoint.
+
+The paired editor change for GoGoCode is in its MR !32.
+
 ## 2.1.0
 
 A UI pass and a new Reference page. Nothing in `src/gogo/` changed, so a project

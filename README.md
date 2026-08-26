@@ -7,9 +7,9 @@ Six pages:
 - **Live** (`/live`) — the streaming device register, rendered as sensor tiles
 - **Control** (`/control`) — motors, servos, relays, beep
 - **Datalog** (`/datalog`) — pull records off the board's flash and chart them
-- **Logo** (`/logo`) — compile and download a Logo program, or push raw opcodes
+- **Logo** (`/logo`) — compile and download a Logo program, run or stop it, or push raw opcodes
 - **Packets** (`/packets`) — build and send a raw command packet, inspect the last response
-- **Reference** (`/reference`) — the wire protocol and datalog format, in the app
+- **Reference** (`/reference`) — the wire protocol, datalog format and Logo language, in the app
 
 Every page carries guide links next to its section headings that jump straight to the matching part of the reference, so you can dig into the bytes without leaving what you were testing.
 
@@ -37,9 +37,9 @@ Pulls records the board wrote while unplugged, charts them, and shows the staged
 
 ### Logo
 
-A CodeMirror editor with a real Logo mode, the compiler's bytecode, and the frames that carry it to the board in 60-byte chunks.
+Eight example programs, a syntax panel for the things you need before line one, and a CodeMirror editor with a real Logo mode. Compile and the page also shows the returned bytecode and the frames that carry it to the board in 60-byte chunks. Run and Stop sit beside the download and act on whatever is already on the board.
 
-![Logo page: editor, compiled bytecode and the write frames](docs/screenshots/logo.png)
+![Logo page: the example gallery, the syntax panel and the editor](docs/screenshots/logo.png)
 
 ### Packets
 
@@ -49,9 +49,9 @@ Build a frame byte by byte and read the reply. Colour ties every decoded value o
 
 ### Reference
 
-The wire protocol and datalog format as pages in the app, reachable from the guide link beside any section you are testing.
+The wire protocol, datalog format and Logo language as pages in the app, reachable from the guide link beside any section you are testing.
 
-![Reference page: the type-0 device register drawn as a byte map](docs/screenshots/reference.png)
+![Reference page: the Logo language tab, with the signature key beside the contents](docs/screenshots/reference.png)
 
 ## Copy what you need
 
@@ -78,6 +78,7 @@ Reading is unprompted: the board streams its device register from power-up. Writ
 
 - [Wire protocol](https://lilcmu.github.io/gogo-api-demo/reference/protocol) — frame layout, command set, device register
 - [Offline datalog](https://lilcmu.github.io/gogo-api-demo/reference/datalog) — the staged sync and the 10-byte record
+- [Logo language](https://lilcmu.github.io/gogo-api-demo/reference/logo) — every command GoGo Board 7 runs, and what each returns
 
 Standalone illustrated datasheets:
 
@@ -88,6 +89,7 @@ The same material in markdown, in this repo — authoritative, and what `src/ref
 
 - [Protocol reference](docs/protocol.md) — packet framing, command tables, device register map
 - [Offline datalog](docs/offline-datalog.md) — sync state machine and record format
+- [Logo language](docs/logo-language.md) — the grammar, every command, and what firmware 3.2.6 actually runs
 
 ## Requirements
 
@@ -117,4 +119,6 @@ Live demo: https://lilcmu.github.io/gogo-api-demo
 
 ## Status
 
-Tracks **GoGo Board 7.x** throughout, verified against a physical 7F running firmware 4.0.0. What changed from the 6.x protocol is documented — see [Changes since 6.x](docs/protocol.md#changes-since-6x).
+Tracks **GoGo Board 7.x** throughout, verified against a physical 7F. What changed from the 6.x protocol is documented — see [Changes since 6.x](docs/protocol.md#changes-since-6x).
+
+The Logo language reference targets firmware **3.2.6**, the current stable release; the bench board reports 4.0.0, which is a development build. Commands that need 4.0 are documented in a section of their own rather than mixed in, because on 3.2.6 they compile, download and stop the board.
