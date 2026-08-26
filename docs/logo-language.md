@@ -178,7 +178,7 @@ Port reads come in two spellings: a numbered word, and a reader taking the port 
 | `readfilteredinput n` | reporter | port 1-4, the port's last filtered sample |
 | `filteredinputN` | reporter | N is 1 to 4 |
 | `readfilteredvariable n` | reporter | variable name, returns the filter's last output, 0 if no filter is set |
-| `readboardsensor n` | reporter | the sensors built into the board |
+| `readboardsensor n` | reporter | the sensors built into the board, see the index table below |
 | `readacceleration n` | reporter | one accelerometer axis |
 | `readloudness` | reporter | on-board microphone level, the same value the type-0 report carries |
 | `ir` | reporter | last code received from an infrared remote |
@@ -201,6 +201,21 @@ Port reads come in two spellings: a numbered word, and a reader taking the port 
 | `setvariableweight n n` | statement | variable name then smoothing weight for the average and amplify filters, out = (prev*w + in)/(w+1), 0 is no smoothing |
 | `resetinputminmax n` | statement | port 1-4, reseeds the min or max filter from the port's current reading |
 | `resetvariableminmax n` | statement | variable name, reseeds the min or max filter from the variable's current value |
+
+The argument selects which built-in sensor to read. An index outside this list leaves the stack untouched.
+
+| Index | Reads | Notes |
+|---|---|---|
+| `0` | proximity | mapped to 0-255 |
+| `1` | illuminance | lux, 16-bit |
+| `2` | temperature |  |
+| `3` | humidity |  |
+| `4` | orientation | same value boardgesture reports |
+| `5` | acceleration, X axis | m/s squared |
+| `6` | acceleration, Y axis | m/s squared |
+| `7` | acceleration, Z axis | m/s squared |
+| `8` | combined acceleration | m/s squared, magnitude of the three axes |
+| `9` | loudness |  |
 
 ## Display and sound
 
