@@ -37,9 +37,9 @@ Pulls records the board wrote while unplugged, charts them, and shows the staged
 
 ### Logo
 
-A CodeMirror editor with a real Logo mode, the compiler's bytecode, and the frames that carry it to the board in 60-byte chunks. Eight example programs, a syntax panel for the things you need before line one, and Run and Stop beside the download.
+Eight example programs, a syntax panel for the things you need before line one, and a CodeMirror editor with a real Logo mode. Compile and the page also shows the returned bytecode and the frames that carry it to the board in 60-byte chunks. Run and Stop sit beside the download and act on whatever is already on the board.
 
-![Logo page: editor, compiled bytecode and the write frames](docs/screenshots/logo.png)
+![Logo page: the example gallery, the syntax panel and the editor](docs/screenshots/logo.png)
 
 ### Packets
 
@@ -51,7 +51,7 @@ Build a frame byte by byte and read the reply. Colour ties every decoded value o
 
 The wire protocol, datalog format and Logo language as pages in the app, reachable from the guide link beside any section you are testing.
 
-![Reference page: the type-0 device register drawn as a byte map](docs/screenshots/reference.png)
+![Reference page: the Logo language tab, with the signature key beside the contents](docs/screenshots/reference.png)
 
 ## Copy what you need
 
