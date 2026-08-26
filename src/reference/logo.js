@@ -387,8 +387,6 @@ export default {
             ['serial', 'reporter', ''],
             ['newserial?', 'reporter', ''],
             ['send n|s', 'statement', 'transmits a number or text out the serial port'],
-            ['handgesture', 'reporter', ''],
-            ['newhandgesture?', 'reporter', ''],
             ['boardgesture', 'reporter', ''],
             ['newboardgesture?', 'reporter', ''],
             ['timer', 'reporter', 'counts up in milliseconds'],

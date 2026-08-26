@@ -55,7 +55,7 @@ const BUILTIN = new Set([
   'assetread', 'assetwrite', 'atan', 'beep', 'bgcolor', 'boardgesture', 'broadcast', 'ccw',
   'ceil', 'charcodeat', 'cleartick', 'cloudrecord', 'cls', 'connectwifi', 'constrain', 'cos',
   'cw', 'day', 'dow', 'filteredinput1', 'filteredinput2', 'filteredinput3', 'filteredinput4',
-  'floor', 'fromcharcode', 'geta', 'getpower', 'gmessage', 'handgesture', 'highbyte', 'hours',
+  'floor', 'fromcharcode', 'geta', 'getpower', 'gmessage', 'highbyte', 'hours',
   'i2c_read_register', 'i2c_write_register', 'i2cread', 'i2creadandstop', 'i2crequest',
   'i2cstart', 'i2cstop', 'i2cwrite', 'input1', 'input2', 'input3', 'input4', 'ir', 'list_create',
   'list_find', 'list_get', 'list_insert', 'list_len', 'list_pop_at', 'list_pop_first',
@@ -86,7 +86,7 @@ const BUILTIN = new Set([
 //? the syntax that matters most as anonymous variables.
 const PORT_TARGET = /^(?:output[1-4]+|servo[1-4]+|relay[1-4]+|[abcd]+),/
 const PORT_QUERY = /^(?:(?:output[1-4]+|[abcd]+)(?:on\?|off\?|thisway\?|thatway\?|cw\?|ccw\?|power)|relay[1-4]+on\?|servo[1-4]angle)/
-const EVENT_QUERY = /^new(?:ir|serial|handgesture|boardgesture)\?/
+const EVENT_QUERY = /^new(?:ir|serial|boardgesture)\?/
 
 //? mirrors the compiler's lexer: `;.*` comments, `".*?"` strings,
 //? `\d+\.\d+` floats and `[a-zA-Z_][a-zA-Z_0-9]*` identifiers

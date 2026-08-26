@@ -73,6 +73,20 @@ form is 92, and the firmware passes it straight to `TwoWire::beginTransmission`,
 7-bit. GoGo Board 7 has no such module anyway. A command can be unreachable without any
 opcode being missing.
 
+### A constant: the program continues and the answer is always the same
+
+`handgesture` and `newhandgesture?` have live cases with real bodies, and both are
+`push(0)`. The APDS9960 that read hand gestures is not on GoGo Board 7, so the firmware
+answers 0 forever rather than crashing legacy bytecode. `boardgesture` and
+`newboardgesture?` are NOT the same: they read `REG_ONBOARD_ORIENTATION` off the IMU and
+work.
+
+This shape defeats both earlier scans. The opcode is referenced, so the reference scan
+passes it, and the body is not empty, so the empty-body scan passes it too. The test that
+finds it is: **a case whose body only pushes a numeric literal.** Sweeping 3.2.6 for that
+turns up exactly these two; `develop` adds `ULTRASONIC_GET_DISTANCE`, already excluded here
+for a different reason.
+
 ### An empty stub: the program continues and nothing happens
 
 `ledon` and `ledoff` reach `case ULED_ON:` / `case ULED_OFF:` in `gogo-logovm.cpp:1150`,

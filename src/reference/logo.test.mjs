@@ -13,7 +13,7 @@ const EXPECTED_SECTION_IDS = [
 //? of any other type would silently render nothing
 const RENDERED_BLOCK_TYPES = ['prose', 'note', 'table', 'frame', 'bytemap', 'steps']
 
-//? words this reference deliberately does not document. Five buckets, in array
+//? words this reference deliberately does not document. Six buckets, in array
 //? order. Everything up to `repcount` has no `case` in the 3.2.6 VM at all, so it
 //? falls through to the terminal `default:` and halts the program with no error.
 //? `ledon` / `ledoff` / `setcloudrecordlocal` reach a `case` that does nothing with
@@ -21,8 +21,10 @@ const RENDERED_BLOCK_TYPES = ['prose', 'note', 'table', 'frame', 'bytemap', 'ste
 //? halt like the first bucket. The voice and track family compiles to an I2C write
 //? to a module GoGo Board 7 does not carry, at an address the wire library cannot
 //? use. The port aliases above 4 read past the board's four input ports into
-//? unrelated registers. Kept here as a literal array so this list is the regression
-//? guard, not a cross-reference to prose.
+//? unrelated registers. `handgesture` / `newhandgesture?` are the quietest shape
+//? of all: a live case that pushes a constant 0, because the APDS9960 the sensor
+//? needs is not on GoGo Board 7. Kept here as a literal array so this list is the
+//? regression guard, not a cross-reference to prose.
 const EXCLUDED_WORDS = [
   'startultrasonic', 'getultrasonic', 'usecamera', 'closecamera', 'startfindface',
   'stopfindface', 'facefound?', 'takesnapshot', 'cameraison', 'isfindingface',
@@ -38,6 +40,7 @@ const EXCLUDED_WORDS = [
   'switch5', 'switch6', 'switch7', 'switch8',
   'input5', 'input6', 'input7', 'input8',
   'filteredinput5', 'filteredinput6', 'filteredinput7', 'filteredinput8',
+  'handgesture', 'newhandgesture?',
 ]
 
 //? every {code: '...'} run (prose/note) and every mono-flagged table cell —
