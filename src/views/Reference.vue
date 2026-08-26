@@ -43,7 +43,7 @@
               </p>
             </div>
 
-            <div v-else-if="block.type === 'table'" :key="i" class="ref-table-wrap">
+            <div v-else-if="block.type === 'table'" :key="i" :id="block.id" class="ref-table-wrap">
               <table class="ref-table">
                 <thead>
                   <tr>
@@ -52,11 +52,13 @@
                 </thead>
                 <tbody>
                   <tr v-for="(row, r) in block.rows" :key="r">
+                    <!--? a cell is either plain text or { text, to }, which deep-links
+                         to an id further down the page; anything else stays literal -->
                     <td
                       v-for="(cell, c) in row"
                       :key="c"
                       :class="{ 'is-mono': block.mono && block.mono.indexOf(c) !== -1 }"
-                    >{{ cell }}</td>
+                    ><a v-if="cell && cell.to" :href="cell.to">{{ cell.text }}</a><template v-else>{{ cell }}</template></td>
                   </tr>
                 </tbody>
               </table>
@@ -230,6 +232,9 @@ export default {
 /* --- tables ------------------------------------------------ */
 
 .ref-table-wrap { overflow-x: auto; border-radius: var(--radius-card); box-shadow: var(--widget-shadow); }
+/*? an anchored table would otherwise land under the sticky header */
+.ref-table-wrap[id] { scroll-margin-top: var(--space-5); }
+.ref-table a { color: var(--gogo-blue); text-decoration: underline; text-underline-offset: 2px; }
 
 .ref-table { width: 100%; border-collapse: collapse; background: var(--card-bg); font-size: 13.5px; }
 
