@@ -360,7 +360,7 @@ The argument selects which built-in sensor to read. An index outside this list l
 
 ## Coming in firmware 4
 
-The current stable firmware is **3.2.6**, and everything above runs on it. The commands in this section do not. They compile, they download, and the board stops at the first one. They are listed here because they are implemented on the firmware development branch and will arrive with 4.0.
+The current stable firmware is **3.2.6**, and everything above runs on it. The commands in this section do not. They compile, they download, and the board stops at the first one. They are listed here because the firmware work exists and they will arrive with 4.0.
 
 | Signature | Kind | Notes |
 |---|---|---|
@@ -369,5 +369,7 @@ The current stable firmware is **3.2.6**, and everything above runs on it. The c
 | `repcount` | reporter | the current iteration inside for or repeat |
 | `vernier_slot n n` | reporter | slot-addressed Vernier read, alongside the existing vernier_sensor_value |
 | `vernier_slot_unit n n` | reporter | the unit string for that slot |
+| `broadcastwithvalue s n\|s` | statement | broadcasts a message carrying a value |
+| `broadcastvalue` | reporter | the value carried by the message that just arrived |
 
 Firmware 4 also gives procedures their own local scope. Today a parameter and any `set` inside a procedure are global, so two procedures using the same name share it. And `atan` becomes the single-argument form the compiler already emits; on 3.2.6 it is read as a two-argument atan2 and returns a wrong number.

@@ -20,8 +20,12 @@ looked like an unfixed compiler/firmware mismatch. It is not: `develop` carries
 sub-op, extends the `isUnary` range to include it, and swaps `atan2f` for `atanf` in both
 copies of the compute switch. The fix landed after the dev tags were cut and ships with 4.0.
 
-The same holds for `OP_CLOUD_MESSAGE` 192 and `VERNIER_SENSOR_SLOT` 249: absent from every
-tag, present on `develop`. So a command can be in three states, not two. Working on stable;
+The same holds for `VERNIER_SENSOR_SLOT` 249: absent from every tag, present on `develop`.
+And there is a fourth place. `OP_BROADCAST` 192, behind `broadcastvalue` and
+`broadcastwithvalue`, is on neither the tags nor `develop`: the work lives on
+`feature/broadcast-with-value`, with its own `BroadcastSubOps` enum and a live case. Reading
+only the tag and `develop` says nobody has built it, and that is wrong. Check the feature
+branches before concluding a command has no firmware behind it. So a command can be in three states, not two. Working on stable;
 broken on stable and fixed on `develop`, which means it arrives with the next release; or
 absent everywhere, which means nobody has built it. Only the first belongs in the reference
 without a version note.

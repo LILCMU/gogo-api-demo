@@ -16,14 +16,15 @@ import CodeMirror from 'codemirror'
 //? so colouring `say` or `readrfid` as a builtin would advertise a command that
 //? silently stops the program. The excluded set is the old Raspberry Pi
 //? companion commands (opcodes 200-239), ultrasonic, `turnsteppingmotor`,
-//? `broadcast*value`, `serial` / `newserial?` and `setpos` / `getpos`, whose VM
+//? `serial` / `newserial?` and `setpos` / `getpos`, whose VM
 //? cases sit inside a `/* */` block and so halt like an unhandled opcode, and the
 //? voice and track family
 //? (`play`, `nexttrack`, `prevtrack`, `gototrack`, `erasetracks`), which addresses
 //? an I2C module GoGo Board 7 does not carry.
 //? Derivation lives in .claude/knowledges/logo-language.md.
 //?
-//? `for`, `foreach`, `repcount`, `vernier_slot` and `vernier_slot_unit` are the
+//? `for`, `foreach`, `repcount`, `vernier_slot`, `vernier_slot_unit` and the
+//? `broadcast*value` pair are the
 //? exception: they need firmware 4, but the reference documents them in a section
 //? of their own, so the editor shows them rather than leaving them unknown.
 //?
@@ -58,28 +59,29 @@ const STRUCTURE = new Set([
 
 const BUILTIN = new Set([
   'abs', 'acos', 'asin', 'askport', 'askrelay', 'askservo', 'assetadd', 'assetread',
-  'assetwrite', 'atan', 'beep', 'bgcolor', 'boardgesture', 'broadcast', 'ccw', 'ceil',
-  'charcodeat', 'cleartick', 'cloudrecord', 'cls', 'connectwifi', 'constrain', 'cos', 'cw',
-  'day', 'dow', 'filteredinput1', 'filteredinput2', 'filteredinput3', 'filteredinput4',
-  'floor', 'fromcharcode', 'geta', 'getpower', 'gmessage', 'highbyte', 'hours',
-  'i2c_read_register', 'i2c_write_register', 'i2cread', 'i2creadandstop', 'i2crequest',
-  'i2cstart', 'i2cstop', 'i2cwrite', 'input1', 'input2', 'input3', 'input4', 'ir',
-  'list_create', 'list_find', 'list_get', 'list_insert', 'list_len', 'list_pop_at',
-  'list_pop_first', 'list_pop_last', 'list_push', 'list_random', 'list_remove', 'list_rev',
-  'list_set', 'lowbyte', 'lt', 'map', 'max', 'message', 'min', 'minutes', 'month',
-  'mqttmessage', 'mqttpublish', 'mqttsubscribe', 'note', 'notetempo', 'off', 'offlinerecord',
-  'on', 'onfor', 'pow', 'presskey', 'publiccloudrecord', 'publishmessage', 'random', 'rd',
-  'readacceleration', 'readboardsensor', 'readfilteredinput', 'readfilteredvariable',
-  'readloudness', 'readsensor', 'readswitch', 'relayison', 'relaysetpower', 'releasekey',
-  'reportgrading', 'resetinputminmax', 'resett', 'resetvariableminmax', 'round', 'rt',
-  'rtc_init', 'seconds', 'send', 'sendgmessage', 'sendiftttevent', 'sendkey', 'sendkeydelay',
-  'sendlineimage', 'sendlinemessage', 'sendlinesticker', 'sensor1', 'sensor2', 'sensor3',
-  'sensor4', 'seta', 'setbroadcastchannel', 'setbroadcastpassword', 'setcloudrecorduid',
-  'seth', 'setiftttkey', 'setinputfilter', 'setinputthreshold', 'setinputweight',
-  'setlinetoken', 'setmessagebroker', 'setmqttbroker', 'setpower', 'setservopower',
-  'settickrate', 'setvariablefilter', 'setvariablethreshold', 'setvariableweight', 'show',
-  'showimage', 'sin', 'sqrt', 'stopall', 'subscribemessage', 'substring', 'switch1',
-  'switch2', 'switch3', 'switch4', 'talkto', 'tan', 'tasmotamessage', 'tasmotamessagedevice',
+  'assetwrite', 'atan', 'beep', 'bgcolor', 'boardgesture', 'broadcast', 'broadcastvalue',
+  'broadcastwithvalue', 'ccw', 'ceil', 'charcodeat', 'cleartick', 'cloudrecord', 'cls',
+  'connectwifi', 'constrain', 'cos', 'cw', 'day', 'dow', 'filteredinput1', 'filteredinput2',
+  'filteredinput3', 'filteredinput4', 'floor', 'fromcharcode', 'geta', 'getpower',
+  'gmessage', 'highbyte', 'hours', 'i2c_read_register', 'i2c_write_register', 'i2cread',
+  'i2creadandstop', 'i2crequest', 'i2cstart', 'i2cstop', 'i2cwrite', 'input1', 'input2',
+  'input3', 'input4', 'ir', 'list_create', 'list_find', 'list_get', 'list_insert',
+  'list_len', 'list_pop_at', 'list_pop_first', 'list_pop_last', 'list_push', 'list_random',
+  'list_remove', 'list_rev', 'list_set', 'lowbyte', 'lt', 'map', 'max', 'message', 'min',
+  'minutes', 'month', 'mqttmessage', 'mqttpublish', 'mqttsubscribe', 'note', 'notetempo',
+  'off', 'offlinerecord', 'on', 'onfor', 'pow', 'presskey', 'publiccloudrecord',
+  'publishmessage', 'random', 'rd', 'readacceleration', 'readboardsensor',
+  'readfilteredinput', 'readfilteredvariable', 'readloudness', 'readsensor', 'readswitch',
+  'relayison', 'relaysetpower', 'releasekey', 'reportgrading', 'resetinputminmax', 'resett',
+  'resetvariableminmax', 'round', 'rt', 'rtc_init', 'seconds', 'send', 'sendgmessage',
+  'sendiftttevent', 'sendkey', 'sendkeydelay', 'sendlineimage', 'sendlinemessage',
+  'sendlinesticker', 'sensor1', 'sensor2', 'sensor3', 'sensor4', 'seta',
+  'setbroadcastchannel', 'setbroadcastpassword', 'setcloudrecorduid', 'seth', 'setiftttkey',
+  'setinputfilter', 'setinputthreshold', 'setinputweight', 'setlinetoken',
+  'setmessagebroker', 'setmqttbroker', 'setpower', 'setservopower', 'settickrate',
+  'setvariablefilter', 'setvariablethreshold', 'setvariableweight', 'show', 'showimage',
+  'sin', 'sqrt', 'stopall', 'subscribemessage', 'substring', 'switch1', 'switch2', 'switch3',
+  'switch4', 'talkto', 'tan', 'tasmotamessage', 'tasmotamessagedevice',
   'tasmotanewmessagedevice', 'tasmotasendcommand', 'tasmotasetchannel', 'tasmotawhenreceive',
   'textat', 'textcolor', 'textcontains', 'textindexof', 'textisempty', 'textlength',
   'textpos', 'textsplit', 'textstyle', 'thatway', 'thisway', 'tickcount', 'timer',

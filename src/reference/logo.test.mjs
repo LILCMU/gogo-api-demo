@@ -32,7 +32,6 @@ const EXCLUDED_WORDS = [
   'newrecordfile', 'showlogplot', 'userfid', 'closerfid', 'rfidbeep', 'readrfid',
   'writerfid', 'rfidtagfound?', 'rfidreaderfound?', 'say', 'key', 'intkey',
   'clearkeys', 'turnsteppingmotor',
-  'broadcastvalue', 'broadcastwithvalue',
   'ledon', 'ledoff', 'setcloudrecordlocal',
   'setpos', 'getpos',
   'play', 'nexttrack', 'prevtrack', 'gototrack', 'erasetracks',
@@ -50,6 +49,7 @@ const EXCLUDED_WORDS = [
 //? as usable on 3.2.6, which is the stable firmware this reference describes.
 const FORTHCOMING_WORDS = [
   'for', 'foreach', 'repcount', 'vernier_slot', 'vernier_slot_unit',
+  'broadcastvalue', 'broadcastwithvalue',
 ]
 const FORTHCOMING_SECTION = 'firmware-4'
 
