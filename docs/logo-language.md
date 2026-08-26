@@ -186,8 +186,8 @@ Port reads come in two spellings: a numbered word, and a reader taking the port 
 | `serial` | reporter | |
 | `newserial?` | reporter | |
 | `send n\|s` | statement | transmits a number or text out the serial port |
-| `boardgesture` | reporter | |
-| `newboardgesture?` | reporter | |
+| `boardgesture` | reporter | the current gesture code, see the table below. Reading it does not clear the new-gesture flag |
+| `newboardgesture?` | reporter | 1 when a new gesture has been detected since the last read, 0 otherwise. boardgesture clears it |
 | `timer` | reporter | counts up in milliseconds |
 | `resett` | statement | zeroes the timer |
 | `tickcount` | reporter | ticks elapsed since the last settickrate or cleartick, counted only while the program runs |
@@ -201,6 +201,23 @@ Port reads come in two spellings: a numbered word, and a reader taking the port 
 | `setvariableweight n n` | statement | variable name then smoothing weight for the average and amplify filters, out = (prev*w + in)/(w+1), 0 is no smoothing |
 | `resetinputminmax n` | statement | port 1-4, reseeds the min or max filter from the port's current reading |
 | `resetvariableminmax n` | statement | variable name, reseeds the min or max filter from the variable's current value |
+
+`boardgesture` and `readboardsensor 4` both report the same gesture code:
+
+| Value | Gesture | Notes |
+|---|---|---|
+| `0` | none | no gesture detected |
+| `1` | tilt up |  |
+| `2` | tilt down |  |
+| `3` | tilt left |  |
+| `4` | tilt right |  |
+| `5` | face up |  |
+| `6` | face down |  |
+| `7` | free fall |  |
+| `8` | shake |  |
+| `9` | hit 3g |  |
+| `10` | hit 6g |  |
+| `11` | hit 8g |  |
 
 The argument selects which built-in sensor to read. An index outside this list leaves the stack untouched.
 
