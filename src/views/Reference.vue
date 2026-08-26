@@ -17,6 +17,16 @@
       <nav class="reference__toc" aria-label="On this page">
         <p class="reference__toc-title">On this page</p>
         <a v-for="section in content.sections" :key="section.id" :href="'#' + section.id">{{ section.title }}</a>
+
+        <!--? argument kinds appear in every signature on the page, so the key
+             rides along in the sticky column rather than scrolling away -->
+        <dl v-if="content.legend" class="reference__legend">
+          <p class="reference__toc-title">Reading a signature</p>
+          <template v-for="item in content.legend">
+            <dt :key="item.token + '-t'"><code>{{ item.token }}</code></dt>
+            <dd :key="item.token + '-d'">{{ item.means }}</dd>
+          </template>
+        </dl>
       </nav>
 
       <div class="reference__main">
@@ -192,6 +202,11 @@ export default {
 
 .reference__toc a:hover { border-left-color: var(--gogo-blue); color: var(--gogo-ink); background: var(--gogo-blue-tint); }
 
+.reference__legend { margin: var(--space-4) 0 0; display: grid; grid-template-columns: auto 1fr; gap: 4px var(--space-2); align-items: baseline; }
+.reference__legend .reference__toc-title { grid-column: 1 / -1; }
+.reference__legend dt { font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--gogo-ink); }
+.reference__legend dd { margin: 0; font-size: 12px; color: var(--muted); }
+
 .reference__main { display: flex; flex-direction: column; gap: var(--space-7); min-width: 0; }
 
 /*? scroll-margin, not padding — the anchor target has to clear the top of the
@@ -318,6 +333,7 @@ export default {
   .reference__toc { position: static; flex-direction: row; flex-wrap: wrap; gap: var(--space-2); }
   .reference__toc-title { width: 100%; margin: 0; }
   .reference__toc a { border-left: 0; border-radius: var(--radius-pill); background: var(--sunk-bg); padding: 6px 14px; }
+  .reference__legend { width: 100%; }
   .ref-frame { flex-wrap: wrap; }
   .ref-frame__field { flex-basis: 30%; }
 }

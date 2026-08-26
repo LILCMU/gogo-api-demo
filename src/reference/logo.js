@@ -23,6 +23,16 @@ export default {
     'The language the board itself runs. Program shape, port addressing, and every command ' +
     'GoGo Board 7 firmware 3.2.6 implements, with its real call form and whether it can be ' +
     'used inside an expression.',
+  //? every signature on the page uses these, so they are rendered beside the
+  //? contents rather than inside one section a reader has to find again
+  legend: [
+    { token: 'n', means: 'a number, literal or expression' },
+    { token: 's', means: 'a string in double quotes' },
+    { token: 'n|s', means: 'either, the command accepts both' },
+    { token: '[ ... ]', means: 'a block of statements' },
+    { token: 'NAME', means: 'a bare name, not quoted' },
+    { token: 'output1,', means: 'a port prefix, selects the target' },
+  ],
   sections: [
     {
       id: 'shape',
