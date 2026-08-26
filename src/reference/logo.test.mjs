@@ -1,0 +1,159 @@
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
+import doc from './logo.js'
+
+//? the section ids GuideLink deep-links depend on — renaming or reordering
+//? one silently breaks a "to=/reference/logo#..." link elsewhere in the app
+const EXPECTED_SECTION_IDS = [
+  'shape', 'ports', 'control', 'values', 'output-cmds',
+  'sensing', 'display-sound', 'display-assets', 'data', 'network', 'peripherals', 'firmware-4',
+]
+
+//? the block types Reference.vue's v-else-if chain actually renders; a block
+//? of any other type would silently render nothing
+const RENDERED_BLOCK_TYPES = ['prose', 'note', 'table', 'codeblock', 'frame', 'bytemap', 'steps']
+
+//? words this reference deliberately does not document. Seven buckets, in array
+//? order. Everything up to `turnsteppingmotor` has no `case` in the 3.2.6 VM, so it
+//? falls through to the terminal `default:` and halts the program with no error.
+//? `ledon` / `ledoff` / `setcloudrecordlocal` reach a `case` that does nothing with
+//? them. `setpos` / `getpos` have cases too, but inside a `/* */` block, so they
+//? halt like the first bucket. The voice and track family compiles to an I2C write
+//? to a module GoGo Board 7 does not carry, at an address the wire library cannot
+//? use. The port aliases above 4 read past the board's four input ports into
+//? unrelated registers. `handgesture` / `newhandgesture?` are the quietest shape
+//? of all: a live case that pushes a constant 0, because the APDS9960 the sensor
+//? needs is not on GoGo Board 7. `serial` / `newserial?` halt like the first
+//? bucket, their cases sitting inside a `/* */` block, and `aset` / `aget` are
+//? deprecated and dead: aset's store is commented out and aget always pushes 0.
+//? Kept here as a literal array so this list is the regression guard, not a
+//? cross-reference to prose.
+const EXCLUDED_WORDS = [
+  'startultrasonic', 'getultrasonic', 'usecamera', 'closecamera', 'startfindface',
+  'stopfindface', 'facefound?', 'takesnapshot', 'cameraison', 'isfindingface',
+  'usesms', 'sendsms', 'sendmail', 'playsound', 'stopsound', 'screentapped?',
+  'newrecordfile', 'showlogplot', 'userfid', 'closerfid', 'rfidbeep', 'readrfid',
+  'writerfid', 'rfidtagfound?', 'rfidreaderfound?', 'say', 'key', 'intkey',
+  'clearkeys', 'turnsteppingmotor',
+  'ledon', 'ledoff', 'setcloudrecordlocal',
+  'setpos', 'getpos',
+  'play', 'nexttrack', 'prevtrack', 'gototrack', 'erasetracks',
+  'sensor5', 'sensor6', 'sensor7', 'sensor8',
+  'switch5', 'switch6', 'switch7', 'switch8',
+  'input5', 'input6', 'input7', 'input8',
+  'filteredinput5', 'filteredinput6', 'filteredinput7', 'filteredinput8',
+  'handgesture', 'newhandgesture?',
+  'serial', 'newserial?', 'aset', 'aget',
+]
+
+//? a different contract from EXCLUDED_WORDS. These are implemented on the
+//? firmware development branch and arrive with 4.0, so they are documented,
+//? but only inside the `firmware-4` section. Anywhere else would present them
+//? as usable on 3.2.6, which is the stable firmware this reference describes.
+const FORTHCOMING_WORDS = [
+  'for', 'foreach', 'repcount', 'vernier_slot', 'vernier_slot_unit',
+  'broadcastvalue', 'broadcastwithvalue',
+]
+const FORTHCOMING_SECTION = 'firmware-4'
+
+//? every {code: '...'} run (prose/note) and every mono-flagged table cell —
+//? the module's own markers for "this text is a literal command/token", as
+//? opposed to a Notes/Meaning cell or plain prose sentence. Scanning only
+//? these keeps the exclusion check from tripping on ordinary English: "for",
+//? "say" and "key" are common words, but none of them show up in this file
+//? outside a larger word (forever, onfor, sendkey, keyboard, ...) — and even
+//? if a future edit added English prose using one of them as a normal word,
+//? plain prose text is never in this pool, only declared code/signature text is.
+//? a mono cell is usually a string, but may be { text, to } for an in-page link
+function cellText (cell) {
+  if (typeof cell === 'string') return cell
+  if (cell && typeof cell === 'object' && typeof cell.text === 'string') return cell.text
+  return ''
+}
+
+function collectCodeStrings (module, filter) {
+  const strings = []
+  //? the legend spells out the signature notation, so a banned word could hide
+  //? there as easily as in a table. It belongs to the whole document, not a
+  //? section, so it is only in scope when no section filter is applied
+  if (!filter && Array.isArray(module.legend)) {
+    module.legend.forEach((item) => strings.push(item.token))
+  }
+  module.sections.forEach((section) => {
+    if (filter && !filter(section)) return
+    section.blocks.forEach((block) => {
+      if (block.type === 'prose' || block.type === 'note') {
+        block.runs.forEach((run) => {
+          if (run && typeof run === 'object' && typeof run.code === 'string') {
+            strings.push(run.code)
+          }
+        })
+      } else if (block.type === 'table') {
+        const monoCols = block.mono || []
+        block.rows.forEach((row) => {
+          monoCols.forEach((c) => strings.push(cellText(row[c])))
+        })
+      } else if (block.type === 'codeblock') {
+        //? a worked program is literal Logo, so every line counts as code text
+        block.lines.forEach((line) => strings.push(line))
+      }
+    })
+  })
+  return strings
+}
+
+function escapeRegExp (s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+test('section ids are unique and match the documented order exactly', () => {
+  const ids = doc.sections.map((s) => s.id)
+  assert.deepEqual(ids, EXPECTED_SECTION_IDS)
+  assert.equal(new Set(ids).size, ids.length)
+})
+
+test('every block has a type Reference.vue renders', () => {
+  doc.sections.forEach((section) => {
+    section.blocks.forEach((block) => {
+      assert.ok(
+        RENDERED_BLOCK_TYPES.includes(block.type),
+        `section "${section.id}" has an unrendered block type "${block.type}"`
+      )
+    })
+  })
+})
+
+test('every table row has the same length as its head', () => {
+  doc.sections.forEach((section) => {
+    section.blocks
+      .filter((block) => block.type === 'table')
+      .forEach((block) => {
+        block.rows.forEach((row, i) => {
+          assert.equal(
+            row.length, block.head.length,
+            `section "${section.id}" table row ${i} has ${row.length} cells, head has ${block.head.length}`
+          )
+        })
+      })
+  })
+})
+
+test('no excluded (unimplemented) word appears as a documented command or token', () => {
+  const haystack = collectCodeStrings(doc).join(' ')
+  EXCLUDED_WORDS.forEach((word) => {
+    const pattern = new RegExp(`(?<!\\w)${escapeRegExp(word)}(?!\\w)`)
+    assert.equal(pattern.test(haystack), false, `excluded word "${word}" found in a code/signature string`)
+  })
+})
+
+test('a firmware-4 word appears only in the firmware-4 section', () => {
+  const inSection = collectCodeStrings(doc, (s) => s.id === FORTHCOMING_SECTION).join(' ')
+  const elsewhere = collectCodeStrings(doc, (s) => s.id !== FORTHCOMING_SECTION).join(' ')
+  FORTHCOMING_WORDS.forEach((word) => {
+    const pattern = new RegExp(`(?<!\\w)${escapeRegExp(word)}(?!\\w)`)
+    assert.equal(pattern.test(elsewhere), false,
+      `"${word}" needs firmware 4, so it must not appear outside the ${FORTHCOMING_SECTION} section`)
+    assert.equal(pattern.test(inSection), true,
+      `"${word}" is listed as forthcoming but is not documented in the ${FORTHCOMING_SECTION} section`)
+  })
+})

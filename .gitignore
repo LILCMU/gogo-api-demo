@@ -28,6 +28,10 @@ pnpm-debug.log*
 # Brainstorm mockups
 .superpowers/
 
+# Editor and agent tooling scratch
+.superset/
+.playwright-mcp/
+
 # playwright-mcp scratch output
 .playwright-mcp/
 

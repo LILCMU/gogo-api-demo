@@ -99,5 +99,13 @@ export default {
 .editor .cm-bracket  { color: var(--gogo-orange); font-weight: 700; }
 .editor .cm-variable { color: #e6f1f6; }
 
+/*? port addressing carries the most meaning per character in this language
+    (`a,` picks the motor the next command drives) so it gets its own hue
+    rather than sharing cm-builtin with the reporters */
+.editor .cm-tag      { color: var(--editor-port); font-weight: 700; }
+.editor .cm-def      { color: var(--editor-param); }
+/*? maths constants read as values, not calls, so they take the number colour */
+.editor .cm-atom     { color: var(--gogo-orange); }
+
 .editor .CodeMirror-placeholder { color: #5d879b; font-style: italic; }
 </style>
