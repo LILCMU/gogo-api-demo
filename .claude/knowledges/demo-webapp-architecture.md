@@ -250,3 +250,7 @@ shrink past its content.
 
 Neither was visible in the source, in lint, or in the build. Drive the built
 app at a narrow viewport before believing a layout is done.
+
+**The Logo language itself is documented separately.** See `.claude/knowledges/logo-language.md`
+for what GoGo Board 7 actually runs, the seven ways a command can compile and then do nothing,
+and the four places in the firmware repo you have to look before concluding one is unimplemented.

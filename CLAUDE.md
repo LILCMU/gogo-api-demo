@@ -20,7 +20,7 @@ The goal is that another team can open the page matching what they want, read on
 file, and copy it. Everything below serves that.
 
 **Shipped.** The app tracks GoGo Board **7.x** and is split into a framework-free
-device service (`src/gogo/`, no Vue, 48 unit tests) behind six pages.
+device service (`src/gogo/`, no Vue, 49 unit tests) behind six pages.
 `docs/protocol.md` and `docs/offline-datalog.md` replaced the old Google Sheet and are
 verified against firmware source. The visual system uses GoGoCode's real palette.
 
@@ -97,7 +97,9 @@ No `NODE_OPTIONS` workaround is needed on modern Node. The `overrides` entry pin
 
 WebHID requires Chromium (Chrome/Edge), a secure context, and a user gesture for `requestDevice()`. Nothing device-facing can be exercised without a physical GoGo Board.
 
-`vue-codemirror@4` / `codemirror@5` back the Logo editor — the same pair GoGoCode uses. The Logo mode is ours (`src/components/logoMode.js`), generated from the compiler's `reserved` table; GoGoCode's `mode: 'text/python'` is not a registered MIME and silently highlights nothing.
+`vue-codemirror@4` / `codemirror@5` back the Logo editor — the same pair GoGoCode uses. The Logo mode is ours (`src/components/logoMode.js`); GoGoCode's `mode: 'text/python'` is not a registered MIME and silently highlights nothing.
+
+**Do not regenerate `logoMode.js`'s word sets from the compiler's `reserved` table.** They are that table minus roughly seventy words the board does not actually run — commands that halt the VM with no error, stubs that do nothing, and port aliases that read the wrong registers. Regenerating would silently put every one of them back. The exclusions and the evidence for each are in `.claude/knowledges/logo-language.md`; `src/reference/logo.test.mjs` is the regression guard. A near-identical copy of this file lives in GoGoCode (`src/services/logoMode.js`) and the two drift.
 
 ## Architecture
 
@@ -124,9 +126,9 @@ Actions take `context` first and the payload second — `connect(context, { prom
 
 **Control, Logo and Datalog show the frames they put on the wire**, built with the same `buildCommand`/`buildLogoWriteSequence` the send paths use so the view cannot drift from what is sent. `src/utils/wireFrame.js` holds `trimFrame` and the shared legend labels.
 
-**`src/reference/` is not authoritative** — `docs/protocol.md`, `docs/offline-datalog.md` and `docs/logo-language.md` are. The modules (`protocol.js`, `datalog.js`, `logo.js`) are the same facts shaped for the block renderer, and the two can drift. Section ids are a contract: `GuideLink` deep-links into them, so `grep 'to="/reference'` after renaming one.
+**`src/reference/` is not authoritative** — `docs/protocol.md`, `docs/offline-datalog.md` and `docs/logo-language.md` are. The Logo reference documents only what firmware 3.2.6 runs; commands needing firmware 4 live in its own closing section, and `logo.test.mjs` asserts they appear nowhere else. The modules (`protocol.js`, `datalog.js`, `logo.js`) are the same facts shaped for the block renderer, and the two can drift. Section ids are a contract: `GuideLink` deep-links into them, so `grep 'to="/reference'` after renaming one.
 
-**Logo download flow** (`Logo.vue`): POST source to the cloud compiler (`compilerUrl` from `src/config.js`, `emulateJSON`) → set memory pointer (cat 1, cmd 1) → write each chunk from `buildLogoWriteSequence(bytecode)` (cat 1, cmd 3) awaited in sequence with a 10 ms `setTimeout` between packets → beep (cat 0, cmd 11). The page's two tabs are alternatives, not steps: "Raw opcodes" skips the compiler and feeds `downloadOpcodeToBoard` a JSON byte array directly.
+**Logo download flow** (`Logo.vue`): POST source to the cloud compiler (`compilerUrl` from `src/config.js`, `emulateJSON`) → set memory pointer (cat 1, cmd 1) → write each chunk from `buildLogoWriteSequence(bytecode)` (cat 1, cmd 3) awaited in sequence with a 10 ms `setTimeout` between packets → beep (cat 0, cmd 11). The page's two tabs are alternatives, not steps: "Raw opcodes" skips the compiler and feeds `downloadOpcodeToBoard` a JSON byte array directly. Run and Stop sit beside the download button and send cat 0, cmd 13 with 1 or 0; they act on whatever is already stored on the board, independent of the editor.
 
 `buildLogoWriteSequence` owns the chunking rule because it is protocol, not view logic. The firmware commits to NVS only on a chunk **shorter than 60 bytes**, so a program whose length is an exact multiple of 60 needs a trailing zero-length write or it silently fails to save with no error anywhere. Tested at lengths 0, 59, 60, 61 and 120.
 
