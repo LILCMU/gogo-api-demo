@@ -13,8 +13,8 @@ const EXPECTED_SECTION_IDS = [
 //? of any other type would silently render nothing
 const RENDERED_BLOCK_TYPES = ['prose', 'note', 'table', 'codeblock', 'frame', 'bytemap', 'steps']
 
-//? words this reference deliberately does not document. Six buckets, in array
-//? order. Everything up to `repcount` has no `case` in the 3.2.6 VM at all, so it
+//? words this reference deliberately does not document. Seven buckets, in array
+//? order. Everything up to `turnsteppingmotor` has no `case` in the 3.2.6 VM, so it
 //? falls through to the terminal `default:` and halts the program with no error.
 //? `ledon` / `ledoff` / `setcloudrecordlocal` reach a `case` that does nothing with
 //? them. `setpos` / `getpos` have cases too, but inside a `/* */` block, so they
@@ -23,8 +23,11 @@ const RENDERED_BLOCK_TYPES = ['prose', 'note', 'table', 'codeblock', 'frame', 'b
 //? use. The port aliases above 4 read past the board's four input ports into
 //? unrelated registers. `handgesture` / `newhandgesture?` are the quietest shape
 //? of all: a live case that pushes a constant 0, because the APDS9960 the sensor
-//? needs is not on GoGo Board 7. Kept here as a literal array so this list is the
-//? regression guard, not a cross-reference to prose.
+//? needs is not on GoGo Board 7. `serial` / `newserial?` halt like the first
+//? bucket, their cases sitting inside a `/* */` block, and `aset` / `aget` are
+//? deprecated and dead: aset's store is commented out and aget always pushes 0.
+//? Kept here as a literal array so this list is the regression guard, not a
+//? cross-reference to prose.
 const EXCLUDED_WORDS = [
   'startultrasonic', 'getultrasonic', 'usecamera', 'closecamera', 'startfindface',
   'stopfindface', 'facefound?', 'takesnapshot', 'cameraison', 'isfindingface',
@@ -61,8 +64,21 @@ const FORTHCOMING_SECTION = 'firmware-4'
 //? outside a larger word (forever, onfor, sendkey, keyboard, ...) — and even
 //? if a future edit added English prose using one of them as a normal word,
 //? plain prose text is never in this pool, only declared code/signature text is.
+//? a mono cell is usually a string, but may be { text, to } for an in-page link
+function cellText (cell) {
+  if (typeof cell === 'string') return cell
+  if (cell && typeof cell === 'object' && typeof cell.text === 'string') return cell.text
+  return ''
+}
+
 function collectCodeStrings (module, filter) {
   const strings = []
+  //? the legend spells out the signature notation, so a banned word could hide
+  //? there as easily as in a table. It belongs to the whole document, not a
+  //? section, so it is only in scope when no section filter is applied
+  if (!filter && Array.isArray(module.legend)) {
+    module.legend.forEach((item) => strings.push(item.token))
+  }
   module.sections.forEach((section) => {
     if (filter && !filter(section)) return
     section.blocks.forEach((block) => {
@@ -75,10 +91,11 @@ function collectCodeStrings (module, filter) {
       } else if (block.type === 'table') {
         const monoCols = block.mono || []
         block.rows.forEach((row) => {
-          monoCols.forEach((c) => {
-            if (typeof row[c] === 'string') strings.push(row[c])
-          })
+          monoCols.forEach((c) => strings.push(cellText(row[c])))
         })
+      } else if (block.type === 'codeblock') {
+        //? a worked program is literal Logo, so every line counts as code text
+        block.lines.forEach((line) => strings.push(line))
       }
     })
   })

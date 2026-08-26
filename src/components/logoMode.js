@@ -93,6 +93,9 @@ const BUILTIN = new Set([
 //? `a,` / `servo1,` / `relay12,` select a target; `aon?`, `apower`, `servo1angle`
 //? read one back. None of these are in `reserved`, so a plain word match renders
 //? the syntax that matters most as anonymous variables.
+//? case-sensitive: the compiler spells these in capitals and accepts nothing else
+const CONSTANTS = new Set(['PI', 'E', 'PHI', 'LN2', 'LN10', 'SQRT2', 'SQRT1_2', 'INFINITY'])
+
 const PORT_TARGET = /^(?:output[1-4]+|servo[1-4]+|relay[1-4]+|[abcd]+),/
 const PORT_QUERY = /^(?:(?:output[1-4]+|[abcd]+)(?:on\?|off\?|thisway\?|thatway\?|cw\?|ccw\?|power)|relay[1-4]+on\?|servo[1-4]angle)/
 const EVENT_QUERY = /^new(?:ir|boardgesture)\?/
@@ -119,6 +122,11 @@ CodeMirror.defineMode('logo', function () {
 
       const word = stream.match(/^[a-zA-Z_][a-zA-Z_0-9]*/)
       if (word) {
+        //? the compiler matches its reserved table exactly (`t.value in reserved`),
+        //? and the maths constants are the only entries that are not lowercase, so
+        //? they are checked before the case-insensitive pass. `PI` is a constant,
+        //? `pi` is an ordinary variable name
+        if (CONSTANTS.has(word[0])) return 'atom'
         const name = word[0].toLowerCase()
         if (STRUCTURE.has(name)) return 'keyword'
         if (BUILTIN.has(name)) return 'builtin'

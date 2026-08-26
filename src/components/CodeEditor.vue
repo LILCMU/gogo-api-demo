@@ -104,6 +104,8 @@ export default {
     rather than sharing cm-builtin with the reporters */
 .editor .cm-tag      { color: var(--editor-port); font-weight: 700; }
 .editor .cm-def      { color: var(--editor-param); }
+/*? maths constants read as values, not calls, so they take the number colour */
+.editor .cm-atom     { color: var(--gogo-orange); }
 
 .editor .CodeMirror-placeholder { color: #5d879b; font-style: italic; }
 </style>

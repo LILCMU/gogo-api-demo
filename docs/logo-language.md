@@ -6,6 +6,17 @@ Derived from the compiler's `reserved` table and PLY grammar in `gogo-logo-compi
 
 A word the 3.2.6 VM does not implement is left out: it falls through to a terminal `default:` that halts the program with no error. A word whose `case` label exists with an empty body is left out for the same reason from the other side, since it dispatches and does nothing: that is `ledon` and `ledoff`. `rtc_init` is the one empty case kept here, because it never promised a visible action; its Notes cell says so. Commands aimed at hardware GoGo Board 7 does not carry, such as the voice and track family, are out on the same principle.
 
+Signatures are written in this notation:
+
+| Token | Means |
+|---|---|
+| `n` | a number, literal or expression |
+| `s` | a string in double quotes |
+| `n\|s` | either, the command accepts both |
+| `[ ... ]` | a block of statements |
+| `NAME` | a bare name, not quoted |
+| `output1,` | a port prefix, selects the target |
+
 The **Kind** column says where a word may appear. A reporter yields a value and can sit inside an expression; a statement cannot.
 
 ## Program shape

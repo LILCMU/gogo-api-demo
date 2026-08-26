@@ -7,7 +7,7 @@ and `~/Developer/gogoboard-7.x/gogo-firmware` at tag `version-3.2.6`.
 `docs/logo-language.md` is the authoritative reference; `src/reference/logo.js` is the same
 facts shaped for the in-app renderer at `/reference/logo`, and the two can drift.
 
-## Three places to look, not two
+## Four places to look, not one
 
 The firmware repo has a stable tag, a set of `-dev` tags, and `develop`. **Checking tags
 alone will tell you a fixed bug is still open.**
@@ -30,7 +30,7 @@ broken on stable and fixed on `develop`, which means it arrives with the next re
 absent everywhere, which means nobody has built it. Only the first belongs in the reference
 without a version note.
 
-## Two ways a command does nothing
+## Seven ways a command does nothing
 
 There are two failure modes, and they need different detection. Both are guarded by
 `EXCLUDED_WORDS` in `src/reference/logo.test.mjs`, which now holds 39 words.
@@ -91,6 +91,15 @@ finds it is: **a case whose body only pushes a numeric literal.** Sweeping 3.2.6
 turns up exactly these two; `develop` adds `ULTRASONIC_GET_DISTANCE`, already excluded here
 for a different reason.
 
+### Pops its operands, then throws the work away
+
+`aset` and `aget` are the array commands, marked `TODO: deprecated ... array is replaced by
+list` in the VM. `aset` pops all three operands and its only store is commented out
+(`gogo-logovm.cpp:983`), so it writes nothing. `aget` pops two and unconditionally pushes 0
+(`:988`). The stack stays balanced, which is why nothing downstream breaks and why the
+constant-push scan misses `aset` entirely: the pops come first. The test that finds this pair
+is a case whose body is only pops plus at most a literal push. Use the list commands.
+
 ### An empty stub: the program continues and nothing happens
 
 `ledon` and `ledoff` reach `case ULED_ON:` / `case ULED_OFF:` in `gogo-logovm.cpp:1150`,
@@ -108,6 +117,12 @@ just the reference scan.
 one, and a developer porting older code will come looking for it. Its Notes cell says it does
 nothing and why. The rule the reference actually enforces is that nothing may be silent, not
 that nothing may be a no-op.
+
+
+### Reads past the end of the array
+
+The port aliases above 4 are the seventh shape and have their own section below, because the
+command works, the opcode is handled, and only the argument is out of range.
 
 ## `_if` / `_then` / `_else`: documented, not excluded
 
