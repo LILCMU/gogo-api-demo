@@ -63,7 +63,7 @@ is an exact multiple of 60. The frames for that case are constructed correctly �
 Logo page renders the trailing `01 03 00` commit frame at length 60 — but no such
 program has been written to a board.
 
-No view logic is covered by automated tests; `npm test` covers `src/gogo/` only.
+No view logic is covered by automated tests; `npm test` covers `src/gogo/` plus structural tests under `src/reference/`.
 
 **The backlog is worked through.** `.claude/plans/demo-webapp-backlog.md` records the
 findings of three pre-merge reviews (code, UX, docs); they were cleared in batches —
@@ -85,7 +85,7 @@ what the code says, no AI-generated filler. Terse and correct beats thorough and
 npm install        # Node 20+; developed on Node 24 LTS
 npm run serve      # dev server with hot reload
 npm run build      # production build to dist/
-npm test           # node --test over src/gogo/**/*.test.mjs
+npm test           # node --test over src/**/*.test.mjs
 npm run lint       # eslint over src/, .js/.mjs/.vue
 ```
 
@@ -97,7 +97,9 @@ No `NODE_OPTIONS` workaround is needed on modern Node. The `overrides` entry pin
 
 WebHID requires Chromium (Chrome/Edge), a secure context, and a user gesture for `requestDevice()`. Nothing device-facing can be exercised without a physical GoGo Board.
 
-`vue-codemirror@4` / `codemirror@5` back the Logo editor — the same pair GoGoCode uses. The Logo mode is ours (`src/components/logoMode.js`), generated from the compiler's `reserved` table; GoGoCode's `mode: 'text/python'` is not a registered MIME and silently highlights nothing.
+`vue-codemirror@4` / `codemirror@5` back the Logo editor — the same pair GoGoCode uses. The Logo mode is ours (`src/components/logoMode.js`); GoGoCode's `mode: 'text/python'` is not a registered MIME and silently highlights nothing.
+
+**Do not regenerate `logoMode.js`'s word sets from the compiler's `reserved` table.** They are that table minus roughly seventy words the board does not actually run — commands that halt the VM with no error, stubs that do nothing, and port aliases that read the wrong registers. Regenerating would silently put every one of them back. The exclusions and the evidence for each are in `.claude/knowledges/logo-language.md`; `src/reference/logo.test.mjs` is the regression guard. A near-identical copy of this file lives in GoGoCode (`src/services/logoMode.js`) and the two drift.
 
 ## Architecture
 
@@ -120,13 +122,13 @@ Actions take `context` first and the payload second — `connect(context, { prom
 - Outbound: `buildCommand(category, command, params)` returns the 63-byte frame with the report-ID byte already dropped (category at 0, command at 1); `transport.send` strips nothing — WebHID's `sendReport(0, payload)` supplies the report ID itself.
 - Inbound: every `report` event is tried against `parseReport` (type-0 device register) first, then `parseResponse` (type-20 command response) — whichever matches commits.
 
-**Pages — `src/views/`.** `Live.vue` (streaming sensor tiles), `Control.vue` (motors/servos/relays/beep), `Datalog.vue` (offline datalog sync + chart), `Logo.vue` (compile/download Logo programs and raw opcodes), `Packets.vue` (raw packet builder/sender), `Reference.vue` (the wire protocol and datalog format, rendered from `src/reference/*.js`). Routes are in `src/router/index.js`, which needs its `scrollBehavior` to honour `to.hash` or the guide links navigate without scrolling.
+**Pages — `src/views/`.** `Live.vue` (streaming sensor tiles), `Control.vue` (motors/servos/relays/beep), `Datalog.vue` (offline datalog sync + chart), `Logo.vue` (compile/download Logo programs and raw opcodes), `Packets.vue` (raw packet builder/sender), `Reference.vue` (the wire protocol, datalog format and Logo language, rendered from `src/reference/*.js`). Routes are in `src/router/index.js`, which needs its `scrollBehavior` to honour `to.hash` or the guide links navigate without scrolling.
 
 **Control, Logo and Datalog show the frames they put on the wire**, built with the same `buildCommand`/`buildLogoWriteSequence` the send paths use so the view cannot drift from what is sent. `src/utils/wireFrame.js` holds `trimFrame` and the shared legend labels.
 
-**`src/reference/` is not authoritative** — `docs/protocol.md` and `docs/offline-datalog.md` are. The modules are the same facts shaped for the block renderer, and the two can drift. Section ids are a contract: `GuideLink` deep-links into them, so `grep 'to="/reference'` after renaming one.
+**`src/reference/` is not authoritative** — `docs/protocol.md`, `docs/offline-datalog.md` and `docs/logo-language.md` are. The Logo reference documents only what firmware 3.2.6 runs; commands needing firmware 4 live in its own closing section, and `logo.test.mjs` asserts they appear nowhere else. The modules (`protocol.js`, `datalog.js`, `logo.js`) are the same facts shaped for the block renderer, and the two can drift. Section ids are a contract: `GuideLink` deep-links into them, so `grep 'to="/reference'` after renaming one.
 
-**Logo download flow** (`Logo.vue`): POST source to the cloud compiler (`compilerUrl` from `src/config.js`, `emulateJSON`) → set memory pointer (cat 1, cmd 1) → write each chunk from `buildLogoWriteSequence(bytecode)` (cat 1, cmd 3) awaited in sequence with a 10 ms `setTimeout` between packets → beep (cat 0, cmd 11). The page's two tabs are alternatives, not steps: "Raw opcodes" skips the compiler and feeds `downloadOpcodeToBoard` a JSON byte array directly.
+**Logo download flow** (`Logo.vue`): POST source to the cloud compiler (`compilerUrl` from `src/config.js`, `emulateJSON`) → set memory pointer (cat 1, cmd 1) → write each chunk from `buildLogoWriteSequence(bytecode)` (cat 1, cmd 3) awaited in sequence with a 10 ms `setTimeout` between packets → beep (cat 0, cmd 11). The page's two tabs are alternatives, not steps: "Raw opcodes" skips the compiler and feeds `downloadOpcodeToBoard` a JSON byte array directly. Run and Stop sit beside the download button and send cat 0, cmd 13 with 1 or 0; they act on whatever is already stored on the board, independent of the editor.
 
 `buildLogoWriteSequence` owns the chunking rule because it is protocol, not view logic. The firmware commits to NVS only on a chunk **shorter than 60 bytes**, so a program whose length is an exact multiple of 60 needs a trailing zero-length write or it silently fails to save with no error anywhere. Tested at lengths 0, 59, 60, 61 and 120.
 

@@ -11,6 +11,7 @@
   --gogo-green-tint: #f1f9e0;
   --gogo-orange-tint: #fef3e2;
   --gogo-blue-tint: #e1f4fe;
+  --gogo-blue-lit: #2cbbfd; /*? lighten($cc-blue, 10%) — the hover fill, mirrors --gogo-green-lit */
   --gogo-pink-tint: #fbe7f1;
 
   /*? $brand-danger — pink is a data colour here, not an error colour */
@@ -32,6 +33,12 @@
   --dark-panel-value: #ffffff;
   --dark-panel-line: #164e69;
   --status-disconnected-bg: rgba(1, 53, 76, 0.14);
+
+  /*? Logo editor syntax hues the brand palette has no answer for. Port prefixes
+      (`a,`) and :parameters are the two token kinds that must not read as either
+      a builtin or a plain variable, and both sit on the dark editor ground */
+  --editor-port: #4fd6d2;
+  --editor-param: #d6b4fc;
 
   /*? GoGoCode's signature coloured glows — $greeny/$blue/$pink-box-shadow.
       Shadows carry the hue of what casts them; there is no neutral black one */

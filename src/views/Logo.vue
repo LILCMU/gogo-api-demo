@@ -37,8 +37,11 @@
     <template v-if="mode === 'program'">
       <p class="tabs__hint">Write Logo source, compile it in the cloud, and send the result to the board.</p>
 
-      <h2 class="section-label">Examples</h2>
-      <div class="control-row">
+      <div class="section-row">
+        <h2 class="section-label">Examples</h2>
+        <guide-link to="/reference/logo#control">Loops, tests and other control flow</guide-link>
+      </div>
+      <div class="control-row control-row--examples">
         <button
           v-for="example in examples"
           :key="example.label"
@@ -51,16 +54,73 @@
         <h2 class="section-label">Program</h2>
         <guide-link to="/reference/protocol#logo-download">How a program reaches the board</guide-link>
       </div>
+
+      <!--? on-ramp for someone about to write line one — collapsed so it
+           does not compete with the editor once they already know the syntax -->
+      <details class="syntax-panel">
+        <summary class="syntax-panel__summary">Syntax at a glance</summary>
+        <dl class="syntax-panel__list">
+          <div>
+            <dt><code>to start ... end</code></dt>
+            <dd>A program is a list of procedures; the file's first one runs.</dd>
+          </div>
+          <div>
+            <dt><code>a, on</code></dt>
+            <dd>Selects a port with a prefix ending in a comma, not an argument.</dd>
+          </div>
+          <div>
+            <dt><code>[ ... ]</code></dt>
+            <dd>A bracketed body for loops, tests and watchers.</dd>
+          </div>
+          <div>
+            <dt><code>set counter 0</code></dt>
+            <dd>The only assignment the language has; a bare name reads it back.</dd>
+          </div>
+          <div>
+            <dt><code>; a comment</code></dt>
+            <dd>Ignored by the compiler, runs to the end of the line.</dd>
+          </div>
+          <div>
+            <dt><code>wait 500</code></dt>
+            <dd>Pauses the program before the next statement runs.</dd>
+          </div>
+        </dl>
+        <guide-link to="/reference/logo#shape">The full syntax reference</guide-link>
+      </details>
+
       <span class="field-label">Logo source</span>
       <code-editor v-model="logoProgram" placeholder="Enter the logo program" />
-      <button
-        class="btn btn--primary"
-        @click="downloadLogoProgram()"
-        :disabled="!isBoardReady"
-        :title="actionHint"
-      >
-        Compile and download
-      </button>
+      <!--? Compile stays left; Stop/Run are grouped so the pair moves and
+           right-aligns together (via the group's auto margin) rather than
+           splitting apart when the row wraps at narrow widths -->
+      <div class="control-row control-row--actions">
+        <button
+          class="btn btn--info"
+          @click="downloadLogoProgram()"
+          :disabled="!isBoardReady"
+          :title="actionHint"
+        >
+          Compile and download
+        </button>
+        <div class="control-row__actions-right">
+          <button
+            class="btn btn--danger"
+            @click="stopProgram()"
+            :disabled="!isBoardReady"
+            :title="actionHint"
+          >
+            Stop
+          </button>
+          <button
+            class="btn btn--primary"
+            @click="runProgram()"
+            :disabled="!isBoardReady"
+            :title="actionHint"
+          >
+            Run program
+          </button>
+        </div>
+      </div>
 
       <template v-if="compiledOpcodes">
         <div class="section-row">
@@ -111,7 +171,7 @@
       <span class="field-label">Raw opcodes</span>
       <code-editor v-model="logoOpcodes" mode="application/json" placeholder="[1, 3, 3, 5]" />
       <button
-        class="btn btn--primary"
+        class="btn btn--info"
         @click="sendPastedOpcodes()"
         :disabled="!isBoardReady"
         :title="actionHint"
@@ -147,12 +207,44 @@ import CodeEditor from "@/components/CodeEditor.vue";
 
 const EXAMPLES = [
   {
-    label: "Beep every second",
-    program: "to start\n  forever [\n    beep\n    wait 1000\n  ]\nend",
+    label: "Blink",
+    program:
+      "to start\n  forever [\n    bgcolor 0      ; hue 0 to 255, 0 is red\n    wait 500\n    bgcolor 160    ; 160 is blue\n    wait 500\n  ]\nend",
   },
   {
-    label: "Beep three times",
-    program: "to start\n  repeat 3 [\n    beep\n    wait 100\n  ]\n  show 99\nend",
+    label: "Motor and direction",
+    program:
+      "to start\n  output12, setpower 60    ; power 0 to 100\n  output12, thisway\n  output12, onfor 1000\n  output12, thatway\n  output12, onfor 1000\nend",
+  },
+  {
+    label: "Servo sweep",
+    program:
+      "to start\n  set angle 0\n  repeat 7 [\n    servo1, seth angle\n    set angle angle + 30\n    wait 200\n  ]\nend",
+  },
+  {
+    label: "Sensor threshold",
+    program:
+      "to start\n  forever [\n    if readsensor 1 > 500 [\n      beep\n      wait 300\n    ]\n  ]\nend",
+  },
+  {
+    label: "Counter and procedure",
+    program:
+      "to start\n  set count 0\n  repeat 3 [\n    set count count + 1\n    beeps count\n  ]\nend\n\nto beeps :times\n  repeat times [ beep wait 200 ]\nend",
+  },
+  {
+    label: "Display and sound",
+    program:
+      'to start\n  cls\n  textpos 0 0\n  show "Hello"\n  ; note takes beats, not milliseconds\n  note 60 1\n  note 64 1\n  note 67 2\nend',
+  },
+  {
+    label: "Broadcast",
+    program:
+      '; broadcast goes through the cloud broker, so this needs WiFi to do anything\nto start\n  setbroadcastchannel 1\n  whenreceivebroadcast "blink" [ bgcolor 96 wait 300 bgcolor 0 ]\n  forever [\n    broadcast "blink"\n    wait 1000\n  ]\nend',
+  },
+  {
+    label: "Log to datalog",
+    program:
+      'to start\n  forever [\n    offlinerecord readsensor 1 "light"\n    wait 1000\n  ]\nend',
   },
 ];
 
@@ -353,6 +445,28 @@ export default {
       }
     },
 
+    //* Run and Stop act on whatever is already stored on the board, not on
+    //* the editor content or this session's download state
+    runProgram: async function () {
+      if (!this.requireBoard()) return;
+      try {
+        await this.send({ category: CATEGORY.CONTROL, command: CMD.LOGO_CONTROL, params: [1] });
+        this.reportAction("Program running.", false);
+      } catch (error) {
+        this.reportAction(error.message, true);
+      }
+    },
+
+    stopProgram: async function () {
+      if (!this.requireBoard()) return;
+      try {
+        await this.send({ category: CATEGORY.CONTROL, command: CMD.LOGO_CONTROL, params: [0] });
+        this.reportAction("Program stopped.", false);
+      } catch (error) {
+        this.reportAction(error.message, true);
+      }
+    },
+
     downloadLogoProgram: function () {
       if (!this.requireBoard()) return;
       if (!this.logoProgram) {
@@ -421,6 +535,22 @@ export default {
 </script>
 
 <style scoped>
+/*? eight chips overrun the row well before .control-row's own 640px wrap
+    kicks in, and every example has to stay clickable, so this row wraps at
+    any width rather than scrolling sideways */
+.control-row--examples { flex-wrap: wrap; }
+
+/*? the group's auto margin absorbs the row's free space, pushing Stop and
+    Run program to the right edge as one unit so they stay adjacent even
+    when the row wraps; wrap keeps Compile and download from forcing
+    horizontal scroll at narrow widths */
+.control-row--actions { flex-wrap: wrap; }
+.control-row__actions-right {
+  display: flex;
+  gap: var(--gap);
+  margin-left: auto;
+}
+
 .field-label {
   display: block;
   margin-bottom: 5px;
@@ -485,5 +615,52 @@ export default {
   margin: 0;
   font-size: 13px;
   color: var(--muted);
+}
+
+.syntax-panel {
+  margin: var(--space-3) 0 var(--space-5);
+  background: var(--sunk-bg);
+  border-radius: var(--radius-card);
+}
+
+.syntax-panel__summary {
+  cursor: pointer;
+  padding: var(--space-3) var(--pad);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gogo-ink);
+}
+
+.syntax-panel__summary::marker { color: var(--gogo-blue); }
+
+.syntax-panel__list {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0 var(--pad) var(--pad);
+}
+
+.syntax-panel__list dt {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--gogo-ink);
+}
+
+.syntax-panel__list dt code {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--card-bg);
+}
+
+.syntax-panel__list dd {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.syntax-panel > .guide-link {
+  margin: 0 var(--pad) var(--pad);
 }
 </style>

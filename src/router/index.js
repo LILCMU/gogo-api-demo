@@ -22,7 +22,7 @@ const router = new VueRouter({
     { path: '/packets', name: 'Packets', component: Packets, meta: { title: 'Packets' } },
     { path: '/reference', redirect: '/reference/protocol' },
     {
-      path: '/reference/:doc(protocol|datalog)',
+      path: '/reference/:doc(protocol|datalog|logo)',
       name: 'Reference',
       component: Reference,
       props: true,

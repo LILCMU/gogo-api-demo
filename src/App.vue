@@ -173,6 +173,12 @@ body {
 
 .btn--primary { background: var(--gogo-green); box-shadow: var(--glow-green); }
 
+/*? the download actions are a different kind of act from Run, so they take the
+    blue rather than sharing --btn--primary's green. Ink on this blue is 4.9:1;
+    white would be 2.65:1, the same failure the header already documents */
+.btn--info { background: var(--gogo-blue); border-color: var(--gogo-blue); box-shadow: var(--glow-blue); }
+.btn--info:hover:not([disabled]) { background: var(--gogo-blue-lit); border-color: var(--gogo-blue-lit); }
+
 .btn--large { min-height: 52px; padding: 0 40px; font-size: 15px; letter-spacing: 0.12em; }
 
 /*? vertical padding alone (not font-size) clears the 36px tablet hit-target

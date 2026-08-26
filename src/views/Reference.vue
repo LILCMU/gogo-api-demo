@@ -8,6 +8,7 @@
     <div class="reference__tabs">
       <router-link class="reference__tab" to="/reference/protocol">Wire protocol</router-link>
       <router-link class="reference__tab" to="/reference/datalog">Offline datalog</router-link>
+      <router-link class="reference__tab" to="/reference/logo">Logo language</router-link>
     </div>
 
     <div class="reference__body">
@@ -16,6 +17,16 @@
       <nav class="reference__toc" aria-label="On this page">
         <p class="reference__toc-title">On this page</p>
         <a v-for="section in content.sections" :key="section.id" :href="'#' + section.id">{{ section.title }}</a>
+
+        <!--? argument kinds appear in every signature on the page, so the key
+             rides along in the sticky column rather than scrolling away -->
+        <p v-if="content.legend" class="reference__toc-title reference__legend-title">Reading a signature</p>
+        <dl v-if="content.legend" class="reference__legend">
+          <template v-for="item in content.legend">
+            <dt :key="item.token + '-t'"><code>{{ item.token }}</code></dt>
+            <dd :key="item.token + '-d'">{{ item.means }}</dd>
+          </template>
+        </dl>
       </nav>
 
       <div class="reference__main">
@@ -42,7 +53,7 @@
               </p>
             </div>
 
-            <div v-else-if="block.type === 'table'" :key="i" class="ref-table-wrap">
+            <div v-else-if="block.type === 'table'" :key="i" :id="block.id" class="ref-table-wrap">
               <table class="ref-table">
                 <thead>
                   <tr>
@@ -51,11 +62,13 @@
                 </thead>
                 <tbody>
                   <tr v-for="(row, r) in block.rows" :key="r">
+                    <!--? a cell is either plain text or { text, to }, which deep-links
+                         to an id further down the page; anything else stays literal -->
                     <td
                       v-for="(cell, c) in row"
                       :key="c"
                       :class="{ 'is-mono': block.mono && block.mono.indexOf(c) !== -1 }"
-                    >{{ cell }}</td>
+                    ><a v-if="cell && cell.to" :href="cell.to">{{ cell.text }}</a><template v-else>{{ cell }}</template></td>
                   </tr>
                 </tbody>
               </table>
@@ -76,6 +89,13 @@
 
             <byte-map v-else-if="block.type === 'bytemap'" :key="i" :size="block.size" :regions="block.regions" />
 
+            <!--? a worked program: block.lines rendered verbatim, with an
+                 optional caption below -->
+            <div v-else-if="block.type === 'codeblock'" :key="i">
+              <pre class="bytes">{{ block.lines.join('\n') }}</pre>
+              <p v-if="block.caption" class="ref-codeblock__caption">{{ block.caption }}</p>
+            </div>
+
             <ol v-else-if="block.type === 'steps'" :key="i" class="ref-steps">
               <li v-for="(item, s) in block.items" :key="s" class="ref-step">
                 <span class="ref-step__n">{{ s + 1 }}</span>
@@ -95,8 +115,9 @@
         </section>
 
         <p class="reference__source">
-          Verified against GoGo Board 7.x firmware. The markdown originals live in
-          <code>docs/protocol.md</code> and <code>docs/offline-datalog.md</code>.
+          Verified against GoGo Board 7.x firmware; the Logo language reference specifically against 3.2.6. The markdown originals live in
+          <code>docs/protocol.md</code>, <code>docs/offline-datalog.md</code> and
+          <code>docs/logo-language.md</code>.
         </p>
       </div>
     </div>
@@ -107,14 +128,15 @@
 import ByteMap from "@/components/ByteMap.vue";
 import protocol from "@/reference/protocol";
 import datalog from "@/reference/datalog";
+import logo from "@/reference/logo";
 
-const DOCS = { protocol: protocol, datalog: datalog };
+const DOCS = { protocol: protocol, datalog: datalog, logo: logo };
 
 export default {
   name: "Reference",
   components: { ByteMap },
   props: {
-    //? constrained to protocol|datalog by the route regex, so no fallback needed
+    //? constrained to protocol|datalog|logo by the route regex, so no fallback needed
     doc: { type: String, required: true },
   },
   computed: {
@@ -157,7 +179,9 @@ export default {
 
 .reference__body { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: var(--space-6); align-items: start; }
 
-.reference__toc { position: sticky; top: var(--space-5); display: flex; flex-direction: column; gap: 1px; }
+/*? the legend pushed this past the fold on short viewports, so it scrolls
+    within itself rather than putting its last rows out of reach */
+.reference__toc { position: sticky; top: var(--space-5); display: flex; flex-direction: column; gap: 1px; max-height: calc(100vh - var(--space-5) * 2); overflow-y: auto; }
 
 .reference__toc-title {
   margin: 0 0 var(--space-2);
@@ -179,6 +203,11 @@ export default {
 }
 
 .reference__toc a:hover { border-left-color: var(--gogo-blue); color: var(--gogo-ink); background: var(--gogo-blue-tint); }
+
+.reference__legend-title { margin: var(--space-4) 0 0; }
+.reference__legend { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px var(--space-2); align-items: baseline; }
+.reference__legend dt { font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--gogo-ink); }
+.reference__legend dd { margin: 0; font-size: 12px; color: var(--muted); }
 
 .reference__main { display: flex; flex-direction: column; gap: var(--space-7); min-width: 0; }
 
@@ -227,6 +256,10 @@ export default {
 /* --- tables ------------------------------------------------ */
 
 .ref-table-wrap { overflow-x: auto; border-radius: var(--radius-card); box-shadow: var(--widget-shadow); }
+/*? an anchored table would otherwise land under the sticky header */
+.ref-table-wrap[id] { scroll-margin-top: var(--space-5); }
+.ref-table a { color: var(--gogo-blue); text-decoration: underline; text-underline-offset: 2px; }
+.ref-codeblock__caption { margin: var(--space-2) 0 0; color: var(--muted); font-size: 13px; }
 
 .ref-table { width: 100%; border-collapse: collapse; background: var(--card-bg); font-size: 13.5px; }
 
@@ -299,9 +332,10 @@ export default {
 
 @media (max-width: 940px) {
   .reference__body { grid-template-columns: 1fr; gap: var(--space-5); }
-  .reference__toc { position: static; flex-direction: row; flex-wrap: wrap; gap: var(--space-2); }
+  .reference__toc { position: static; flex-direction: row; flex-wrap: wrap; gap: var(--space-2); max-height: none; overflow-y: visible; }
   .reference__toc-title { width: 100%; margin: 0; }
   .reference__toc a { border-left: 0; border-radius: var(--radius-pill); background: var(--sunk-bg); padding: 6px 14px; }
+  .reference__legend { width: 100%; }
   .ref-frame { flex-wrap: wrap; }
   .ref-frame__field { flex-basis: 30%; }
 }
