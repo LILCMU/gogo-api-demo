@@ -94,6 +94,18 @@ Every loop and test takes its body as a bracketed block. There is no block-less 
 
 `set NAME n|s` writes a variable and a bare name reads it. Numbers are written plainly, text in double quotes, and a bracketed list is a block rather than a value.
 
+**The left operand decides what `+` means.** With a string on the left, `+` joins and `-` removes the first match. With a number on the left it is arithmetic, and a string on the right is parsed as a number, so an unparsable one counts as 0. Order therefore changes the answer.
+
+| Expression | Result | Why |
+|---|---|---|
+| `"a" + "b"` | `"ab"` | both strings, joined |
+| `"n = " + 5` | `"n = 5.00"` | the number is formatted with two decimals first |
+| `5 + "3"` | `8` | string on the right is read as a number |
+| `5 + "abc"` | `5` | unparsable, so it counts as 0 |
+| `"hello world" - "world"` | `"hello "` | removes the first match |
+| `"cat" = "cat"` | `true` | string equality compares the text |
+| `"apple" > "fig"` | `true` | but the ordering tests compare LENGTH, not alphabet |
+
 Precedence, weakest binding at level 1 and tightest at level 10.
 
 | Level | Operators |
@@ -247,14 +259,49 @@ The argument selects which built-in sensor to read. An index outside this list l
 | `bgcolor n` | statement | CHSV hue 0-255 at full saturation, fills the screen at once |
 | `textstyle n` | statement | font, 0 small 1 large 2 bold. Other values are ignored |
 | `showimage s` | statement | downloads and draws a URL, blocks until the image lands, only paints on the main page |
-| `assetadd n n n n n\|s` | statement | grid x, grid y, length, alignment 0 left 1 right 2 center, then the value |
-| `assetwrite n n\|s` | statement | asset id then value. Ids are assigned by assetadd order starting at 0, an unknown id is ignored |
-| `assetread n` | reporter | returns the stored value for an asset id, empty string if that id was never added |
 | `beep` | statement | the board buzzer |
 | `note n n` | statement | pitch then beats, not milliseconds. One beat is 500 ms at the default tempo, so note 60 200 sounds for 100 seconds. Pitch is 1-based chromatic from C with 12 per octave, 0 is silence |
 | `notetempo n` | statement | beats per minute, default 120, sets how long one beat of note lasts |
 
-**Display assets live in RAM only.** `assetadd` places a fixed field on a grid of 8x16 pixel character cells, not on pixels, and takes the next free id counting from 0. The table is never written to flash, so a reset clears it.
+
+## Building a screen with assets
+
+An asset is a fixed field on the screen that you update by id instead of redrawing text. `show` paints wherever the cursor happens to be, so a changing value leaves the old one behind unless you clear first. An asset owns its slot: writing to it repaints only that slot.
+
+Assets sit on a grid of character cells, not pixels. A cell is 8 by 16 pixels and the screen is 160 by 128, which gives **20 columns and 8 rows**. Coordinates count from 0 at the top left.
+
+| Signature | Kind | Notes |
+|---|---|---|
+| `assetadd n n n n n\|s` | statement | grid x, grid y, length in cells, alignment, then the starting value |
+| `assetwrite n n\|s` | statement | asset id then the new value |
+| `assetread n` | reporter | the current value, empty string if that id was never added |
+
+| Alignment | Meaning |
+|---|---|
+| `0` | left |
+| `1` | right |
+| `2` | centre |
+
+```
+to start
+  ; two labels and two fields beside them
+  assetadd 0 0 6 0 "temp"
+  assetadd 6 0 6 1 0
+  assetadd 0 1 6 0 "light"
+  assetadd 6 1 6 1 0
+  forever [
+    assetwrite 1 readboardsensor 2
+    assetwrite 3 readsensor 1
+    wait 500
+  ]
+end
+```
+
+The four `assetadd` calls take ids 0 to 3 in order, so the two value fields are 1 and 3.
+
+**Nothing tells you an asset id.** `assetadd` returns nothing. Ids are handed out in creation order starting at 0, so you count your own calls to know what to write to later. Writing to an id that was never added is silently ignored, which is what a miscount looks like.
+
+**What else to expect.** The first asset command takes over the screen and clears it. A number value is formatted with two decimals, so 5 shows as 5.00; pass `totext` output if that matters. Writing the value an asset already holds does nothing, so the screen does not flicker. The table lives in RAM, so a reset clears every asset.
 
 ## Lists, text, time
 

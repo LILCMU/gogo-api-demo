@@ -79,6 +79,13 @@
 
             <byte-map v-else-if="block.type === 'bytemap'" :key="i" :size="block.size" :regions="block.regions" />
 
+            <!--? a worked program: block.lines rendered verbatim, with an
+                 optional caption below -->
+            <div v-else-if="block.type === 'codeblock'" :key="i">
+              <pre class="bytes">{{ block.lines.join('\n') }}</pre>
+              <p v-if="block.caption" class="ref-codeblock__caption">{{ block.caption }}</p>
+            </div>
+
             <ol v-else-if="block.type === 'steps'" :key="i" class="ref-steps">
               <li v-for="(item, s) in block.items" :key="s" class="ref-step">
                 <span class="ref-step__n">{{ s + 1 }}</span>
@@ -235,6 +242,7 @@ export default {
 /*? an anchored table would otherwise land under the sticky header */
 .ref-table-wrap[id] { scroll-margin-top: var(--space-5); }
 .ref-table a { color: var(--gogo-blue); text-decoration: underline; text-underline-offset: 2px; }
+.ref-codeblock__caption { margin: var(--space-2) 0 0; color: var(--muted); font-size: 13px; }
 
 .ref-table { width: 100%; border-collapse: collapse; background: var(--card-bg); font-size: 13.5px; }
 

@@ -6,12 +6,12 @@ import doc from './logo.js'
 //? one silently breaks a "to=/reference/logo#..." link elsewhere in the app
 const EXPECTED_SECTION_IDS = [
   'shape', 'ports', 'control', 'values', 'output-cmds',
-  'sensing', 'display-sound', 'data', 'network', 'peripherals', 'firmware-4',
+  'sensing', 'display-sound', 'display-assets', 'data', 'network', 'peripherals', 'firmware-4',
 ]
 
 //? the block types Reference.vue's v-else-if chain actually renders; a block
 //? of any other type would silently render nothing
-const RENDERED_BLOCK_TYPES = ['prose', 'note', 'table', 'frame', 'bytemap', 'steps']
+const RENDERED_BLOCK_TYPES = ['prose', 'note', 'table', 'codeblock', 'frame', 'bytemap', 'steps']
 
 //? words this reference deliberately does not document. Six buckets, in array
 //? order. Everything up to `repcount` has no `case` in the 3.2.6 VM at all, so it
