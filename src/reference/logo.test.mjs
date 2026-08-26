@@ -6,7 +6,7 @@ import doc from './logo.js'
 //? one silently breaks a "to=/reference/logo#..." link elsewhere in the app
 const EXPECTED_SECTION_IDS = [
   'shape', 'ports', 'control', 'values', 'output-cmds',
-  'sensing', 'display-sound', 'data', 'network', 'peripherals',
+  'sensing', 'display-sound', 'data', 'network', 'peripherals', 'firmware-4',
 ]
 
 //? the block types Reference.vue's v-else-if chain actually renders; a block
@@ -31,8 +31,8 @@ const EXCLUDED_WORDS = [
   'usesms', 'sendsms', 'sendmail', 'playsound', 'stopsound', 'screentapped?',
   'newrecordfile', 'showlogplot', 'userfid', 'closerfid', 'rfidbeep', 'readrfid',
   'writerfid', 'rfidtagfound?', 'rfidreaderfound?', 'say', 'key', 'intkey',
-  'clearkeys', 'turnsteppingmotor', 'vernier_slot', 'vernier_slot_unit',
-  'broadcastvalue', 'broadcastwithvalue', 'for', 'foreach', 'repcount',
+  'clearkeys', 'turnsteppingmotor',
+  'broadcastvalue', 'broadcastwithvalue',
   'ledon', 'ledoff', 'setcloudrecordlocal',
   'setpos', 'getpos',
   'play', 'nexttrack', 'prevtrack', 'gototrack', 'erasetracks',
@@ -41,7 +41,17 @@ const EXCLUDED_WORDS = [
   'input5', 'input6', 'input7', 'input8',
   'filteredinput5', 'filteredinput6', 'filteredinput7', 'filteredinput8',
   'handgesture', 'newhandgesture?',
+  'serial', 'newserial?', 'aset', 'aget',
 ]
+
+//? a different contract from EXCLUDED_WORDS. These are implemented on the
+//? firmware development branch and arrive with 4.0, so they are documented,
+//? but only inside the `firmware-4` section. Anywhere else would present them
+//? as usable on 3.2.6, which is the stable firmware this reference describes.
+const FORTHCOMING_WORDS = [
+  'for', 'foreach', 'repcount', 'vernier_slot', 'vernier_slot_unit',
+]
+const FORTHCOMING_SECTION = 'firmware-4'
 
 //? every {code: '...'} run (prose/note) and every mono-flagged table cell —
 //? the module's own markers for "this text is a literal command/token", as
@@ -51,9 +61,10 @@ const EXCLUDED_WORDS = [
 //? outside a larger word (forever, onfor, sendkey, keyboard, ...) — and even
 //? if a future edit added English prose using one of them as a normal word,
 //? plain prose text is never in this pool, only declared code/signature text is.
-function collectCodeStrings (module) {
+function collectCodeStrings (module, filter) {
   const strings = []
   module.sections.forEach((section) => {
+    if (filter && !filter(section)) return
     section.blocks.forEach((block) => {
       if (block.type === 'prose' || block.type === 'note') {
         block.runs.forEach((run) => {
@@ -78,7 +89,7 @@ function escapeRegExp (s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-test('section ids are unique and match the Task 1 order exactly', () => {
+test('section ids are unique and match the documented order exactly', () => {
   const ids = doc.sections.map((s) => s.id)
   assert.deepEqual(ids, EXPECTED_SECTION_IDS)
   assert.equal(new Set(ids).size, ids.length)
@@ -115,5 +126,17 @@ test('no excluded (unimplemented) word appears as a documented command or token'
   EXCLUDED_WORDS.forEach((word) => {
     const pattern = new RegExp(`(?<!\\w)${escapeRegExp(word)}(?!\\w)`)
     assert.equal(pattern.test(haystack), false, `excluded word "${word}" found in a code/signature string`)
+  })
+})
+
+test('a firmware-4 word appears only in the firmware-4 section', () => {
+  const inSection = collectCodeStrings(doc, (s) => s.id === FORTHCOMING_SECTION).join(' ')
+  const elsewhere = collectCodeStrings(doc, (s) => s.id !== FORTHCOMING_SECTION).join(' ')
+  FORTHCOMING_WORDS.forEach((word) => {
+    const pattern = new RegExp(`(?<!\\w)${escapeRegExp(word)}(?!\\w)`)
+    assert.equal(pattern.test(elsewhere), false,
+      `"${word}" needs firmware 4, so it must not appear outside the ${FORTHCOMING_SECTION} section`)
+    assert.equal(pattern.test(inSection), true,
+      `"${word}" is listed as forthcoming but is not documented in the ${FORTHCOMING_SECTION} section`)
   })
 })

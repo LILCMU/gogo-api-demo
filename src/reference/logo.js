@@ -379,15 +379,15 @@ export default {
             ['readfilteredinput n', 'reporter', 'port 1-4, the port\'s last filtered sample'],
             ['filteredinputN', 'reporter', 'N is 1 to 4'],
             ['readfilteredvariable n', 'reporter', 'variable name, returns the filter\'s last output, 0 if no filter is set'],
-            ['readboardsensor n', 'reporter', 'the sensors built into the board, see the index table below'],
+            ['readboardsensor n', 'reporter',
+              { text: 'the sensors built into the board, see the index table', to: '#board-sensor-index' }],
             ['readacceleration n', 'reporter', 'one accelerometer axis'],
             ['readloudness', 'reporter', 'on-board microphone level, the same value the type-0 report carries'],
             ['ir', 'reporter', 'last code received from an infrared remote'],
             ['newir?', 'reporter', 'true while an unread ir code is waiting'],
-            ['serial', 'reporter', ''],
-            ['newserial?', 'reporter', ''],
             ['send n|s', 'statement', 'transmits a number or text out the serial port'],
-            ['boardgesture', 'reporter', 'the current gesture code, see the table below. Reading it does not clear the new-gesture flag'],
+            ['boardgesture', 'reporter',
+              { text: 'the current gesture code, see the table. Reading it does not clear the new-gesture flag', to: '#gesture-codes' }],
             ['newboardgesture?', 'reporter', '1 when a new gesture has been detected since the last read, 0 otherwise. boardgesture clears it'],
             ['timer', 'reporter', 'counts up in milliseconds'],
             ['resett', 'statement', 'zeroes the timer'],
@@ -412,6 +412,7 @@ export default {
         },
         {
           type: 'table',
+          id: 'gesture-codes',
           head: ['Value', 'Gesture', 'Notes'],
           mono: [0],
           rows: [
@@ -431,6 +432,7 @@ export default {
         },
         {
           type: 'table',
+          id: 'board-sensor-index',
           head: ['Index', 'Reads', 'Notes'],
           mono: [0],
           rows: [
@@ -525,8 +527,6 @@ export default {
             ['list_pop_at n n', 'reporter', '0-based, returns the element and removes it, 0 when out of range and the list is left unchanged'],
             ['list_pop_first n', 'reporter', 'returns the first element and removes it, 0 when the list is empty'],
             ['list_pop_last n', 'reporter', 'returns the last element and removes it, 0 when the list is empty'],
-            ['aset NAME n n', 'statement', 'array write'],
-            ['aget NAME n', 'reporter', 'array read'],
           ],
         },
         {
@@ -642,6 +642,48 @@ export default {
             ['releasekey s', 'statement', ''],
             ['sendkeydelay n', 'statement', ''],
             ['getpower n', 'reporter', 'the port must be a literal. An expression is scanned as text, so getpower 1 + 1 silently reads motor 1'],
+          ],
+        },
+      ],
+    },
+
+    {
+      id: 'firmware-4',
+      title: 'Coming in firmware 4',
+      blocks: [
+        {
+          type: 'note',
+          tone: 'warn',
+          title: 'Not available yet',
+          runs: [
+            'The current stable firmware is ',
+            { b: '3.2.6' },
+            ', and everything above runs on it. The commands in this section do not. They compile, ' +
+            'they download, and the board stops at the first one. They are listed here because they ' +
+            'are implemented on the firmware development branch and will arrive with 4.0.',
+          ],
+        },
+        {
+          type: 'table',
+          head: ['Signature', 'Kind', 'Notes'],
+          mono: [0],
+          rows: [
+            ['for NAME [ ... ]', 'statement', 'counted loop. Use repeat until this ships'],
+            ['foreach NAME [ ... ]', 'statement', 'walks a list, binding each element to NAME'],
+            ['repcount', 'reporter', 'the current iteration inside for or repeat'],
+            ['vernier_slot n n', 'reporter', 'slot-addressed Vernier read, alongside the existing vernier_sensor_value'],
+            ['vernier_slot_unit n n', 'reporter', 'the unit string for that slot'],
+          ],
+        },
+        {
+          type: 'prose',
+          runs: [
+            'Firmware 4 also gives procedures their own local scope. Today a parameter and any ',
+            { code: 'set' },
+            ' inside a procedure are global, so two procedures using the same name share it. And ',
+            { code: 'atan' },
+            ' becomes the single-argument form the compiler already emits; on 3.2.6 it is read as a ' +
+            'two-argument atan2 and returns a wrong number.',
           ],
         },
       ],
