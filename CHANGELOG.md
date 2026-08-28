@@ -1,5 +1,48 @@
 # Changelog
 
+## 2.3.0
+
+The HID display commands, documented. `src/gogo/protocol.js` gains six `CMD`
+entries and nothing else, so a project that copied the device service takes an
+additive change or none at all.
+
+### Added
+
+- **Display commands in the protocol reference** (`/reference/protocol`,
+  `docs/protocol.md`). `61` long text, `62` clear screen and `65`–`68`
+  background colour, text colour, text position and text style — the wire
+  contract for all seven, `60` included: the screen takeover with no command to
+  hand the screen back, the 5 s on-device confirmation line and its eight hue
+  names, replace-vs-append between `60` and `61`, the multi-packet separator
+  rule, attribute lifetime, and how malformed parameters degrade.
+- **`SHOW_LONG_TEXT`, `CLEAR_SCREEN`, `SET_BG_COLOR`, `SET_TEXT_COLOR`,
+  `SET_TEXT_POSITION`, `SET_TEXT_STYLE`** in `CMD`, each carrying the note that
+  it needs the test build.
+- **Text coordinates are text-area-relative and unclamped.** `67 0 0` lands
+  6 px in on each side, not against the bezel, and nothing bounds-checks after
+  that — on a 160 × 128 panel, x above `153` or y above `121` puts the text off
+  screen silently. `61`'s wrap column, 13 px / 24 px line advance and bottom
+  stop are written out with it.
+- **A migration table in the Logo reference** for what one program draws on
+  released firmware versus the test build: `cls` filling the background you set
+  instead of white, `textpos` measured from the text area, `show` trimming
+  trailing whitespace before centring.
+- **The unclaimed-display trap.** `bgcolor`, `textcolor`, `textpos`, `textstyle`
+  and `cls` do not claim the display, so the main page repaints over them on its
+  own schedule and re-rolls a random background. A `show` first makes them hold.
+
+### Notes
+
+Commands `61`, `62` and `65`–`68` are implemented on the firmware branch
+`feature/expose-logovm-text-commands-hid`, built as `v4.0.0-hidtext`, and `60`'s
+behaviour changed on the same branch. They are in **no released firmware**. The
+docs mark them by branch and build rather than by version on purpose: a stock
+board and the test build both report `4.0.0`, so the version register cannot
+tell them apart.
+
+Nothing here has been exercised from this app on a board. No view sends the new
+commands — the Packets page builds them by hand.
+
 ## 2.2.0
 
 The Logo language, documented. Nothing in `src/gogo/` changed, so a project that

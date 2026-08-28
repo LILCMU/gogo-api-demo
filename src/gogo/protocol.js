@@ -36,6 +36,14 @@ export const CMD = {
   RELAY_SET_POWER: 19,
   READ_RTC: 51,
   SHOW_TEXT: 60,
+  //? 61, 62 and 65–68 need the firmware `feature/expose-logovm-text-commands-hid`
+  //? test build (v4.0.0-hidtext); a stock 4.0.0 board ignores them
+  SHOW_LONG_TEXT: 61,
+  CLEAR_SCREEN: 62,
+  SET_BG_COLOR: 65,
+  SET_TEXT_COLOR: 66,
+  SET_TEXT_POSITION: 67,
+  SET_TEXT_STYLE: 68,
 }
 
 export const MEMORY_CMD = {

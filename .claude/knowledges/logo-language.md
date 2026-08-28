@@ -211,6 +211,18 @@ document the bare words.
 rainbow that puts 0 at red, 96 at green, 160 at blue. It is the cheapest genuinely visible
 output on a bare board, which is why the Blink example uses it now that `ledon` is gone.
 
+**The display attribute commands do not claim the display, so the main page overwrites
+them.** `show`, `showimage` and the asset commands set the ownership flag; `bgcolor`,
+`textcolor`, `textpos`, `textstyle` and `cls` do not. With the display unclaimed, the
+display task keeps repainting the main page on its own schedule, and that repaint
+re-rolls a random background — so `bgcolor 160 wait 1000 cls` visibly loses its blue
+within a tick. The random background is a deliberate product gimmick, not the bug; the
+bug is the missing claim. Workaround on released firmware: issue a `show` first.
+The firmware branch `feature/expose-logovm-text-commands-hid` makes all five claim it
+themselves, along with five other display changes tabled in `docs/logo-language.md` —
+see the display-commands entry in `.claude/knowledges/demo-webapp-architecture.md` for
+why those are labelled by branch rather than by firmware version.
+
 **`broadcast` is cloud MQTT.** `setbroadcastchannel` / `broadcast` / `whenreceivebroadcast`
 reach `esp_mqtt_client_publish` against `_cloudMQTT` (`gogo-network.cpp:435`). Without WiFi
 they run and do nothing visible. `connectwifi`, however, gates nothing: `NWK_CONNECT_WIFI`

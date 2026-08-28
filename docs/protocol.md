@@ -77,17 +77,59 @@ every `case` in `processCMD()`.
 | 50 | Sync RTC from host | seconds, then `[4]` minutes, `[5]` hours, `[6]` day-of-week, `[7]` day, `[8]` month 1–12, `[9]` year from 2000 | | |
 | 51 | Read RTC → registers 36–42 | | | |
 | 60 | Show short text | NUL-terminated string, up to 60 chars | | |
+| 61 | Show long text † | NUL-terminated string, up to 60 chars | | |
+| 62 | Clear screen † | 0 pixels only, 1 also reset attributes | | |
 | 63 | Show image | URL, up to 60 chars — replies with report type 21 | | |
 | 64 | Get image URL → report type 21 | | | |
+| 65 | Set background colour † | hue 0–255 | | |
+| 66 | Set text colour † | hue 0–255 | | |
+| 67 | Set text position † | x 0–255, from the text-area corner | y 0–255 | |
+| 68 | Set text style † | 0 small, 1 large, 2 bold | | |
 | 100 | Reboot | | | |
 | 250 | Enter bootloader | | | |
 
-**No-ops on 7.x.** These are defined but have no HID handler at all: `1` ping, `5` motor break, `20` set active relay ports, `61` long text, `62` clear screen, `70`–`74` voice recorder, `81`–`83` keyboard, `91` IR send, `200` OTA update, `220` co-MCU hello (an ESP↔Arduino-bridge frame, not host-facing).
+† **Needs a firmware test build.** Commands `61`, `62` and `65`–`68` are implemented on the firmware branch `feature/expose-logovm-text-commands-hid`, built as `v4.0.0-hidtext`. They are in no released firmware — a stock board reporting `4.0.0` ignores them. Command `60` ships on released firmware, but its behaviour changed on the same branch. See [Display commands](#display-commands).
+
+**No-ops on 7.x.** These are defined but have no HID handler at all: `1` ping, `5` motor break, `20` set active relay ports, `70`–`74` voice recorder, `81`–`83` keyboard, `91` IR send, `200` OTA update, `220` co-MCU hello (an ESP↔Arduino-bridge frame, not host-facing).
 
 **Dispatched but inert — commands `10` and `201`.** These are the more dangerous case, because checking the firmware shows a `case` and suggests they work.
 
 - `10` LED control: `CMD_LED_CONTROL` is dispatched, but its body is commented out pending NeoPixel support, so it reads and discards `[3]` and does nothing. There is no NeoPixel command in the host-facing protocol either — no constant, no dispatch case — so there is currently no way to drive any LED over USB HID on 7.x.
 - `201` serial firmware update: dispatched, body commented out, marked DEPRECATED in the source. `RCMD_FIRMWARE_UPDATE_SERIAL` is likewise absent from the event-request switch, so neither route does anything.
+
+### Display commands
+
+Commands `60`, `61`, `62` and `65`–`68` share one set of rules. All seven are fire-and-forget: they reply with nothing over HID, so do not wait for an acknowledgement.
+
+**They take over the screen.** Any of them switches the board to the main page, closes an open on-device menu, and holds the display until the user navigates away with the joystick. There is no "give the screen back" command. `60` used to guard on the page instead — arriving while the child was on Settings or Inputs, it drew nothing at all — and the other six did not exist.
+
+**Confirmation is on the board, not on the wire.** `62` and `65`–`68` have no visible effect of their own, so each writes a line in the footer strip for 5 s: `clear screen`, `bg color: <NAME>`, `text color: <NAME>`, `text pos: <x>,<y>`, `text style: <SMALL|LARGE|BOLD>`. The colour name is the nearest of eight buckets 32 apart — `RED` 0, `ORANGE` 32, `YELLOW` 64, `GREEN` 96, `AQUA` 128, `BLUE` 160, `PURPLE` 192, `PINK` 224, wrapping so 250 reads as `RED`. `60` and `61` draw no confirmation — the text is the confirmation — and wipe a pending one first.
+
+**`60` replaces, `61` appends.**
+
+| | `60` short text | `61` long text |
+|---|---|---|
+| Screen | cleared on every call | never cleared |
+| Layout | one line, centred on the whole screen | word-wrapped, left-aligned, inside a viewport |
+| Cursor | ignored, unless a position was set with `67` | read, advanced, and left mid-line |
+
+`60` clears to the background colour set by `65`, so a chosen background survives it. It centres without insets, so roughly 13 characters at the large style reach the bezel; use `67` + `61` when padding matters.
+
+**Coordinates are relative to the text area, and unclamped.** `67` takes one byte each, so x and y both accept `0`–`255`. The firmware adds the 6-pixel inset itself, so `67 0 0` lands at the text area's top-left corner — panel pixel `(6, 6)` — not against the bezel. Nothing bounds the values after that: the panel is 160 × 128, so x above `153` or y above `121` puts the text off it entirely, silently. The confirmation line reports the raw values you sent, not the offset ones.
+
+The rest of the inset is `61`'s word-wrap, not `67`'s. `61` wraps at panel x `154` and returns to panel x `6`; it advances one line by the glyph height plus 2 — **13 px** at the small and bold styles, **24 px** at large — and it stops the moment the current line's bottom would pass panel y `108`, which keeps it clear of the footer strip. In `67` coordinates that means `61` draws nothing at all from y above `91`, or above `80` at the large style. Text that runs past the bottom is dropped, not scrolled.
+
+Before any `67`, the cursor sits at panel `(0, 0)` — the power-on value, hard against the bezel, and *not* what `67 0 0` gives you. Nothing resets it: not a clear, not page navigation. `62` with `[3] = 1` is the only other command that repositions it, to the same corner `67 0 0` uses.
+
+**Splitting text across packets.** Consecutive `61` packets append where the previous one left the cursor; there is no reassembly buffer and no sequence numbering. The renderer prints leading separators but consumes trailing ones, so carry the space at the **start** of the next packet — send `"hello"` then `" world"`, never `"hello "` then `"world"`. A word split mid-packet rejoins correctly unless its first half lands exactly at the right margin, in which case it breaks across lines with no hyphen.
+
+**Attributes apply to the next draw, not retroactively.** `66`, `67` and `68` change nothing already on screen — set them, then draw. `65` is the exception: a background *is* a draw, so it fills the screen immediately. Style `2` is bold at the **same 6 pt size** as style `0`; only style `1` is larger, and there is no large-bold — text getting smaller when you set bold is correct.
+
+**Attributes persist.** Background colour, text colour, position and style set by `65`–`68` survive later commands and page navigation. Only two things clear them: `62` with `[3] = 1`, and a Logo program stopping. There is no per-attribute reset — no hue clears a text colour, no coordinate clears a position.
+
+**Malformed parameters.** `67` is x then y, in that byte order. `68` silently drops an out-of-range style and changes nothing else. `62` treats any mode byte other than `1` as `0`: the inbound path does not zero the tail of a short report, so a stale byte degrades to pixels-only rather than wiping the attributes.
+
+`65`–`68` call the same firmware routines as Logo's `bgcolor`, `textcolor`, `textpos` and `textstyle`, so the two paths produce identical results — see [logo-language.md](logo-language.md).
 
 ### Category 1 — memory
 

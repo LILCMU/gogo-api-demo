@@ -83,6 +83,27 @@ firmware raises the suppression flag around every stage's send loop, so reports 
 gone for effectively the whole transfer. A client treating it as a heartbeat
 concludes the board died mid-sync.
 
+**The display commands are documented ahead of their firmware.** `docs/protocol.md`
+§Display commands covers 60, 61, 62 and 65–68; `docs/logo-language.md` carries the
+matching Logo migration table. None of it is in released firmware — it lives on the
+gogo-firmware branch `feature/expose-logovm-text-commands-hid`, built as
+`v4.0.0-hidtext`, and **that build reports the same 4.0.0 a stock board reports**, so
+the version register cannot tell a host whether the commands exist. That is why the
+docs name the branch and the build instead of a firmware version. When it ships under a
+real version, the mentions in `docs/protocol.md`, `docs/logo-language.md`,
+`src/reference/protocol.js`, `src/reference/logo.js` and the `CMD` map comment in
+`src/gogo/protocol.js` all move together.
+
+The firmware repo is the source of truth for them, not this one: `.claude/knowledges/`
+`firmware-core.md` (command registry) and `display.md` (rendering) on that branch, with
+`.claude/specs/display-commands-docs-handoff.md` as the audience-facing subset. Its §7
+lists what deliberately stays internal — `DISPLAY_CMD_IN_USE`, the `drawFooterHint()`
+state handling, `LONGTEXT_*` constants, `_ensureDisplayReady()`, opcode numbers. Our
+docs carry the host-observable contract only; mutex ordering, nav-context handling and
+the takeover-clear logic stay over there. `67` / `textpos` coordinates moved twice
+during the work and are now **text-area relative** — the firmware adds the 6-px inset
+itself — so any panel-relative figure in an older note is stale.
+
 **There is no LED on GoGo 7.** Command 10 is dispatched but its firmware handler body is
 commented out, and no NeoPixel command exists in the host-facing protocol. Command 201
 is the same shape. These are more dangerous than the unhandled commands, because
@@ -250,6 +271,11 @@ shrink past its content.
 
 Neither was visible in the source, in lint, or in the build. Drive the built
 app at a narrow viewport before believing a layout is done.
+
+**A firmware version number is not proof of a feature.** The verified board reports
+4.0.0 and has none of the display commands; the test build that has them reports 4.0.0
+too. Before labelling unreleased firmware work by version, check what a stock board
+already reports — otherwise name the branch and the build artifact instead.
 
 **The Logo language itself is documented separately.** See `.claude/knowledges/logo-language.md`
 for what GoGo Board 7 actually runs, the seven ways a command can compile and then do nothing,
