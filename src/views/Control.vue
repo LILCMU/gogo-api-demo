@@ -8,15 +8,6 @@
       </p>
     </div>
 
-    <board-onboarding
-      v-if="!isBoardReady"
-      title="Connect a board to use these controls"
-      last-step="Drive a motor, servo or relay"
-      last-step-note="Every control below writes a real packet to the hardware."
-    >
-      The controls stay disabled while nothing is listening, so nothing is sent into the void.
-    </board-onboarding>
-
     <!--? just the message stays pinned; the frame itself renders inline under
          the control that sent it, where the reader is already looking -->
     <p
@@ -157,12 +148,11 @@ import { CATEGORY, CMD, buildCommand, describeCommand } from "@/gogo/protocol";
 import { trimFrame, LEGEND_LABELS } from "@/utils/wireFrame";
 import ByteDump from "@/components/ByteDump.vue";
 import boardAction from "@/mixins/boardAction";
-import BoardOnboarding from "@/components/BoardOnboarding.vue";
 import GuideLink from "@/components/GuideLink.vue";
 
 export default {
   name: "Control",
-  components: { BoardOnboarding, GuideLink, ByteDump },
+  components: { GuideLink, ByteDump },
   mixins: [boardAction],
   data: function () {
     return {

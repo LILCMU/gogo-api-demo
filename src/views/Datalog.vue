@@ -1,5 +1,5 @@
 <template>
-  <section class="page page--wide">
+  <section class="page">
     <div class="page-head">
       <h1 class="page-title">Datalog</h1>
       <p class="page-lede">
@@ -7,15 +7,6 @@
         each one is a separate packet exchange.
       </p>
     </div>
-
-    <board-onboarding
-      v-if="!isBoardReady"
-      title="Connect a board to read its offline records"
-      last-step="Press Read records"
-      last-step-note="Records are written by a Logo program running offlinerecord while the board is away."
-    >
-      Nothing is read from the board until you ask for it.
-    </board-onboarding>
 
     <div class="section-row">
       <h2 class="section-label">Sync</h2>
@@ -159,7 +150,6 @@ import ProgressBar from "vue-simple-progress";
 import DatePicker from "vue2-datepicker";
 import "vue2-datepicker/index.css";
 import boardAction from "@/mixins/boardAction";
-import BoardOnboarding from "@/components/BoardOnboarding.vue";
 import GuideLink from "@/components/GuideLink.vue";
 
 const STAGES = ["File sizes", "Lookup table", "Records"];
@@ -190,7 +180,6 @@ export default {
     ByteDump,
     ProgressBar,
     DatePicker,
-    BoardOnboarding,
     GuideLink,
   },
   mixins: [boardAction],
