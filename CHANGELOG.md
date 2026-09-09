@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.3.1
+
+Two view-layer consistency fixes. Nothing in `src/gogo/` changed, so a project
+that copied the device service is unaffected.
+
+### Changed
+
+- **The connect prompt shows on Live only.** `BoardOnboarding` repeated the same
+  three-step instructions on Control and Datalog. Live is where a reader lands
+  first, so the panel stays there; the other two pages already signal the
+  disconnected state through their disabled controls and the `actionHint`
+  tooltip.
+- **One page width across all six pages.** `.page--wide` (1180px) and `.page`
+  (1040px) put the pages on two different left edges — Datalog, Packets and
+  Reference started 70px further left than Live, Control and Logo. `.page` is
+  now 1180px everywhere and `.page--wide` is gone, which keeps the room
+  Datalog's chart and Packets' byte dump need. Horizontal padding was never the
+  difference; it was `var(--space-5)` on every page throughout.
+
 ## 2.3.0
 
 The HID display commands, documented. `src/gogo/protocol.js` gains six `CMD`
