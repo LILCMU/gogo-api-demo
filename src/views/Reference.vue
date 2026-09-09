@@ -1,5 +1,5 @@
 <template>
-  <section class="page page--wide reference">
+  <section class="page reference">
     <div class="page-head">
       <h1 class="page-title">{{ content.title }}</h1>
       <p class="page-lede">{{ content.lede }}</p>
