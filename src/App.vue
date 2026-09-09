@@ -53,13 +53,10 @@ body {
 }
 
 .page {
-  max-width: 1040px;
+  max-width: 1180px;
   margin: 0 auto;
   padding: var(--space-6) var(--space-5) var(--space-7);
 }
-
-/*? Datalog's chart and Packets' byte dump both outgrow the reading column */
-.page--wide { max-width: 1180px; }
 
 .page-head {
   display: flex;

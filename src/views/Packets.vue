@@ -1,5 +1,5 @@
 <template>
-  <section class="page page--wide">
+  <section class="page">
     <div class="page-head">
       <h1 class="page-title">Packets</h1>
       <p class="page-lede">
